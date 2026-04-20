@@ -3,7 +3,9 @@ const cors = require('cors');
 const { sendReminder } = require('./emailService');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: 'https://agendafuncional.netlify.app'
+}));
 app.use(express.json());
 
 // Seed in-memory database as Supabase/Docker setup was deferred
