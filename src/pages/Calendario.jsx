@@ -54,9 +54,9 @@ export default function Calendario({ user }) {
   const fetchData = async () => {
     try {
       const [eventsRes, curRes, catRes] = await Promise.all([
-        axios.get('http://localhost:3000/api/compromissos'),
-        axios.get('http://localhost:3000/api/cursos'),
-        axios.get('http://localhost:3000/api/categorias')
+        axios.get('https://projeto-0loe.onrender.com/api/compromissos'),
+        axios.get('https://projeto-0loe.onrender.com/api/cursos'),
+        axios.get('https://projeto-0loe.onrender.com/api/categorias')
       ]);
 
       setCursos(curRes.data);
@@ -135,9 +135,9 @@ export default function Calendario({ user }) {
     };
 
     if (editingId) {
-      await axios.put(`http://localhost:3000/api/compromissos/${editingId}`, payload);
+      await axios.put(`https://projeto-0loe.onrender.com/api/compromissos/${editingId}`, payload);
     } else {
-      await axios.post(`http://localhost:3000/api/compromissos`, payload);
+      await axios.post(`https://projeto-0loe.onrender.com/api/compromissos`, payload);
     }
     
     setModalOpen(false);
@@ -150,14 +150,14 @@ export default function Calendario({ user }) {
       const payload = {
         titulo: titulo + ' (Cópia)', dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao: 'nenhuma'
       };
-      await axios.post(`http://localhost:3000/api/compromissos`, payload);
+      await axios.post(`https://projeto-0loe.onrender.com/api/compromissos`, payload);
       setModalOpen(false);
       fetchData();
   };
 
   const handleDelete = async () => {
     if (!window.confirm("Excluir este compromisso?")) return;
-    await axios.delete(`http://localhost:3000/api/compromissos/${editingId}`);
+    await axios.delete(`https://projeto-0loe.onrender.com/api/compromissos/${editingId}`);
     setModalOpen(false);
     fetchData();
   };
