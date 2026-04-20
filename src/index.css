@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  --color-uvv-blue: #0D234A;
+  --color-uvv-yellow: #F2B200;
+  --color-uvv-light: #111827;
+  --color-uvv-dark: #f8fafc;
+}
+
+@layer base {
+  body {
+    @apply bg-gray-950 text-gray-100 antialiased;
+  }
+}
+
+/* Base FullCalendar Adapters */
+.fc {
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: transparent;
+  --fc-neutral-text-color: #9ca3af;
+  --fc-border-color: #1f2937;
+  --fc-button-text-color: #111827;
+  --fc-button-bg-color: #F2B200;
+  --fc-button-border-color: #F2B200;
+  --fc-button-hover-bg-color: #d19a00;
+  --fc-button-hover-border-color: #d19a00;
+  --fc-button-active-bg-color: #b08200;
+  --fc-button-active-border-color: #b08200;
+}
+
+/* Animations & Transitions */
+.fc-event {
+  animation: fadeIn 300ms ease-in-out;
+  border: none !important;
+  background: transparent !important;
+  margin-bottom: 2px !important;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fc-button {
+  transition: all 0.2s ease !important;
+}
+.fc-button:hover {
+  transform: scale(1.02);
+}
+
+/* Day & Cell Customizations */
+.fc-theme-standard td, .fc-theme-standard th {
+  border-color: #1f2937;
+}
+
+.fc-daygrid-day {
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+.fc-daygrid-day:hover {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Today Cell Highlight */
+.fc-day-today {
+  background-color: rgba(242, 178, 0, 0.04) !important;
+  border: 1px solid rgba(242, 178, 0, 0.3) !important;
+}
+
+/* Numbers & Headers */
+.fc-col-header-cell-cushion {
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+.fc-daygrid-day-number {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  transition: all 0.2s;
+}
+
+/* Today Number Round Highlight */
+.fc-day-today .fc-daygrid-day-number {
+  background-color: #F2B200;
+  color: #111827;
+  font-weight: bold;
+}
+
+.fc-daygrid-day-number:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  text-decoration: none !important;
+}
+
+/* +X Mais link (dayMaxEvents) */
+.fc-daygrid-more-link {
+  color: #F2B200 !important;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+.fc-daygrid-more-link:hover {
+  background-color: rgba(242, 178, 0, 0.1);
+  text-decoration: none !important;
+}
