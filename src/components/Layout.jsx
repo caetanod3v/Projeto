@@ -9,6 +9,7 @@ export default function Layout({ user, onLogout }) {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isNotifOpen, setNotifOpen] = useState(false);
   const [notificacoes, setNotificacoes] = useState([]);
+  const [selectedNotif, setSelectedNotif] = useState(null);
   const notifRef = useRef(null);
 
   // Fecha dropdown se clicar fora
@@ -57,7 +58,8 @@ export default function Layout({ user, onLogout }) {
               titulo: `Em Atraso: "${ev.titulo}" já deveria ter iniciado.`,
               tempoStr: `Atrasado`,
               isLida: false,
-              bgColor: 'bg-red-500'
+              bgColor: 'bg-red-500',
+              eventoRaw: ev
             });
          } else if (hrsDiff > 0 && hrsDiff <= 24) {
             notifsList.push({
@@ -66,7 +68,8 @@ export default function Layout({ user, onLogout }) {
               titulo: `Lembrete: "${ev.titulo}" ocorre em aproximadamente ${Math.ceil(hrsDiff)} hora(s).`,
               tempoStr: 'Em Breve',
               isLida: false,
-              bgColor: 'bg-yellow-500'
+              bgColor: 'bg-yellow-500',
+              eventoRaw: ev
             });
          }
       });
@@ -77,9 +80,7 @@ export default function Layout({ user, onLogout }) {
   const handleNotifClick = (notif) => {
      setNotificacoes(prev => prev.map(n => n.id === notif.id ? {...n, isLida: true} : n));
      setNotifOpen(false);
-     if (notif.eventoId) {
-        navigate('/', { state: { editEventId: notif.eventoId } });
-     }
+     setSelectedNotif(notif);
   };
 
   const lerTodas = () => setNotificacoes(prev => prev.map(n => ({...n, isLida: true})));
@@ -89,6 +90,79 @@ export default function Layout({ user, onLogout }) {
   return (
     <div className="flex h-screen bg-gray-950 text-gray-100 overflow-hidden relative">
       
+      {/* Modal de Detalhes da Notificação */}
+      {selectedNotif && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+           <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md shadow-2xl relative">
+              <button onClick={() => setSelectedNotif(null)} className="absolute top-4 right-4 text-gray-500 hover:text-white"><X size={20} /></button>
+              
+              <div className="flex items-center gap-3 mb-6">
+                 <div className={`w-3 h-3 rounded-full ${selectedNotif.bgColor}`}></div>
+                 <h3 className="text-xl font-bold text-gray-100">{selectedNotif.eventoRaw ? 'Detalhes do Compromisso' : 'Aviso do Sistema'}</h3>
+              </div>
+
+              {selectedNotif.eventoRaw ? (
+                 <div className="space-y-5">
+                    <div>
+                       <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Título do Evento</p>
+                       <p className="text-lg font-semibold text-gray-100">{selectedNotif.eventoRaw.titulo}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 bg-gray-950/50 p-3 rounded-lg border border-gray-800/50">
+                       <div>
+                          <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Início</p>
+                          <p className="text-sm text-gray-300">
+                             {new Date(selectedNotif.eventoRaw.dt_inicio).toLocaleDateString('pt-BR')} às {new Date(selectedNotif.eventoRaw.dt_inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}
+                          </p>
+                       </div>
+                       <div>
+                          <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Término</p>
+                          <p className="text-sm text-gray-300">
+                             {selectedNotif.eventoRaw.dt_fim 
+                                ? `${new Date(selectedNotif.eventoRaw.dt_fim).toLocaleDateString('pt-BR')} às ${new Date(selectedNotif.eventoRaw.dt_fim).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}` 
+                                : 'Não Estipulado'}
+                          </p>
+                       </div>
+                    </div>
+                    <div>
+                       <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Aviso Original</p>
+                       <p className="text-sm text-red-300 bg-red-900/10 p-2 rounded border border-red-500/20">{selectedNotif.titulo}</p>
+                    </div>
+                    <div className="pt-4 flex gap-3 border-t border-gray-800">
+                       <button 
+                         onClick={() => setSelectedNotif(null)}
+                         className="flex-1 bg-gray-800 hover:bg-gray-700 text-white font-semibold py-2 rounded-lg transition-colors border border-gray-700"
+                       >
+                         Fechar
+                       </button>
+                       <button 
+                         onClick={() => {
+                            setSelectedNotif(null);
+                            navigate('/', { state: { editEventId: selectedNotif.eventoId } });
+                         }}
+                         className="flex-1 bg-uvv-yellow hover:bg-yellow-400 text-gray-950 font-bold py-2 rounded-lg transition-colors shadow-lg"
+                       >
+                         Modificar
+                       </button>
+                    </div>
+                 </div>
+              ) : (
+                 <div className="space-y-4">
+                     <p className="text-gray-300 bg-gray-950/50 p-4 rounded-lg border border-gray-800">{selectedNotif.titulo}</p>
+                     <button 
+                      onClick={() => {
+                         setSelectedNotif(null);
+                         navigate('/dashboard');
+                      }}
+                      className="w-full mt-2 bg-uvv-yellow hover:bg-yellow-400 text-gray-950 font-bold py-2 rounded-lg transition-colors shadow-lg"
+                    >
+                      Ir para Meus Compromissos
+                    </button>
+                 </div>
+              )}
+           </div>
+        </div>
+      )}
+
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div 
