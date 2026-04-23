@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { Calendar, LayoutDashboard, LogOut, Menu, X, Bell, BellRing } from 'lucide-react';
 
 export default function Layout({ user, onLogout }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isNotifOpen, setNotifOpen] = useState(false);
+  const [notificacoes, setNotificacoes] = useState([]);
   const notifRef = useRef(null);
 
   // Fecha dropdown se clicar fora
@@ -24,7 +27,64 @@ export default function Layout({ user, onLogout }) {
     setSidebarOpen(false);
   }, [location.pathname]);
 
-  const unreadNotifs = 2; // Mock
+  // Buscar do backend os eventos e gerar notificacoes locais
+  useEffect(() => {
+    axios.get('https://projeto-0loe.onrender.com/api/compromissos').then(res => {
+      const now = new Date();
+      const notifsList = [];
+      const eventos = res.data;
+      
+      const hojeCount = eventos.filter(e => new Date(e.dt_inicio).toLocaleDateString() === now.toLocaleDateString()).length;
+      if (hojeCount > 0) {
+         notifsList.push({
+           id: 'resumo_hoje',
+           titulo: `Resumo Diário: Você tem ${hojeCount} compromisso(s) marcado(s) para hoje.`,
+           tempoStr: 'Agora Mesmo',
+           isLida: false,
+           eventoId: null,
+           bgColor: 'bg-uvv-yellow'
+         });
+      }
+
+      eventos.forEach(ev => {
+         const inicio = new Date(ev.dt_inicio);
+         const hrsDiff = (inicio - now) / (1000 * 60 * 60);
+
+         if (inicio < now && !ev.titulo.toLowerCase().includes('[ok]') && (now - inicio) < 86400000) {
+            notifsList.push({
+              id: `evt_${ev.id}`,
+              eventoId: ev.id,
+              titulo: `Em Atraso: "${ev.titulo}" já deveria ter iniciado.`,
+              tempoStr: `Atrasado`,
+              isLida: false,
+              bgColor: 'bg-red-500'
+            });
+         } else if (hrsDiff > 0 && hrsDiff <= 24) {
+            notifsList.push({
+              id: `evt_${ev.id}`,
+              eventoId: ev.id,
+              titulo: `Lembrete: "${ev.titulo}" ocorre em aproximadamente ${Math.ceil(hrsDiff)} hora(s).`,
+              tempoStr: 'Em Breve',
+              isLida: false,
+              bgColor: 'bg-yellow-500'
+            });
+         }
+      });
+      setNotificacoes(notifsList);
+    }).catch(console.error);
+  }, []);
+
+  const handleNotifClick = (notif) => {
+     setNotificacoes(prev => prev.map(n => n.id === notif.id ? {...n, isLida: true} : n));
+     setNotifOpen(false);
+     if (notif.eventoId) {
+        navigate('/', { state: { editEventId: notif.eventoId } });
+     }
+  };
+
+  const lerTodas = () => setNotificacoes(prev => prev.map(n => ({...n, isLida: true})));
+
+  const unreadNotifsCount = notificacoes.filter(n => !n.isLida).length;
 
   return (
     <div className="flex h-screen bg-gray-950 text-gray-100 overflow-hidden relative">
@@ -99,42 +159,45 @@ export default function Layout({ user, onLogout }) {
                onClick={() => setNotifOpen(!isNotifOpen)} 
                className="p-2 relative text-gray-400 hover:text-white hover:bg-gray-800/80 rounded-full transition-all focus:outline-none"
              >
-               {unreadNotifs > 0 ? <BellRing size={20} className="animate-[wiggle_1s_ease-in-out_infinite] text-uvv-yellow" /> : <Bell size={20} />}
-               {unreadNotifs > 0 && (
+               {unreadNotifsCount > 0 ? <BellRing size={20} className="animate-[wiggle_1s_ease-in-out_infinite] text-uvv-yellow" /> : <Bell size={20} />}
+               {unreadNotifsCount > 0 && (
                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
                )}
              </button>
 
              {/* Dropdown Menu */}
              {isNotifOpen && (
-                <div className="absolute top-full right-0 mt-3 w-72 bg-gray-900 border border-gray-800 shadow-2xl rounded-xl z-50 animate-fade-in-up origin-top-right overflow-hidden">
-                   <div className="px-4 py-3 border-b border-gray-800 bg-gray-950/50 flex justify-between items-center">
+                <div className="absolute top-full right-0 mt-3 w-80 bg-gray-900 border border-gray-800 shadow-2xl rounded-xl z-50 animate-fade-in-up origin-top-right overflow-hidden flex flex-col max-h-[80vh]">
+                   <div className="px-4 py-3 border-b border-gray-800 bg-gray-950/50 flex justify-between items-center shrink-0">
                      <h3 className="font-bold text-gray-100 text-sm">Notificações</h3>
-                     <span className="bg-uvv-yellow text-gray-900 text-[10px] font-bold px-1.5 py-0.5 rounded-sm">{unreadNotifs} Novas</span>
+                     <span className="bg-uvv-yellow text-gray-900 text-[10px] font-bold px-1.5 py-0.5 rounded-sm">{unreadNotifsCount} Novas</span>
                    </div>
-                   <div className="max-h-64 overflow-y-auto w-full">
-                      <div className="px-4 py-3 border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors cursor-pointer">
-                         <div className="flex items-start gap-3">
-                            <div className="w-2 h-2 mt-1.5 bg-red-500 rounded-full shrink-0"></div>
-                            <div>
-                               <p className="text-sm text-gray-200 leading-snug">Resumo Diário: Você tem 2 compromissos importantes hoje.</p>
-                               <p className="text-[10px] text-gray-500 font-medium mt-1 uppercase tracking-widest">Agora Mesmo</p>
+                   
+                   <div className="overflow-y-auto w-full flex-1 min-h-[50px]">
+                      {notificacoes.length === 0 ? (
+                         <div className="p-4 text-center text-gray-500 text-sm">Nada por aqui!</div>
+                      ) : (
+                         notificacoes.map(n => (
+                            <div 
+                               key={n.id} 
+                               onClick={() => handleNotifClick(n)}
+                               className={`px-4 py-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition-colors cursor-pointer flex items-start gap-3 ${n.isLida ? 'opacity-50' : 'bg-gray-800/20'}`}
+                            >
+                               <div className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${n.bgColor}`}></div>
+                               <div>
+                                  <p className={`text-sm leading-snug ${n.isLida ? 'text-gray-400' : 'text-gray-100 font-medium'}`}>{n.titulo}</p>
+                                  <p className="text-[10px] text-gray-500 font-medium mt-1 uppercase tracking-widest">{n.tempoStr}</p>
+                               </div>
                             </div>
-                         </div>
-                      </div>
-                      <div className="px-4 py-3 hover:bg-gray-800/30 transition-colors cursor-pointer">
-                         <div className="flex items-start gap-3">
-                            <div className="w-2 h-2 mt-1.5 bg-yellow-500 rounded-full shrink-0"></div>
-                            <div>
-                               <p className="text-sm text-gray-200 leading-snug">Conselho da Pós Graduação inicia em <span className="font-bold text-gray-100">1 hora</span>.</p>
-                               <p className="text-[10px] text-gray-500 font-medium mt-1 uppercase tracking-widest">Há 2 horas</p>
-                            </div>
-                         </div>
-                      </div>
+                         ))
+                      )}
                    </div>
-                   <div className="px-4 py-2 bg-gray-950/80 border-t border-gray-800 text-center">
-                      <button className="text-xs text-blue-400 font-semibold hover:text-blue-300">Marcar todas como lidas</button>
-                   </div>
+
+                   {notificacoes.length > 0 && (
+                      <div className="px-4 py-2 bg-gray-950/80 border-t border-gray-800 text-center shrink-0">
+                         <button onClick={lerTodas} className="text-xs text-blue-400 font-semibold hover:text-blue-300">Marcar todas como lidas</button>
+                      </div>
+                   )}
                 </div>
              )}
           </div>
