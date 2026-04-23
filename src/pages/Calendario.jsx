@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -37,6 +38,7 @@ export default function Calendario({ user }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Tooltip
   const [tooltip, setTooltip] = useState({ open: false, x: 0, y: 0, title: '', timeStr: '', cursoStr: '', catColor: '' });
@@ -87,6 +89,7 @@ export default function Calendario({ user }) {
   }, [location.state, events, navigate]);
 
   const fetchData = async () => {
+    setIsLoading(true);
     try {
       const [eventsRes, curRes, catRes] = await Promise.all([
         axios.get('https://projeto-0loe.onrender.com/api/compromissos'),
@@ -120,6 +123,9 @@ export default function Calendario({ user }) {
       setEvents(formattedEvents);
     } catch (err) {
       console.error(err);
+      toast.error('Ocorreu um erro ao buscar os dados.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -163,8 +169,11 @@ export default function Calendario({ user }) {
   };
 
   const handleSave = async () => {
-    if(!titulo) return alert('Insira um título');
+    if(!titulo) return toast.error('Insira um título para o compromisso');
     
+    // Toast Loading 
+    const toastId = toast.loading('Salvando compromisso...');
+
     const inicioISO = new Date(`${selectedDate}T${horaInicio}:00`).toISOString();
     const fimISO = new Date(`${selectedDate}T${horaFim}:00`).toISOString();
 
@@ -172,32 +181,49 @@ export default function Calendario({ user }) {
       titulo, dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao
     };
 
-    if (editingId) {
-      await axios.put(`https://projeto-0loe.onrender.com/api/compromissos/${editingId}`, payload);
-    } else {
-      await axios.post(`https://projeto-0loe.onrender.com/api/compromissos`, payload);
+    try {
+      if (editingId) {
+        await axios.put(`https://projeto-0loe.onrender.com/api/compromissos/${editingId}`, payload);
+      } else {
+        await axios.post(`https://projeto-0loe.onrender.com/api/compromissos`, payload);
+      }
+      toast.success('Compromisso salvo com sucesso!', { id: toastId });
+      setModalOpen(false);
+      fetchData(); 
+    } catch (err) {
+       console.error(err);
+       toast.error('Falha ao salvar evento.', { id: toastId });
     }
-    
-    setModalOpen(false);
-    fetchData(); 
   };
 
   const handleDuplicate = async () => {
-      const inicioISO = new Date(`${selectedDate}T${horaInicio}:00`).toISOString();
-      const fimISO = new Date(`${selectedDate}T${horaFim}:00`).toISOString();
-      const payload = {
-        titulo: titulo + ' (Cópia)', dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao
-      };
-      await axios.post(`https://projeto-0loe.onrender.com/api/compromissos`, payload);
-      setModalOpen(false);
-      fetchData();
+      const toastId = toast.loading('Duplicando compromisso...');
+      try {
+        const inicioISO = new Date(`${selectedDate}T${horaInicio}:00`).toISOString();
+        const fimISO = new Date(`${selectedDate}T${horaFim}:00`).toISOString();
+        const payload = {
+          titulo: titulo + ' (Cópia)', dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao
+        };
+        await axios.post(`https://projeto-0loe.onrender.com/api/compromissos`, payload);
+        toast.success('Compromisso duplicado!', { id: toastId });
+        setModalOpen(false);
+        fetchData();
+      } catch (err) {
+        toast.error('Erro ao duplicar.', { id: toastId });
+      }
   };
 
   const handleDelete = async () => {
     if (!window.confirm("Excluir este compromisso?")) return;
-    await axios.delete(`https://projeto-0loe.onrender.com/api/compromissos/${editingId}`);
-    setModalOpen(false);
-    fetchData();
+    const toastId = toast.loading('Excluindo...');
+    try {
+       await axios.delete(`https://projeto-0loe.onrender.com/api/compromissos/${editingId}`);
+       toast.success('Excluído com sucesso.', { id: toastId });
+       setModalOpen(false);
+       fetchData();
+    } catch(err) {
+       toast.error('Erro ao excluir evento.', { id: toastId });
+    }
   };
 
   // Customização de Renderização de Evento (Visão Mês e Múltiplos Formatos)
@@ -243,6 +269,15 @@ export default function Calendario({ user }) {
   return (
     <div className="bg-gray-900 p-6 rounded-xl shadow-lg border border-gray-800 animate-fade-in relative z-0">
       
+      {isLoading && (
+        <div className="absolute inset-0 z-50 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center rounded-xl">
+           <div className="flex flex-col items-center gap-3">
+              <div className="w-10 h-10 border-4 border-uvv-blue border-t-uvv-yellow rounded-full animate-spin"></div>
+              <span className="text-gray-300 font-medium">Carregando Calendário...</span>
+           </div>
+        </div>
+      )}
+
       {/* Container FullCalendar */}
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}

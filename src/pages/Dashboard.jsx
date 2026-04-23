@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Download, Search, CheckCircle2, Trash2, Edit, Calendar as CalendarIcon, Clock, AlertTriangle, Users, CalendarDays } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { Download, Search, CheckCircle2, Trash2, Edit, Calendar as CalendarIcon, Clock, AlertTriangle, Users, CalendarDays, CalendarX } from 'lucide-react';
 import axios from 'axios';
 import { isToday, isTomorrow, differenceInHours, differenceInDays, formatDistanceToNow, format, isSameWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -32,6 +33,7 @@ export default function Dashboard({ user }) {
    const [stats, setStats] = useState({ total: 0, hojeCount: 0, atrasadosCount: 0, proximoEvt: null });
    const [searchTerm, setSearchTerm] = useState('');
    const [filterChip, setFilterChip] = useState('Todos');
+   const [isLoading, setIsLoading] = useState(true);
 
    useEffect(() => {
       fetchData();
@@ -122,6 +124,9 @@ export default function Dashboard({ user }) {
 
       } catch (err) {
          console.error(err);
+         toast.error("Ocorreu um erro ao listar os dados.");
+      } finally {
+         setIsLoading(false);
       }
    };
 
@@ -155,20 +160,28 @@ export default function Dashboard({ user }) {
    });
 
    const handleAction = async (ev, action) => {
-      // Funcionalidade Mock - interage visualmente com o evento
       let payload = {};
-      if (action === 'delete') {
-         if (!window.confirm("Deseja realmente remover?")) return;
-         await axios.delete(`https://projeto-0loe.onrender.com/api/compromissos/${ev.id}`);
-      } else if (action === 'complete') {
-         payload = { titulo: ev.titulo + ' [OK]' };
-         await axios.put(`https://projeto-0loe.onrender.com/api/compromissos/${ev.id}`, payload);
+      const tid = toast.loading('Processando...');
+      try {
+         if (action === 'delete') {
+            if (!window.confirm("Deseja realmente remover?")) { toast.dismiss(tid); return; }
+            await axios.delete(`https://projeto-0loe.onrender.com/api/compromissos/${ev.id}`);
+            toast.success("Compromisso removido.", { id: tid });
+         } else if (action === 'complete') {
+            payload = { titulo: ev.titulo + ' [OK]' };
+            await axios.put(`https://projeto-0loe.onrender.com/api/compromissos/${ev.id}`, payload);
+            toast.success("Maravilha! Você concluiu um compromisso.", { id: tid });
+         }
+         fetchData();
+      } catch(e) {
+         toast.error("Falha ao processar ação.", { id: tid });
       }
-      fetchData();
    };
 
    const handleExportCSV = () => {
-      if (filtered.length === 0) return alert('Nenhum evento na lista atual para exportar.');
+      if (filtered.length === 0) return toast.error('Nenhum evento na lista para exportar.');
+      
+      const tid = toast.loading('Gerando relatório...');
       
       const headers = ['Título', 'Data Inicio', 'Data Fim', 'Categoria', 'Curso', 'Status'];
       const rows = filtered.map(ev => {
@@ -191,6 +204,7 @@ export default function Dashboard({ user }) {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      toast.success('Download iniciado!', { id: tid });
    };
 
    return (
@@ -264,8 +278,18 @@ export default function Dashboard({ user }) {
             </div>
 
             {/* Listas Agrupadas Dinâmicas */}
-            <div className="p-2 md:p-6 space-y-8 bg-gray-950/20">
-               {Object.keys(grouped).map(groupName => {
+            <div className="p-2 md:p-6 space-y-8 bg-gray-950/20 relative">
+
+               {isLoading && (
+                  <div className="absolute inset-0 z-10 bg-gray-950/60 backdrop-blur-sm flex py-20 justify-center rounded-xl">
+                     <div className="flex flex-col items-center gap-3">
+                        <div className="w-8 h-8 border-4 border-uvv-blue border-t-uvv-yellow rounded-full animate-spin"></div>
+                        <span className="text-gray-400 font-medium text-sm">Carregando lista...</span>
+                     </div>
+                  </div>
+               )}
+
+               {!isLoading && Object.keys(grouped).map(groupName => {
                   const items = grouped[groupName];
                   if (items.length === 0) return null; // Ignora visualmente os vazios
 
@@ -373,11 +397,11 @@ export default function Dashboard({ user }) {
                   );
                })}
 
-               {filtered.length === 0 && (
+               {!isLoading && filtered.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-20 bg-gray-900 border border-dashed border-gray-800 rounded-xl">
-                     <CalendarDays size={48} className="text-gray-700 mb-4" />
+                     <CalendarX size={48} className="text-gray-700 mb-4" />
                      <h4 className="text-gray-400 font-semibold mb-1">Nada por aqui</h4>
-                     <p className="text-sm text-gray-500">Nenhum compromisso condizente com as regras e filtros atuais.</p>
+                     <p className="text-sm text-gray-500">Nenhum compromisso condizente com as regras e filtros atuais. Que tal um descanso?</p>
                   </div>
                )}
 

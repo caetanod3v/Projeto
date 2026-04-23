@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
 import Calendario from './pages/Calendario';
 import Dashboard from './pages/Dashboard';
@@ -11,6 +12,9 @@ function App() {
 
   return (
     <Router>
+      <Toaster position="top-right" toastOptions={{ 
+         style: { background: '#111827', color: '#fff', border: '1px solid #374151' } 
+      }} />
       <Routes>
         <Route path="/login" element={!user ? <Login onLogin={setUser} /> : <Navigate to="/" />} />
         
