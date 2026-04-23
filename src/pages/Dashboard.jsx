@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Download, Search, CheckCircle2, Trash2, Edit, Calendar as CalendarIcon, Clock, AlertTriangle, Users, CalendarDays } from 'lucide-react';
 import axios from 'axios';
 import { isToday, isTomorrow, differenceInHours, differenceInDays, formatDistanceToNow, format, isSameWeek } from 'date-fns';
@@ -26,6 +27,7 @@ function formatDuration(start, end) {
 }
 
 export default function Dashboard({ user }) {
+   const navigate = useNavigate();
    const [eventos, setEventos] = useState([]);
    const [stats, setStats] = useState({ total: 0, hojeCount: 0, atrasadosCount: 0, proximoEvt: null });
    const [searchTerm, setSearchTerm] = useState('');
@@ -165,6 +167,32 @@ export default function Dashboard({ user }) {
       fetchData();
    };
 
+   const handleExportCSV = () => {
+      if (filtered.length === 0) return alert('Nenhum evento na lista atual para exportar.');
+      
+      const headers = ['Título', 'Data Inicio', 'Data Fim', 'Categoria', 'Curso', 'Status'];
+      const rows = filtered.map(ev => {
+         const titulo = `"${ev.titulo.replace(/"/g, '""')}"`;
+         const dtInicio = format(ev.inicio, 'dd/MM/yyyy HH:mm');
+         const dtFim = format(ev.fim, 'dd/MM/yyyy HH:mm');
+         const cat = `"${ev.catObj.nome}"`;
+         const curso = `"${ev.cursoStr}"`;
+         const status = ev.isCompleted ? 'Concluido' : (ev.isOverdue ? 'Atrasado' : 'Pendente');
+         return [titulo, dtInicio, dtFim, cat, curso, status].join(';');
+      });
+      
+      const csvContent = [headers.join(';'), ...rows].join('\n');
+      const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'relatorio_agenda_uvv.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+   };
+
    return (
       <div className="space-y-6 animate-fade-in">
 
@@ -195,7 +223,7 @@ export default function Dashboard({ user }) {
                <h3 className="text-[14px] font-bold text-gray-100 mb-4 z-10 flex items-center gap-2">
                   <Download size={16} className="text-uvv-yellow" /> Download Relatório Central
                </h3>
-               <button className="z-10 w-full bg-white/10 hover:bg-white/20 text-white font-medium py-2 rounded-lg text-sm transition-all border border-white/5">
+               <button onClick={handleExportCSV} className="z-10 w-full bg-white/10 hover:bg-white/20 text-white font-medium py-2 rounded-lg text-sm transition-all border border-white/5">
                   Exportar Resumo CSV
                </button>
                {/* Efeito abstrato de fundo */}
@@ -321,7 +349,8 @@ export default function Dashboard({ user }) {
                                              <CheckCircle2 size={16} />
                                           </button>
                                           <button
-                                             title="Editar"
+                                             title="Editar (Abre Calendário)"
+                                             onClick={() => navigate('/calendario')}
                                              className="p-2 text-gray-400 hover:text-blue-400 bg-gray-950 rounded-lg border border-gray-800 hover:border-blue-500/50 transition-colors shadow-sm"
                                           >
                                              <Edit size={16} />

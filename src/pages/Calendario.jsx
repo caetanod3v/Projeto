@@ -46,6 +46,7 @@ export default function Calendario({ user }) {
   const [categoriaId, setCategoriaId] = useState('');
   const [horaInicio, setHoraInicio] = useState('12:00');
   const [horaFim, setHoraFim] = useState('13:00');
+  const [repeticao, setRepeticao] = useState('nenhuma');
 
   useEffect(() => {
     fetchData();
@@ -76,6 +77,7 @@ export default function Calendario({ user }) {
              curso_id: ev.curso_id,
              cursoStr: cursosMap[ev.curso_id] || 'Geral',
              categoria_id: ev.categoria_id,
+             repeticao: ev.repeticao,
              catObj: cat,
              tColor: getContrastYIQ(cat.cor_hex)
           }
@@ -94,6 +96,7 @@ export default function Calendario({ user }) {
     setCategoriaId('');
     setHoraInicio('12:00');
     setHoraFim('13:00');
+    setRepeticao('nenhuma');
     setEditingId(null);
     setModalOpen(true);
   };
@@ -121,6 +124,7 @@ export default function Calendario({ user }) {
     
     setCursoId(event.extendedProps.curso_id || '');
     setCategoriaId(event.extendedProps.categoria_id || '');
+    setRepeticao(event.extendedProps.repeticao || 'nenhuma');
     setModalOpen(true);
   };
 
@@ -131,7 +135,7 @@ export default function Calendario({ user }) {
     const fimISO = new Date(`${selectedDate}T${horaFim}:00`).toISOString();
 
     const payload = {
-      titulo, dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao: 'nenhuma'
+      titulo, dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao
     };
 
     if (editingId) {
@@ -148,7 +152,7 @@ export default function Calendario({ user }) {
       const inicioISO = new Date(`${selectedDate}T${horaInicio}:00`).toISOString();
       const fimISO = new Date(`${selectedDate}T${horaFim}:00`).toISOString();
       const payload = {
-        titulo: titulo + ' (Cópia)', dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao: 'nenhuma'
+        titulo: titulo + ' (Cópia)', dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao
       };
       await axios.post(`https://projeto-0loe.onrender.com/api/compromissos`, payload);
       setModalOpen(false);
@@ -310,6 +314,15 @@ export default function Calendario({ user }) {
                     {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Repetição</label>
+                <select value={repeticao} onChange={e=>setRepeticao(e.target.value)} className="w-full border border-gray-700 bg-gray-800 text-gray-100 p-2.5 rounded-lg shadow-sm focus:ring-1 focus:ring-uvv-yellow transition-all outline-none">
+                  <option value="nenhuma">Nenhuma (Evento Único)</option>
+                  <option value="semanal">Semanal</option>
+                  <option value="mensal">Mensal</option>
+                </select>
               </div>
               
               <div className="flex gap-4 mt-8 pt-4 border-t border-gray-800">
