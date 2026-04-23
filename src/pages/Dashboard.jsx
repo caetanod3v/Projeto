@@ -350,7 +350,7 @@ export default function Dashboard({ user }) {
                                           </button>
                                           <button
                                              title="Editar (Abre Calendário)"
-                                             onClick={() => navigate('/calendario')}
+                                             onClick={() => navigate('/', { state: { editEventId: ev.id } })}
                                              className="p-2 text-gray-400 hover:text-blue-400 bg-gray-950 rounded-lg border border-gray-800 hover:border-blue-500/50 transition-colors shadow-sm"
                                           >
                                              <Edit size={16} />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -48,9 +49,42 @@ export default function Calendario({ user }) {
   const [horaFim, setHoraFim] = useState('13:00');
   const [repeticao, setRepeticao] = useState('nenhuma');
 
+  const location = useLocation();
+  const navigate = useNavigate();
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    // Escuta se ocorreu um redirecionamento vindo do dashboard com ordem pra editar
+    if (location.state?.editEventId && events.length > 0) {
+      const ev = events.find(e => e.id === location.state.editEventId);
+      if (ev) {
+        setEditingId(ev.id);
+        setTitulo(ev.title);
+        
+        const start = ev.start;
+        const end = ev.end || new Date(start.getTime() + 3600000);
+        
+        const y = start.getFullYear();
+        const m = String(start.getMonth() + 1).padStart(2, '0');
+        const d = String(start.getDate()).padStart(2, '0');
+        setSelectedDate(`${y}-${m}-${d}`);
+
+        setHoraInicio(format(start, 'HH:mm'));
+        setHoraFim(format(end, 'HH:mm'));
+        
+        setCursoId(ev.extendedProps.curso_id || '');
+        setCategoriaId(ev.extendedProps.categoria_id || '');
+        setRepeticao(ev.extendedProps.repeticao || 'nenhuma');
+        setModalOpen(true);
+
+        // Limpa o state p/ não reabrir o form a cada render
+        navigate('/', { replace: true, state: {} });
+      }
+    }
+  }, [location.state, events, navigate]);
 
   const fetchData = async () => {
     try {
