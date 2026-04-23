@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 import { Calendar, LayoutDashboard, LogOut, Menu, X, Bell, BellRing } from 'lucide-react';
 
 export default function Layout({ user, onLogout }) {
@@ -83,7 +84,18 @@ export default function Layout({ user, onLogout }) {
      setSelectedNotif(notif);
   };
 
-  const lerTodas = () => setNotificacoes(prev => prev.map(n => ({...n, isLida: true})));
+  const lerTodas = () => {
+     setNotificacoes(prev => prev.map(n => ({...n, isLida: true})));
+     toast.success('Todas notificações marcadas como lidas!', {
+        icon: '✅',
+        style: {
+           borderRadius: '10px',
+           background: '#065f46',
+           color: '#fff',
+        },
+     });
+     setNotifOpen(false);
+  };
 
   const unreadNotifsCount = notificacoes.filter(n => !n.isLida).length;
 
