@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { sendReminder } = require('./emailService');
+const { iniciarCronJobs } = require('./cronService');
 
 const app = express();
 app.use(cors({
@@ -107,4 +108,7 @@ const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Backend rodando na porta ${PORT}`);
   console.log(`DB In-Memory Seeded: 3 usuarios, 2 cursos, 5 tags, 10 eventos.`);
+  
+  // Start the background cron jobs for email reminders
+  iniciarCronJobs(compromissos, usuarios);
 });
