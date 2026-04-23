@@ -251,19 +251,37 @@ export default function Layout({ user, onLogout }) {
                       {notificacoes.length === 0 ? (
                          <div className="p-4 text-center text-gray-500 text-sm">Nada por aqui!</div>
                       ) : (
-                         notificacoes.map(n => (
-                            <div 
-                               key={n.id} 
-                               onClick={() => handleNotifClick(n)}
-                               className={`px-4 py-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition-colors cursor-pointer flex items-start gap-3 ${n.isLida ? 'opacity-50' : 'bg-gray-800/20'}`}
-                            >
-                               <div className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${n.bgColor}`}></div>
-                               <div>
-                                  <p className={`text-sm leading-snug ${n.isLida ? 'text-gray-400' : 'text-gray-100 font-medium'}`}>{n.titulo}</p>
-                                  <p className="text-[10px] text-gray-500 font-medium mt-1 uppercase tracking-widest">{n.tempoStr}</p>
+                         notificacoes.map(n => {
+                            if (n.id === 'resumo_hoje') {
+                               return (
+                                 <div 
+                                    key={n.id} 
+                                    onClick={() => handleNotifClick(n)}
+                                    className={`px-4 py-5 border-b border-gray-800/50 hover:bg-uvv-blue/10 transition-colors cursor-pointer flex flex-col items-center justify-center text-center ${n.isLida ? 'opacity-50' : 'bg-gradient-to-b from-gray-900 to-gray-950'}`}
+                                 >
+                                    <div className="w-10 h-10 mb-2 rounded-full flex items-center justify-center bg-gray-950 border border-uvv-yellow shadow-[0_0_10px_rgba(242,178,0,0.1)]">
+                                       <Calendar size={18} className="text-uvv-yellow" />
+                                    </div>
+                                    <p className={`text-sm leading-snug max-w-[200px] ${n.isLida ? 'text-gray-500' : 'text-gray-100 font-bold'}`}>{n.titulo}</p>
+                                    <p className="text-[9px] text-gray-500 font-bold mt-2 uppercase tracking-widest">{n.tempoStr}</p>
+                                 </div>
+                               );
+                            }
+
+                            return (
+                               <div 
+                                  key={n.id} 
+                                  onClick={() => handleNotifClick(n)}
+                                  className={`px-4 py-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition-colors cursor-pointer flex items-start gap-3 ${n.isLida ? 'opacity-50' : 'bg-gray-800/20'}`}
+                               >
+                                  <div className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${n.bgColor}`}></div>
+                                  <div>
+                                     <p className={`text-sm leading-snug ${n.isLida ? 'text-gray-400' : 'text-gray-100 font-medium'}`}>{n.titulo}</p>
+                                     <p className="text-[10px] text-gray-500 font-medium mt-1 uppercase tracking-widest">{n.tempoStr}</p>
+                                  </div>
                                </div>
-                            </div>
-                         ))
+                            );
+                         })
                       )}
                    </div>
 
