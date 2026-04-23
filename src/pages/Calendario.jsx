@@ -61,21 +61,21 @@ export default function Calendario({ user }) {
   useEffect(() => {
     // Escuta se ocorreu um redirecionamento vindo do dashboard com ordem pra editar
     if (location.state?.editEventId && events.length > 0) {
-      const ev = events.find(e => e.id === location.state.editEventId);
+      const ev = events.find(e => e.id == location.state.editEventId);
       if (ev) {
         setEditingId(ev.id);
         setTitulo(ev.title);
         
-        const start = ev.start;
-        const end = ev.end || new Date(start.getTime() + 3600000);
+        const startDateObj = new Date(ev.start);
+        const endDateObj = ev.end ? new Date(ev.end) : new Date(startDateObj.getTime() + 3600000);
         
-        const y = start.getFullYear();
-        const m = String(start.getMonth() + 1).padStart(2, '0');
-        const d = String(start.getDate()).padStart(2, '0');
+        const y = startDateObj.getFullYear();
+        const m = String(startDateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(startDateObj.getDate()).padStart(2, '0');
         setSelectedDate(`${y}-${m}-${d}`);
 
-        setHoraInicio(format(start, 'HH:mm'));
-        setHoraFim(format(end, 'HH:mm'));
+        setHoraInicio(format(startDateObj, 'HH:mm'));
+        setHoraFim(format(endDateObj, 'HH:mm'));
         
         setCursoId(ev.extendedProps.curso_id || '');
         setCategoriaId(ev.extendedProps.categoria_id || '');
