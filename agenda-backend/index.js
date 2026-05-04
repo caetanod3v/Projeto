@@ -5,7 +5,7 @@ const { iniciarCronJobs } = require('./cronService');
 
 const app = express();
 app.use(cors({
-  origin: 'https://agendafuncional.netlify.app'
+  origin: '*' // Permitir localhost para o dev
 }));
 app.use(express.json());
 
@@ -34,28 +34,44 @@ const categorias = [
   { id: 5, nome: 'Outros', cor_hex: '#607D8B' } // GreyBlue
 ];
 
-// Seed 10 events across different weeks
+// Seed realistic academic events across different dates
 const today = new Date();
-for(let i = 1; i <= 10; i++) {
+const fakeEvents = [
+  { daysOffset: -1, hour: 10,  title: "Reunião de Colegiado do Curso" },
+  { daysOffset: 0,  hour: 8,   title: "Fechamento de Pauta Escolar [OK]" },
+  { daysOffset: 0,  hour: 14,  title: "Banca de Defesa de TCC" },
+  { daysOffset: 0,  hour: 18,  title: "Apresentação de Projeto Integrador" },
+  { daysOffset: 1,  hour: 9,   title: "Reunião NDE (Núcleo Docente Estruturante)" },
+  { daysOffset: 1,  hour: 16,  title: "Conselho de Classe" },
+  { daysOffset: 2,  hour: 10,  title: "Oficina de Práticas Pedagógicas" },
+  { daysOffset: 3,  hour: 15,  title: "Alinhamento com Ligas Acadêmicas" },
+  { daysOffset: -2, hour: 11,  title: "Reunião Anual Administrativa [OK]"},
+  { daysOffset: 5,  hour: 14,  title: "Avaliação do MEC - Reunião Prévia" },
+  { daysOffset: 0,  hour: Math.max(9, today.getHours() - 2), title: "Integração de Calouros" } // Evento que sempre ficará "Atrasado/Em andamento" hoje
+];
+
+fakeEvents.forEach((evt, idx) => {
+  const i = idx + 1;
   const dtInicio = new Date(today);
-  dtInicio.setDate(today.getDate() + (i % 5));
-  dtInicio.setHours(9 + (i % 8), 0, 0);
+  dtInicio.setDate(today.getDate() + evt.daysOffset);
+  dtInicio.setHours(evt.hour, 0, 0);
   
   const dtFim = new Date(dtInicio);
-  dtFim.setHours(dtInicio.getHours() + 1);
+  // Duração de 1 a 2 horas
+  dtFim.setHours(dtInicio.getHours() + ((i % 2 === 0) ? 2 : 1));
 
   compromissos.push({
     id: i,
-    titulo: `Compromisso Agendado ${i}`,
-    descricao: `Descrição do evento ${i}`,
+    titulo: evt.title,
+    descricao: `Pauta obrigatória para tratar assuntos acadêmicos. Presença requerida.`,
     dt_inicio: dtInicio.toISOString(),
     dt_fim: dtFim.toISOString(),
-    curso_id: i % 2 === 0 ? 1 : 2,
+    curso_id: (i % 5) + 1,
     categoria_id: (i % 5) + 1,
     usuario_id: (i % 3) + 1,
-    repeticao: i === 1 ? 'semanal' : 'nenhuma'
+    repeticao: 'nenhuma'
   });
-}
+});
 
 // REST Endpoints
 app.get('/api/cursos', (req, res) => res.json(cursos));
