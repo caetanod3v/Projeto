@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { Download, Search, CheckCircle2, Trash2, Edit, Calendar as CalendarIcon, Clock, AlertTriangle, Users, CalendarDays, CalendarX } from 'lucide-react';
-import axios from 'axios';
+import { Download, Search, CheckCircle2, Trash2, Edit, Calendar as CalendarIcon, Clock, AlertTriangle, Users, CalendarDays, CalendarX, Sparkles } from 'lucide-react';
+import api from '../services/api';
 import { isToday, isTomorrow, differenceInHours, differenceInDays, formatDistanceToNow, format, isSameWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -17,6 +17,14 @@ function getContrastYIQ(hexcolor) {
    return (yiq >= 128) ? '#111827' : '#ffffff';
 }
 
+function hexToRgba(hex, alpha) {
+  if (!hex) return `rgba(55, 65, 81, ${alpha})`;
+  const r = parseInt(hex.slice(1, 3), 16),
+        g = parseInt(hex.slice(3, 5), 16),
+        b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function formatDuration(start, end) {
    const hrs = Math.abs(differenceInHours(end, start));
    const m = format(start, 'HH:mm');
@@ -29,6 +37,9 @@ function formatDuration(start, end) {
 
 export default function Dashboard({ user }) {
    const navigate = useNavigate();
+   const [searchParams] = useSearchParams();
+   const categoriaFilter = searchParams.get('categoria');
+
    const [eventos, setEventos] = useState([]);
    const [stats, setStats] = useState({ total: 0, hojeCount: 0, atrasadosCount: 0, proximoEvt: null });
    const [searchTerm, setSearchTerm] = useState('');
@@ -37,14 +48,14 @@ export default function Dashboard({ user }) {
 
    useEffect(() => {
       fetchData();
-   }, []);
+   }, [categoriaFilter]);
 
    const fetchData = async () => {
       try {
          const [evRes, curRes, catRes] = await Promise.all([
-            axios.get('https://projeto-0loe.onrender.com/api/compromissos'),
-            axios.get('https://projeto-0loe.onrender.com/api/cursos'),
-            axios.get('https://projeto-0loe.onrender.com/api/categorias')
+            api.get('/compromissos'),
+            api.get('/cursos'),
+            api.get('/categorias')
          ]);
 
          const cursosMap = {};
@@ -53,8 +64,13 @@ export default function Dashboard({ user }) {
          const catMap = {};
          catRes.data.forEach(c => catMap[c.id] = { nome: c.nome, cor_hex: c.cor_hex });
 
+         let rawEvents = evRes.data;
+         if (categoriaFilter) {
+            rawEvents = rawEvents.filter(ev => String(ev.categoria_id) === String(categoriaFilter));
+         }
+
          const now = new Date();
-         let mapped = evRes.data.map(ev => {
+         let mapped = rawEvents.map(ev => {
             const inicio = new Date(ev.dt_inicio);
             const fim = ev.dt_fim ? new Date(ev.dt_fim) : new Date(inicio.getTime() + 3600000);
 
@@ -86,8 +102,8 @@ export default function Dashboard({ user }) {
 
             // Tempo Relativo
             let relTime = formatDistanceToNow(inicio, { addSuffix: true, locale: ptBR });
-            if (isToday(inicio)) relTime = `Hoje às ${format(inicio, 'HH:mm')}`;
-            else if (isTomorrow(inicio)) relTime = `Amanhã às ${format(inicio, 'HH:mm')}`;
+            if (isToday(inicio)) relTime = `Hoje, ${format(inicio, 'HH:mm')}`;
+            else if (isTomorrow(inicio)) relTime = `Amanhã, ${format(inicio, 'HH:mm')}`;
 
             return {
                ...ev,
@@ -107,7 +123,7 @@ export default function Dashboard({ user }) {
          // Ordenar: Eventos mais distantes do futuro ficam no topo, eventos mais próximos perto de hoje
          mapped.sort((a, b) => b.inicio - a.inicio);
 
-         // Descobrir Exatamente o "Próximo" evento (o mais perto de acontecer, que agora fica no fim da lista do futuro)
+         // Descobrir Exatamente o "Próximo" evento (o mais perto de acontecer)
          const futureEvts = mapped.filter(e => !e.isOverdue && !e.isCompleted && e.inicio > now);
          const nextEvt = futureEvts.length > 0 ? futureEvts[futureEvts.length - 1] : null;
 
@@ -146,7 +162,7 @@ export default function Dashboard({ user }) {
       return true;
    });
 
-   // Separar em Grupos Base para o Layout na ordem em que devem aparecer
+   // Separar em Grupos Base para o Layout
    const grouped = {
       'Hoje': [],
       'Amanhã': [],
@@ -165,11 +181,11 @@ export default function Dashboard({ user }) {
       try {
          if (action === 'delete') {
             if (!window.confirm("Deseja realmente remover?")) { toast.dismiss(tid); return; }
-            await axios.delete(`https://projeto-0loe.onrender.com/api/compromissos/${ev.id}`);
+            await api.delete(`/compromissos/${ev.id}`);
             toast.success("Compromisso removido.", { id: tid });
          } else if (action === 'complete') {
             payload = { titulo: ev.titulo + ' [OK]' };
-            await axios.put(`https://projeto-0loe.onrender.com/api/compromissos/${ev.id}`, payload);
+            await api.put(`/compromissos/${ev.id}`, payload);
             toast.success("Maravilha! Você concluiu um compromisso.", { id: tid });
          }
          fetchData();
@@ -180,9 +196,7 @@ export default function Dashboard({ user }) {
 
    const handleExportCSV = () => {
       if (filtered.length === 0) return toast.error('Nenhum evento na lista para exportar.');
-      
       const tid = toast.loading('Gerando relatório...');
-      
       const headers = ['Título', 'Data Inicio', 'Data Fim', 'Categoria', 'Curso', 'Status'];
       const rows = filtered.map(ev => {
          const titulo = `"${ev.titulo.replace(/"/g, '""')}"`;
@@ -193,14 +207,11 @@ export default function Dashboard({ user }) {
          const status = ev.isCompleted ? 'Concluido' : (ev.isOverdue ? 'Atrasado' : 'Pendente');
          return [titulo, dtInicio, dtFim, cat, curso, status].join(';');
       });
-      
       const csvContent = [headers.join(';'), ...rows].join('\n');
       const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', 'relatorio_agenda_uvv.csv');
-      link.style.visibility = 'hidden';
+      link.href = URL.createObjectURL(blob);
+      link.download = 'relatorio_agenda_uvv.csv';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -208,184 +219,233 @@ export default function Dashboard({ user }) {
    };
 
    return (
-      <div className="space-y-6 animate-fade-in">
+      <div className="min-h-full bg-[#0B1220] p-4 md:p-8 rounded-2xl animate-fade-in text-gray-100 font-sans shadow-2xl">
+         
+         {/* Bloco Inteligente */}
+         <div className="mb-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
+            <div>
+               <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
+                  Meus Compromissos 
+                  <span className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold border border-white/10 text-gray-300">
+                     SaaS View
+                  </span>
+               </h1>
+               <p className="text-gray-400 mt-2 text-sm md:text-base font-medium flex items-center gap-2">
+                  <Sparkles size={16} className="text-uvv-yellow" />
+                  {stats.hojeCount > 0 
+                     ? `Você tem ${stats.hojeCount} compromisso(s) pendente(s) hoje.` 
+                     : "Você não tem compromissos pendentes para hoje!"}
+                  {stats.proximoEvt && (
+                     <span className="hidden md:inline">
+                        O próximo começa em {formatDistanceToNow(stats.proximoEvt.inicio, { locale: ptBR })}.
+                     </span>
+                  )}
+               </p>
+            </div>
+            <button onClick={handleExportCSV} className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-[#111827]/80 hover:bg-[#1f2937] border border-gray-700 hover:border-gray-500 rounded-lg text-sm font-bold transition-all shadow-sm">
+               <Download size={16} /> Relatório
+            </button>
+         </div>
 
-         {/* Micro Resumo Inteligente (SaaS Vibe) */}
-         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="col-span-1 lg:col-span-2 bg-gray-900 border border-gray-800 rounded-xl p-5 flex items-center justify-between shadow-lg">
-               <div className="flex gap-8">
-                  <div>
-                     <p className="text-sm font-medium text-gray-500 uppercase tracking-widest mb-1">Total Hoje</p>
-                     <p className="text-3xl font-bold text-gray-100">{stats.hojeCount}</p>
+         {/* Mini Dashboard KPIs */}
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            
+            {/* KPI: Hoje */}
+            <div className="bg-[#111827]/60 backdrop-blur-md border border-white/5 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-[1.01] transition-transform duration-300">
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                     <CalendarDays size={24} className="text-emerald-400" />
                   </div>
                   <div>
-                     <p className="text-sm font-medium text-gray-500 uppercase tracking-widest mb-1">Atrasados</p>
-                     <p className="text-3xl font-bold text-red-400">{stats.atrasadosCount}</p>
+                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Para Hoje</p>
+                     <p className="text-3xl font-black text-white">{stats.hojeCount}</p>
                   </div>
                </div>
-               {stats.proximoEvt && (
-                  <div className="hidden md:block text-right border-l border-gray-700 pl-6">
-                     <p className="text-xs font-semibold text-uvv-yellow uppercase tracking-widest mb-1 flex items-center justify-end gap-1"><Clock size={12} /> Próximo</p>
-                     <p className="text-base font-bold text-gray-100 truncate w-48">{stats.proximoEvt.titulo}</p>
-                     <p className="text-xs text-gray-400">{stats.proximoEvt.durationStr}</p>
-                  </div>
-               )}
             </div>
 
-            {/* Actions Widget Lateral */}
-            <div className="col-span-1 bg-gradient-to-br from-uvv-blue to-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col justify-center shadow-lg relative overflow-hidden group hover:border-gray-700 transition-colors">
-               <h3 className="text-[14px] font-bold text-gray-100 mb-4 z-10 flex items-center gap-2">
-                  <Download size={16} className="text-uvv-yellow" /> Download Relatório Central
-               </h3>
-               <button onClick={handleExportCSV} className="z-10 w-full bg-white/10 hover:bg-white/20 text-white font-medium py-2 rounded-lg text-sm transition-all border border-white/5">
-                  Exportar Resumo CSV
-               </button>
-               {/* Efeito abstrato de fundo */}
-               <CalendarIcon size={120} className="absolute -right-8 -bottom-8 text-white/[0.02] transform -rotate-12 group-hover:scale-110 transition-transform duration-500" />
+            {/* KPI: Atrasados */}
+            <div className="bg-[#111827]/60 backdrop-blur-md border border-white/5 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-[1.01] transition-transform duration-300 relative overflow-hidden">
+               {stats.atrasadosCount > 0 && (
+                  <div className="absolute top-0 right-0 w-2 h-full bg-red-500/80 shadow-[0_0_15px_rgba(239,68,68,0.5)]"></div>
+               )}
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20">
+                     <AlertTriangle size={24} className="text-red-400" />
+                  </div>
+                  <div>
+                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Atrasados</p>
+                     <p className="text-3xl font-black text-white">{stats.atrasadosCount}</p>
+                  </div>
+               </div>
+            </div>
+
+            {/* KPI: Próximo Evento */}
+            <div 
+               className="col-span-1 border rounded-2xl p-6 shadow-[0_15px_40px_rgba(0,0,0,0.3)] hover:scale-[1.02] transition-all duration-300 relative overflow-hidden group"
+               style={{
+                  background: 'linear-gradient(145deg, #0f172a, #0b1220)',
+                  borderColor: stats.proximoEvt ? 'rgba(242, 178, 0, 0.4)' : 'rgba(255,255,255,0.05)'
+               }}
+            >
+               {stats.proximoEvt && <div className="absolute inset-0 bg-uvv-yellow/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>}
+               <div className="relative z-10 flex flex-col justify-center h-full">
+                  <div className="flex items-center gap-2 mb-2">
+                     <Clock size={16} className={stats.proximoEvt ? "text-uvv-yellow" : "text-gray-600"} />
+                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Próximo na Agenda</p>
+                  </div>
+                  {stats.proximoEvt ? (
+                     <>
+                        <h3 className="text-lg font-bold text-white truncate mb-1">{stats.proximoEvt.titulo}</h3>
+                        <p className="text-sm font-medium text-uvv-yellow/90">{stats.proximoEvt.relTime}</p>
+                     </>
+                  ) : (
+                     <p className="text-gray-500 italic mt-1">Nenhum evento agendado.</p>
+                  )}
+               </div>
             </div>
          </div>
 
-         {/* Painel Principal de Listas */}
-         <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-xl overflow-hidden">
-
-            {/* Superior: Ferramentas (Busca e Filtros Chips) */}
-            <div className="p-5 border-b border-gray-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
-
-               {/* Filtros em Pílulas (SaaS Chips) */}
-               <div className="flex bg-gray-950 p-1 rounded-lg border border-gray-800 overflow-x-auto max-w-full no-scrollbar">
+         {/* Área Principal (Filtros e Timeline) */}
+         <div className="bg-[#0F172A] border border-gray-800/50 rounded-2xl shadow-2xl p-6 md:p-10 relative">
+            
+            {/* Ferramentas */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+               
+               {/* Chips */}
+               <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
                   {chips.map(c => (
                      <button
                         key={c}
                         onClick={() => setFilterChip(c)}
-                        className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all whitespace-nowrap ${filterChip === c ? 'bg-gray-800 text-uvv-yellow shadow-sm' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
+                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap 
+                        ${filterChip === c 
+                           ? 'bg-uvv-yellow text-gray-900 shadow-[0_0_15px_rgba(242,178,0,0.3)]' 
+                           : 'bg-[#111827] border border-gray-800 text-gray-400 hover:text-white hover:bg-gray-800'}`}
                      >
                         {c}
                      </button>
                   ))}
                </div>
 
-               {/* Input Moderno */}
-               <div className="relative w-full md:w-72">
-                  <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+               {/* Busca */}
+               <div className="relative w-full md:w-80 group">
+                  <Search size={18} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 group-focus-within:text-uvv-yellow transition-colors" />
                   <input
                      type="text"
-                     placeholder="Procurar evento..."
+                     placeholder="Buscar por título..."
                      value={searchTerm}
                      onChange={e => setSearchTerm(e.target.value)}
-                     className="w-full bg-gray-950 border border-gray-800 text-gray-100 text-sm rounded-lg pl-9 pr-4 py-2 focus:ring-1 focus:ring-uvv-yellow focus:border-uvv-yellow outline-none transition-all placeholder-gray-600 shadow-inner"
+                     className="w-full bg-[#0B1220] border border-gray-800 text-gray-100 text-sm rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-uvv-yellow/50 focus:border-uvv-yellow/50 transition-all placeholder-gray-600 shadow-inner"
                   />
                </div>
             </div>
 
-            {/* Listas Agrupadas Dinâmicas */}
-            <div className="p-2 md:p-6 space-y-8 bg-gray-950/20 relative">
-
-               {isLoading && (
-                  <div className="absolute inset-0 z-10 bg-gray-950/60 backdrop-blur-sm flex py-20 justify-center rounded-xl">
-                     <div className="flex flex-col items-center gap-3">
-                        <div className="w-8 h-8 border-4 border-uvv-blue border-t-uvv-yellow rounded-full animate-spin"></div>
-                        <span className="text-gray-400 font-medium text-sm">Carregando lista...</span>
-                     </div>
+            {/* Loading Overlay */}
+            {isLoading && (
+               <div className="absolute inset-0 z-10 bg-[#0F172A]/80 backdrop-blur-sm flex py-32 justify-center rounded-2xl">
+                  <div className="flex flex-col items-center gap-4">
+                     <div className="w-10 h-10 border-4 border-[#0B1220] border-t-uvv-yellow rounded-full animate-spin"></div>
+                     <span className="text-gray-400 font-semibold tracking-wide">Carregando timeline...</span>
                   </div>
-               )}
+               </div>
+            )}
 
+            {/* Timeline View */}
+            <div className="space-y-14 relative">
+               
                {!isLoading && Object.keys(grouped).map(groupName => {
                   const items = grouped[groupName];
-                  if (items.length === 0) return null; // Ignora visualmente os vazios
-
-                  let groupIcon = <CalendarDays size={18} className="text-gray-500" />;
-                  if (groupName === 'Hoje') groupIcon = <Clock size={18} className="text-green-500 animate-pulse" />;
-                  if (groupName === 'Atrasados') groupIcon = <AlertTriangle size={18} className="text-red-500" />;
+                  if (items.length === 0) return null;
 
                   return (
-                     <div key={groupName} className="animate-fade-in-up">
-
-                        {/* Divider de Título da Seção */}
-                        <div className="flex items-center gap-3 mb-4 pl-2">
-                           {groupIcon}
-                           <h4 className="text-xs font-bold text-gray-400 uppercase tracking-[0.15em]">{groupName}</h4>
-                           <div className="flex-1 h-px bg-gradient-to-r from-gray-800 to-transparent ml-2"></div>
-                           <span className="text-xs text-gray-600 font-bold bg-gray-900 px-2 rounded-full border border-gray-800">{items.length}</span>
+                     <div key={groupName} className="relative z-0">
+                        
+                        {/* Seção Header */}
+                        <div className="flex items-center gap-4 mb-6">
+                           <h4 className="text-sm font-black text-white uppercase tracking-[0.2em]">{groupName}</h4>
+                           <div className="flex-1 h-px bg-gradient-to-r from-gray-700/50 to-transparent"></div>
+                           <span className="text-xs text-gray-500 font-bold bg-[#111827] px-3 py-1 rounded-full border border-gray-800">{items.length}</span>
                         </div>
 
-                        {/* Cards dos Compromissos */}
-                        <div className="space-y-2">
+                        {/* Eventos da Seção */}
+                        <div className="relative border-l-2 border-gray-800/80 ml-2 md:ml-4 space-y-8 pb-4">
                            {items.map(ev => {
-                              // Classes dinâmicas baseadas na urgência (<24h / <3 dias) e 'PRÓXIMO'
-                              let cardBorderClass = "border-gray-800/80";
-                              let pulseEffect = "";
+                              
+                              let dotColor = "bg-gray-600";
+                              let borderGlow = "border-transparent";
+                              let cardBg = "bg-[#111827]/40 hover:bg-[#111827]/80";
 
                               if (ev.isNext) {
-                                 cardBorderClass = "border-uvv-yellow bg-gray-800/50 shadow-[0_0_15px_rgba(242,178,0,0.06)]";
+                                 dotColor = "bg-uvv-yellow shadow-[0_0_10px_rgba(242,178,0,0.8)]";
+                                 borderGlow = "border-uvv-yellow/40 shadow-[0_0_20px_rgba(242,178,0,0.05)]";
+                                 cardBg = "bg-gradient-to-r from-uvv-yellow/5 to-transparent";
                               } else if (ev.urgency === 'high') {
-                                 cardBorderClass = "border-l-4 border-l-red-500/60 border-t-transparent border-b-transparent border-r-transparent bg-gray-900";
-                                 pulseEffect = "animate-[pulse_4s_cubic-bezier(0.4,0,0.6,1)_infinite]";
+                                 dotColor = "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.6)]";
+                                 borderGlow = "border-red-500/20";
                               } else if (ev.urgency === 'medium') {
-                                 cardBorderClass = "border-l-4 border-l-yellow-600/50 border-t-transparent border-b-transparent border-r-transparent bg-gray-900";
-                              } else {
-                                 cardBorderClass = "border border-gray-800 bg-gray-900";
+                                 dotColor = "bg-yellow-600";
                               }
 
                               return (
-                                 <div key={ev.id} className={`group relative flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl hover:bg-gray-800 transition-all duration-200 overflow-hidden ${cardBorderClass} ${pulseEffect}`}>
+                                 <div key={ev.id} className="relative pl-6 md:pl-10 group">
+                                    
+                                    {/* Bolinha da Timeline */}
+                                    <div className={`absolute -left-[7px] top-4 w-3 h-3 rounded-full border-2 border-[#0F172A] ${dotColor} transition-transform duration-300 group-hover:scale-125 z-10`}></div>
 
-                                    <div className="flex flex-col md:flex-row md:items-center gap-4">
-                                       {/* Time Block Dinâmico */}
-                                       <div className="flex flex-col items-start min-w-[140px]">
-                                          <span className={`text-sm font-bold truncate ${ev.isOverdue ? 'text-red-400' : (ev.isNext ? 'text-uvv-yellow' : 'text-gray-300')}`}>
-                                             {ev.relTime}
-                                          </span>
-                                          <span className="text-xs text-gray-500 font-medium tracking-wide mt-0.5">{ev.durationStr}</span>
-                                       </div>
-
-                                       {/* Titulo e Detalhes */}
-                                       <div className="flex flex-col border-l-2 border-gray-800 pl-4">
-                                          <div className="flex flex-wrap items-center gap-2 mb-1">
-                                             <h5 className={`text-base font-semibold ${ev.isCompleted ? 'text-gray-500 line-through decoration-gray-600' : 'text-gray-100'} transition-colors group-hover:text-white`}>
-                                                {ev.titulo}
-                                             </h5>
-                                             {ev.isNext && (
-                                                <span className="bg-uvv-yellow text-[9px] text-gray-900 font-extrabold px-1.5 py-0.5 rounded-sm tracking-wider uppercase">PRÓXIMO</span>
-                                             )}
+                                    {/* Card do Evento */}
+                                    <div className={`flex flex-col md:flex-row md:items-center justify-between p-5 rounded-2xl border ${borderGlow} ${cardBg} backdrop-blur-sm transition-all duration-300 transform group-hover:-translate-y-1 group-hover:shadow-xl`}>
+                                       
+                                       <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+                                          
+                                          {/* Tempo */}
+                                          <div className="flex flex-col min-w-[130px]">
+                                             <span className={`text-sm font-bold ${ev.isOverdue ? 'text-red-400' : (ev.isNext ? 'text-uvv-yellow' : 'text-gray-300')}`}>
+                                                {ev.relTime}
+                                             </span>
+                                             <span className="text-xs text-gray-500 font-medium mt-1 flex items-center gap-1.5">
+                                                <Clock size={12} /> {ev.durationStr}
+                                             </span>
                                           </div>
-                                          <p className="text-xs text-gray-400 font-medium">{ev.cursoStr}</p>
+
+                                          {/* Título & Subdetalhes */}
+                                          <div className="flex flex-col border-l border-gray-800/50 pl-0 md:pl-6 mt-3 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0">
+                                             <div className="flex items-center gap-3 mb-1.5">
+                                                <h5 className={`text-lg font-bold ${ev.isCompleted ? 'text-gray-600 line-through' : 'text-gray-100'} group-hover:text-white transition-colors`}>
+                                                   {ev.titulo}
+                                                </h5>
+                                                {ev.isNext && (
+                                                   <span className="bg-uvv-yellow/20 text-uvv-yellow text-[10px] font-black px-2 py-0.5 rounded-full border border-uvv-yellow/30 uppercase tracking-widest shadow-sm">
+                                                      Em breve
+                                                   </span>
+                                                )}
+                                             </div>
+                                             <p className="text-xs text-gray-400 font-medium tracking-wide flex items-center gap-2">
+                                                <Users size={12} /> {ev.cursoStr}
+                                             </p>
+                                          </div>
+
                                        </div>
-                                    </div>
 
-                                    {/* Badges e Ações Hover do canto direito */}
-                                    <div className="flex items-center gap-4 mt-3 md:mt-0 max-w-full overflow-hidden">
+                                       {/* Ações & Badges Direita */}
+                                       <div className="flex flex-row-reverse md:flex-row items-center justify-between md:justify-end gap-5 mt-4 md:mt-0 w-full md:w-auto">
+                                          
+                                          {/* Hover Actions (Desktop Only para não poluir mobile) */}
+                                          {(user?.role === 'admin' || user?.role === 'coordenador') && (
+                                             <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 transform md:translate-x-4 md:group-hover:translate-x-0">
+                                                <button onClick={() => handleAction(ev, 'complete')} className="p-2 text-gray-500 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-xl transition-all"><CheckCircle2 size={18} /></button>
+                                                <button onClick={() => navigate('/', { state: { editEventId: ev.id } })} className="p-2 text-gray-500 hover:text-blue-400 hover:bg-blue-400/10 rounded-xl transition-all"><Edit size={18} /></button>
+                                                <button onClick={() => handleAction(ev, 'delete')} className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"><Trash2 size={18} /></button>
+                                             </div>
+                                          )}
 
-                                       {/* Tag Colorida do Tipo de Evento */}
-                                       <span
-                                          style={{ backgroundColor: ev.catObj.cor_hex, color: ev.tColor }}
-                                          className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-white/5 whitespace-nowrap opacity-80 group-hover:opacity-100 transition-opacity"
-                                       >
-                                          {ev.catObj.nome}
-                                       </span>
+                                          {/* Glass Badge */}
+                                          <div 
+                                             style={{ backgroundColor: hexToRgba(ev.catObj.cor_hex, 0.15), borderColor: hexToRgba(ev.catObj.cor_hex, 0.3), color: ev.catObj.cor_hex }}
+                                             className="px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest border backdrop-blur-md shadow-sm whitespace-nowrap"
+                                          >
+                                             {ev.catObj.nome}
+                                          </div>
 
-                                       {/* Hover Actions -> Só aparecem quando paira o mouse (ou toque no tel) */}
-                                       <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 transform md:translate-x-4 md:group-hover:translate-x-0 flex gap-2 shrink-0">
-                                          <button
-                                             title="Concluir"
-                                             onClick={() => handleAction(ev, 'complete')}
-                                             className="p-2 text-gray-400 hover:text-green-400 bg-gray-950 rounded-lg border border-gray-800 hover:border-green-500/50 transition-colors shadow-sm"
-                                          >
-                                             <CheckCircle2 size={16} />
-                                          </button>
-                                          <button
-                                             title="Editar (Abre Calendário)"
-                                             onClick={() => navigate('/', { state: { editEventId: ev.id } })}
-                                             className="p-2 text-gray-400 hover:text-blue-400 bg-gray-950 rounded-lg border border-gray-800 hover:border-blue-500/50 transition-colors shadow-sm"
-                                          >
-                                             <Edit size={16} />
-                                          </button>
-                                          <button
-                                             title="Excluir"
-                                             onClick={() => handleAction(ev, 'delete')}
-                                             className="p-2 text-gray-400 hover:text-red-400 bg-gray-950 rounded-lg border border-gray-800 hover:border-red-500/50 transition-colors shadow-sm"
-                                          >
-                                             <Trash2 size={16} />
-                                          </button>
                                        </div>
 
                                     </div>
@@ -397,11 +457,14 @@ export default function Dashboard({ user }) {
                   );
                })}
 
+               {/* Empty State */}
                {!isLoading && filtered.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-20 bg-gray-900 border border-dashed border-gray-800 rounded-xl">
-                     <CalendarX size={48} className="text-gray-700 mb-4" />
-                     <h4 className="text-gray-400 font-semibold mb-1">Nada por aqui</h4>
-                     <p className="text-sm text-gray-500">Nenhum compromisso condizente com as regras e filtros atuais. Que tal um descanso?</p>
+                  <div className="flex flex-col items-center justify-center py-24 text-center">
+                     <div className="w-20 h-20 bg-gray-800/30 rounded-full flex items-center justify-center mb-6">
+                        <CalendarX size={32} className="text-gray-600" />
+                     </div>
+                     <h4 className="text-xl font-bold text-gray-300 mb-2">Nada Encontrado</h4>
+                     <p className="text-sm text-gray-500 max-w-sm">Nenhum compromisso corresponde aos filtros atuais. Verifique sua busca ou crie um novo evento.</p>
                   </div>
                )}
 
