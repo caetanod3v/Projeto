@@ -42,6 +42,9 @@ export default function Dashboard({ user }) {
 
    const [eventos, setEventos] = useState([]);
    const [pendentes, setPendentes] = useState([]);
+   const [loadingActionId, setLoadingActionId] = useState(null); // formato: 'id-action'
+   const [recusarEvt, setRecusarEvt] = useState(null);
+   const [motivoRecusa, setMotivoRecusa] = useState('');
    const [stats, setStats] = useState({ total: 0, hojeCount: 0, atrasadosCount: 0, proximoEvt: null });
    const [searchTerm, setSearchTerm] = useState('');
    const [filterChip, setFilterChip] = useState('Todos');
@@ -152,7 +155,7 @@ export default function Dashboard({ user }) {
                cursoStr: cursosMap[ev.curso_id] || 'Geral',
                criadorStr: userMap[ev.usuario_id] || 'Secretaria'
             };
-         });
+         }).sort((a, b) => a.inicio - b.inicio);
          
          setPendentes(formattedPendentes);
          setStats({ total: mapped.length, hojeCount, atrasadosCount, proximoEvt: nextEvt });
@@ -200,23 +203,47 @@ export default function Dashboard({ user }) {
       const tid = toast.loading('Processando...');
       try {
          if (action === 'delete') {
-            if (!window.confirm("Deseja realmente remover?")) { toast.dismiss(tid); return; }
             await api.delete(`/compromissos/${ev.id}`);
-            toast.success("Compromisso removido.", { id: tid });
+            toast.success("Compromisso excluído para sempre.", { id: tid });
+            fetchData();
          } else if (action === 'complete') {
-            payload = { titulo: ev.titulo + ' [OK]' };
+            const payload = { ...ev, status: 'concluido' };
             await api.put(`/compromissos/${ev.id}`, payload);
             toast.success("Maravilha! Você concluiu um compromisso.", { id: tid });
+            fetchData();
          } else if (action === 'approve') {
+            setLoadingActionId(`${ev.id}-approve`);
             await api.patch(`/compromissos/${ev.id}/aprovar`);
-            toast.success("Compromisso aprovado com sucesso!", { id: tid });
+            // Otimista: remove dos pendentes e adiciona na agenda
+            setPendentes(prev => prev.filter(p => p.id !== ev.id));
+            setEventos(prev => [{...ev, aprovado: true}, ...prev].sort((a,b) => a.inicio - b.inicio));
+            toast.success("Compromisso aprovado e agendado!", { id: tid });
+            setLoadingActionId(null);
          } else if (action === 'reject') {
-            await api.patch(`/compromissos/${ev.id}/recusar`);
-            toast.success("Compromisso recusado.", { id: tid });
+            setRecusarEvt(ev);
          }
-         fetchData();
       } catch(e) {
-         toast.error("Falha ao processar ação.", { id: tid });
+         console.error(e);
+         toast.error(e.response?.data?.error || "Ocorreu um erro na ação.", { id: tid });
+         setLoadingActionId(null);
+      }
+   };
+
+   const confirmReject = async () => {
+      if (!recusarEvt) return;
+      const tid = toast.loading("Recusando compromisso...");
+      setLoadingActionId(`${recusarEvt.id}-reject`);
+      try {
+         await api.patch(`/compromissos/${recusarEvt.id}/recusar`, { motivo_recusa: motivoRecusa });
+         // Otimista: remove da lista
+         setPendentes(prev => prev.filter(p => p.id !== recusarEvt.id));
+         toast.success("Compromisso recusado e removido.", { id: tid });
+      } catch (e) {
+         toast.error("Erro ao recusar compromisso.", { id: tid });
+      } finally {
+         setLoadingActionId(null);
+         setRecusarEvt(null);
+         setMotivoRecusa('');
       }
    };
 
@@ -381,7 +408,7 @@ export default function Dashboard({ user }) {
                <div className="mb-12">
                   <h2 className="text-xl font-black text-uvv-yellow mb-6 uppercase tracking-widest flex items-center gap-3">
                      <AlertCircle size={24} />
-                     Compromissos aguardando aprovação
+                     Compromissos aguardando aprovação ({pendentes.length})
                   </h2>
                   
                   {pendentes.length === 0 ? (
@@ -389,33 +416,51 @@ export default function Dashboard({ user }) {
                         <p className="text-gray-400 font-medium">Nenhum compromisso aguardando aprovação.</p>
                      </div>
                   ) : (
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto no-scrollbar pr-2 pb-4">
                         {pendentes.map(ev => (
-                           <div key={ev.id} className="relative group bg-[#111827] border border-uvv-yellow/30 rounded-2xl p-5 hover:border-uvv-yellow transition-all duration-300 shadow-lg">
-                              <div className="flex justify-between items-start mb-2">
-                                 <h5 className="text-lg font-bold text-gray-100">{ev.titulo}</h5>
-                                 <span className="bg-uvv-yellow/20 text-uvv-yellow text-[10px] font-black px-2 py-0.5 rounded-full border border-uvv-yellow/30 uppercase tracking-widest">
-                                    Pendente
-                                 </span>
-                              </div>
-                              {ev.descricao && <p className="text-sm text-gray-400 mb-4 line-clamp-2">{ev.descricao}</p>}
-                              
-                              <div className="flex items-center gap-4 text-xs font-semibold text-gray-500 mb-3 flex-wrap">
-                                 <div className="flex items-center gap-1.5"><CalendarIcon size={14} className="text-uvv-yellow" /> {format(ev.inicio, 'dd/MM/yyyy')}</div>
-                                 <div className="flex items-center gap-1.5"><Clock size={14} className="text-uvv-yellow" /> {ev.durationStr}</div>
-                                 <div className="flex items-center gap-1.5"><Users size={14} className="text-uvv-yellow" /> {ev.cursoStr}</div>
-                              </div>
-                              
-                              <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-6 bg-gray-800/30 w-max px-2 py-1 rounded">
-                                 <span className="font-bold text-gray-500">Criado por:</span> {ev.criadorStr}
+                           <div key={ev.id} className="relative group bg-[#111827] border border-uvv-yellow/30 rounded-2xl p-5 hover:border-uvv-yellow transition-all duration-300 shadow-lg flex flex-col justify-between">
+                              <div>
+                                 <div className="flex justify-between items-start mb-2">
+                                    <h5 className="text-lg font-bold text-gray-100">{ev.titulo}</h5>
+                                    <span className="bg-uvv-yellow/10 text-uvv-yellow text-[10px] font-black px-3 py-1 rounded-full border border-uvv-yellow/30 uppercase tracking-widest flex-shrink-0">
+                                       Pendente
+                                    </span>
+                                 </div>
+                                 {ev.descricao && <p className="text-sm text-gray-400 mb-4 line-clamp-2">{ev.descricao}</p>}
+                                 
+                                 <div className="flex items-center gap-4 text-xs font-semibold text-gray-500 mb-3 flex-wrap">
+                                    <div className="flex items-center gap-1.5"><CalendarIcon size={14} className="text-uvv-yellow" /> {format(ev.inicio, 'dd/MM/yyyy')}</div>
+                                    <div className="flex items-center gap-1.5"><Clock size={14} className="text-uvv-yellow" /> {ev.durationStr}</div>
+                                    <div className="flex items-center gap-1.5"><Users size={14} className="text-uvv-yellow" /> {ev.cursoStr}</div>
+                                 </div>
+                                 
+                                 <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-6 bg-gray-800/30 w-max px-3 py-1.5 rounded-lg border border-gray-800">
+                                    <span className="font-bold text-gray-500">Criado por:</span> {ev.criadorStr}
+                                 </div>
                               </div>
 
-                              <div className="flex gap-3 w-full">
-                                 <button onClick={() => handleAction(ev, 'approve')} className="flex-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 font-bold py-2 rounded-xl transition-all flex items-center justify-center gap-2">
-                                    <CheckCircle2 size={16} /> Aprovar
+                              <div className="flex gap-3 w-full mt-auto">
+                                 <button 
+                                    onClick={() => handleAction(ev, 'approve')} 
+                                    disabled={loadingActionId === `${ev.id}-approve` || loadingActionId === `${ev.id}-reject`}
+                                    className="flex-1 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed text-emerald-500 font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
+                                 >
+                                    {loadingActionId === `${ev.id}-approve` ? (
+                                       <div className="w-4 h-4 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+                                    ) : (
+                                       <><CheckCircle2 size={16} /> Aprovar</>
+                                    )}
                                  </button>
-                                 <button onClick={() => handleAction(ev, 'reject')} className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-2 rounded-xl transition-all flex items-center justify-center gap-2">
-                                    <XCircle size={16} /> Recusar
+                                 <button 
+                                    onClick={() => handleAction(ev, 'reject')} 
+                                    disabled={loadingActionId === `${ev.id}-approve` || loadingActionId === `${ev.id}-reject`}
+                                    className="flex-1 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed text-red-500 font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
+                                 >
+                                    {loadingActionId === `${ev.id}-reject` ? (
+                                       <div className="w-4 h-4 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
+                                    ) : (
+                                       <><XCircle size={16} /> Recusar</>
+                                    )}
                                  </button>
                               </div>
                            </div>
@@ -545,6 +590,60 @@ export default function Dashboard({ user }) {
 
             </div>
          </div>
+         {/* Modal de Recusa */}
+         {recusarEvt && (
+            <div className="fixed inset-0 z-50 bg-[#0B1220]/80 backdrop-blur-sm flex items-center justify-center p-4">
+               <div className="bg-[#111827] border border-gray-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+                  
+                  <div className="flex items-center gap-4 mb-6">
+                     <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 flex-shrink-0">
+                        <AlertTriangle size={24} />
+                     </div>
+                     <div>
+                        <h3 className="text-xl font-bold text-white">Recusar Compromisso</h3>
+                        <p className="text-sm text-gray-400 mt-1 line-clamp-1">{recusarEvt.titulo}</p>
+                     </div>
+                  </div>
+
+                  <p className="text-gray-300 text-sm mb-6 leading-relaxed">
+                     Tem certeza que deseja recusar este compromisso? Ele não aparecerá no calendário principal.
+                  </p>
+
+                  <div className="mb-6">
+                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                        Motivo da Recusa (Opcional)
+                     </label>
+                     <textarea
+                        value={motivoRecusa}
+                        onChange={(e) => setMotivoRecusa(e.target.value)}
+                        placeholder="Ex: Faltam informações sobre a sala..."
+                        className="w-full bg-[#0B1220] border border-gray-800 rounded-xl p-4 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors resize-none h-24"
+                     />
+                  </div>
+
+                  <div className="flex gap-3">
+                     <button
+                        onClick={() => { setRecusarEvt(null); setMotivoRecusa(''); }}
+                        className="flex-1 bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 rounded-xl transition-all"
+                     >
+                        Cancelar
+                     </button>
+                     <button
+                        onClick={confirmReject}
+                        disabled={loadingActionId === `${recusarEvt.id}-reject`}
+                        className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all flex justify-center items-center gap-2"
+                     >
+                        {loadingActionId === `${recusarEvt.id}-reject` ? (
+                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                           'Confirmar Recusa'
+                        )}
+                     </button>
+                  </div>
+               </div>
+            </div>
+         )}
       </div>
    );
 }
