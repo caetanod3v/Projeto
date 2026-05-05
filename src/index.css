@@ -232,3 +232,15 @@
 .fc-daygrid-day-bg .fc-bg-event {
   opacity: 0.1 !important;
 }
+
+/* Ocultar scrollbars mas manter o scroll funcionando (Forçado Globalmente) */
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+* {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}
