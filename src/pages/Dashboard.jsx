@@ -111,6 +111,7 @@ export default function Dashboard({ user }) {
                fim,
                isOverdue,
                isCompleted,
+               aprovado: ev.aprovado !== false,
                group,
                urgency,
                relTime,
@@ -187,6 +188,9 @@ export default function Dashboard({ user }) {
             payload = { titulo: ev.titulo + ' [OK]' };
             await api.put(`/compromissos/${ev.id}`, payload);
             toast.success("Maravilha! Você concluiu um compromisso.", { id: tid });
+         } else if (action === 'approve') {
+            await api.put(`/compromissos/${ev.id}/aprovar`);
+            toast.success("Compromisso aprovado com sucesso!", { id: tid });
          }
          fetchData();
       } catch(e) {
@@ -410,10 +414,15 @@ export default function Dashboard({ user }) {
                                           {/* Título & Subdetalhes */}
                                           <div className="flex flex-col border-l border-gray-800/50 pl-0 md:pl-6 mt-3 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0">
                                              <div className="flex items-center gap-3 mb-1.5">
-                                                <h5 className={`text-lg font-bold ${ev.isCompleted ? 'text-gray-600 line-through' : 'text-gray-100'} group-hover:text-white transition-colors`}>
+                                                <h5 className={`text-lg font-bold ${ev.isCompleted ? 'text-gray-600 line-through' : (!ev.aprovado ? 'text-uvv-yellow' : 'text-gray-100')} group-hover:text-white transition-colors`}>
                                                    {ev.titulo}
                                                 </h5>
-                                                {ev.isNext && (
+                                                {!ev.aprovado && (
+                                                   <span className="bg-uvv-yellow/20 text-uvv-yellow text-[10px] font-black px-2 py-0.5 rounded-full border border-uvv-yellow/30 uppercase tracking-widest shadow-sm">
+                                                      Pendente
+                                                   </span>
+                                                )}
+                                                {ev.isNext && ev.aprovado && (
                                                    <span className="bg-uvv-yellow/20 text-uvv-yellow text-[10px] font-black px-2 py-0.5 rounded-full border border-uvv-yellow/30 uppercase tracking-widest shadow-sm">
                                                       Em breve
                                                    </span>
@@ -432,9 +441,14 @@ export default function Dashboard({ user }) {
                                           {/* Hover Actions (Desktop Only para não poluir mobile) */}
                                           {(user?.role === 'admin' || user?.role === 'coordenador') && (
                                              <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 transform md:translate-x-4 md:group-hover:translate-x-0">
-                                                <button onClick={() => handleAction(ev, 'complete')} className="p-2 text-gray-500 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-xl transition-all"><CheckCircle2 size={18} /></button>
-                                                <button onClick={() => navigate('/', { state: { editEventId: ev.id } })} className="p-2 text-gray-500 hover:text-blue-400 hover:bg-blue-400/10 rounded-xl transition-all"><Edit size={18} /></button>
-                                                <button onClick={() => handleAction(ev, 'delete')} className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"><Trash2 size={18} /></button>
+                                                {!ev.aprovado && (
+                                                   <button onClick={() => handleAction(ev, 'approve')} title="Aprovar" className="p-2 text-uvv-yellow hover:text-yellow-600 hover:bg-uvv-yellow/10 rounded-xl transition-all flex items-center justify-center">Aprovar</button>
+                                                )}
+                                                {ev.aprovado && (
+                                                   <button onClick={() => handleAction(ev, 'complete')} title="Concluir" className="p-2 text-gray-500 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-xl transition-all"><CheckCircle2 size={18} /></button>
+                                                )}
+                                                <button onClick={() => navigate('/', { state: { editEventId: ev.id } })} title="Editar" className="p-2 text-gray-500 hover:text-blue-400 hover:bg-blue-400/10 rounded-xl transition-all"><Edit size={18} /></button>
+                                                <button onClick={() => handleAction(ev, 'delete')} title="Excluir" className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"><Trash2 size={18} /></button>
                                              </div>
                                           )}
 

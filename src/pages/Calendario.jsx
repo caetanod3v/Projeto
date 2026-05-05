@@ -162,7 +162,8 @@ export default function Calendario({ user }) {
              repeticao: ev.repeticao,
              catObj: cat,
              tColor: getContrastYIQ(cat.cor_hex),
-             isCompleted
+             isCompleted,
+             aprovado: ev.aprovado !== false // se undefined, assume true (mocks velhos)
           }
         };
       });
@@ -184,8 +185,8 @@ export default function Calendario({ user }) {
   };
 
   const handleDateClick = (arg) => {
-    if (user?.role !== 'admin' && user?.role !== 'coordenador') {
-       toast('Apenas administradores podem criar compromissos.', { icon: '🔒' });
+    if (user?.role !== 'admin' && user?.role !== 'coordenador' && user?.role !== 'secretaria') {
+       toast('Sem permissão para criar compromissos.', { icon: '🔒' });
        return;
     }
     abrirModalCriacao(arg.dateStr);
@@ -221,7 +222,8 @@ export default function Calendario({ user }) {
     const fimISO = new Date(`${selectedDate}T${horaFim}:00`).toISOString();
 
     const payload = {
-      titulo, dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao
+      titulo, dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao,
+      usuario_role: user?.role
     };
 
     try {
@@ -244,7 +246,8 @@ export default function Calendario({ user }) {
         const inicioISO = new Date(`${selectedDate}T${horaInicio}:00`).toISOString();
         const fimISO = new Date(`${selectedDate}T${horaFim}:00`).toISOString();
         const payload = {
-          titulo: titulo + ' (Cópia)', dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao
+          titulo: titulo + ' (Cópia)', dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao,
+          usuario_role: user?.role
         };
         await api.post(`/compromissos`, payload);
         toast.success('Compromisso duplicado!', { id: toastId });
@@ -271,7 +274,7 @@ export default function Calendario({ user }) {
   // Customização de Renderização de Evento Premium SaaS
   const renderEventContent = (eventInfo) => {
      const start = eventInfo.event.start;
-     const { catObj, isCompleted } = eventInfo.event.extendedProps;
+     const { catObj, isCompleted, aprovado } = eventInfo.event.extendedProps;
      
      const now = new Date();
      const isUrgent = (start > now) && ((start - now) < 86400000);
@@ -283,9 +286,14 @@ export default function Calendario({ user }) {
      if (isCompleted) {
         baseBg = `rgba(255,255,255,0.05)`;
         borderStyle = `1px solid rgba(255,255,255,0.1)`;
+     } else if (!aprovado) {
+        borderStyle = `1px dashed rgba(242,178,0,0.8)`;
+        baseBg = `rgba(242,178,0,0.05)`;
      } else if (isUrgent) {
         borderStyle = `1px solid rgba(242,178,0,0.5)`;
      }
+
+     const displayTitle = !aprovado ? `[Pendente] ${eventInfo.event.title}` : eventInfo.event.title;
 
      return (
         <div 
@@ -303,8 +311,8 @@ export default function Calendario({ user }) {
              <span className="text-[10px] font-bold tracking-wider whitespace-nowrap opacity-90" style={{ color: isCompleted ? '#9ca3af' : catObj.cor_hex }}>
                 {format(start, 'HH:mm')}
              </span>
-             <span className={`text-[11px] font-bold truncate ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-100 group-hover:text-white'}`}>
-                {eventInfo.event.title}
+             <span className={`text-[11px] font-bold truncate ${isCompleted ? 'text-gray-500 line-through' : (!aprovado ? 'text-uvv-yellow' : 'text-gray-100 group-hover:text-white')}`}>
+                {displayTitle}
              </span>
            </div>
 
@@ -315,6 +323,7 @@ export default function Calendario({ user }) {
   };
 
   const canEdit = user?.role === 'admin' || user?.role === 'coordenador';
+  const isFormDisabled = editingId ? !canEdit : false;
 
   return (
     <div className="min-h-full animate-fade-in text-gray-100 font-sans p-4 md:p-8">
@@ -420,31 +429,31 @@ export default function Calendario({ user }) {
               <div className="space-y-5">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Título</label>
-                  <input value={titulo} disabled={!canEdit} onChange={e=>setTitulo(e.target.value)} type="text" className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow focus:border-transparent transition-all outline-none disabled:opacity-50" placeholder="Ex: Reunião Pedagógica" />
+                  <input value={titulo} disabled={isFormDisabled} onChange={e=>setTitulo(e.target.value)} type="text" className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow focus:border-transparent transition-all outline-none disabled:opacity-50" placeholder="Ex: Reunião Pedagógica" />
                 </div>
 
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Início</label>
-                    <input type="time" disabled={!canEdit} value={horaInicio} onChange={e=>setHoraInicio(e.target.value)} className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none style-color-scheme-dark disabled:opacity-50" />
+                    <input type="time" disabled={isFormDisabled} value={horaInicio} onChange={e=>setHoraInicio(e.target.value)} className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none style-color-scheme-dark disabled:opacity-50" />
                   </div>
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Fim</label>
-                    <input type="time" disabled={!canEdit} value={horaFim} onChange={e=>setHoraFim(e.target.value)} className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none style-color-scheme-dark disabled:opacity-50" />
+                    <input type="time" disabled={isFormDisabled} value={horaFim} onChange={e=>setHoraFim(e.target.value)} className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none style-color-scheme-dark disabled:opacity-50" />
                   </div>
                 </div>
 
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Curso</label>
-                    <select value={cursoId} disabled={!canEdit} onChange={e=>setCursoId(e.target.value)} className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
+                    <select value={cursoId} disabled={isFormDisabled} onChange={e=>setCursoId(e.target.value)} className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
                       <option value="">Geral</option>
                       {cursos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                     </select>
                   </div>
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Categoria</label>
-                    <select value={categoriaId} disabled={!canEdit} onChange={e=>setCategoriaId(e.target.value)} className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
+                    <select value={categoriaId} disabled={isFormDisabled} onChange={e=>setCategoriaId(e.target.value)} className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
                        <option value="">Nenhuma</option>
                       {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                     </select>
@@ -453,7 +462,7 @@ export default function Calendario({ user }) {
 
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Repetição</label>
-                  <select value={repeticao} disabled={!canEdit} onChange={e=>setRepeticao(e.target.value)} className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
+                  <select value={repeticao} disabled={isFormDisabled} onChange={e=>setRepeticao(e.target.value)} className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
                     <option value="nenhuma">Nenhuma (Evento Único)</option>
                     <option value="semanal">Semanal</option>
                     <option value="mensal">Mensal</option>
@@ -461,8 +470,8 @@ export default function Calendario({ user }) {
                 </div>
                 
                 <div className="flex gap-4 mt-8 pt-6 border-t border-gray-800">
-                  <button onClick={() => setModalOpen(false)} className={`px-4 py-3 bg-gray-800 text-gray-300 font-bold rounded-xl hover:bg-gray-700 transition-all ${canEdit ? 'flex-1' : 'w-full'}`}>Cancelar</button>
-                  {canEdit && <button onClick={handleSave} className="flex-1 px-4 py-3 bg-uvv-yellow text-[#111827] font-black rounded-xl hover:bg-yellow-500 shadow-[0_0_15px_rgba(242,178,0,0.3)] transition-all transform hover:-translate-y-0.5">Salvar</button>}
+                  <button onClick={() => setModalOpen(false)} className={`px-4 py-3 bg-gray-800 text-gray-300 font-bold rounded-xl hover:bg-gray-700 transition-all ${!isFormDisabled ? 'flex-1' : 'w-full'}`}>Cancelar</button>
+                  {!isFormDisabled && <button onClick={handleSave} className="flex-1 px-4 py-3 bg-uvv-yellow text-[#111827] font-black rounded-xl hover:bg-yellow-500 shadow-[0_0_15px_rgba(242,178,0,0.3)] transition-all transform hover:-translate-y-0.5">Salvar</button>}
                 </div>
               </div>
             </div>
