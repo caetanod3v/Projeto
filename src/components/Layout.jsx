@@ -59,7 +59,17 @@ export default function Layout({ user, onLogout }) {
          const catRes = responses[1];
          
          if (responses[2]) {
-            setPendentesCount(responses[2].data.length);
+            const pendentesArr = responses[2].data;
+            setPendentesCount(pendentesArr.length);
+            
+            // Add a special notification for pending approvals
+            if (pendentesArr.length > 0) {
+                notifsList.push({
+                  id: 'pendentes_alert',
+                  titulo: `Ação Necessária: Há ${pendentesArr.length} compromisso(s) aguardando sua aprovação.`,
+                  tempoStr: 'Pendente', isLida: false, eventoId: null, bgColor: 'bg-uvv-yellow'
+                });
+            }
          }
 
          setCategorias(catRes.data);
@@ -215,7 +225,16 @@ export default function Layout({ user, onLogout }) {
               ) : (
                  <div className="space-y-4">
                      <p className="text-gray-300 bg-gray-950/50 p-4 rounded-lg border border-gray-800">{selectedNotif.titulo}</p>
-                     <button onClick={() => { setSelectedNotif(null); navigate('/dashboard'); }} className="w-full mt-2 bg-uvv-yellow hover:bg-yellow-400 text-gray-950 font-bold py-2 rounded-lg transition-colors shadow-lg">Ir para Meus Compromissos</button>
+                     <button onClick={() => { 
+                        setSelectedNotif(null); 
+                        if (selectedNotif.id === 'pendentes_alert') {
+                           navigate('/aprovacoes');
+                        } else {
+                           navigate('/dashboard'); 
+                        }
+                     }} className="w-full mt-2 bg-uvv-yellow hover:bg-yellow-400 text-gray-950 font-bold py-2 rounded-lg transition-colors shadow-lg">
+                        {selectedNotif.id === 'pendentes_alert' ? 'Ir para Aprovações' : 'Ir para Meus Compromissos'}
+                     </button>
                  </div>
               )}
            </div>

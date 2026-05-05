@@ -9,7 +9,12 @@ import Aprovacoes from './pages/Aprovacoes';
 
 function App() {
   // Mock auth state until Supabase is integrated
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+       const saved = localStorage.getItem('usuario_logado');
+       return saved ? JSON.parse(saved) : null;
+    } catch(e) { return null; }
+  });
 
   return (
     <Router>
@@ -17,9 +22,9 @@ function App() {
          style: { background: '#111827', color: '#fff', border: '1px solid #374151' } 
       }} />
       <Routes>
-        <Route path="/login" element={!user ? <Login onLogin={setUser} /> : <Navigate to="/" />} />
+        <Route path="/login" element={!user ? <Login onLogin={u => { setUser(u); localStorage.setItem('usuario_logado', JSON.stringify(u)); }} /> : <Navigate to="/" />} />
         
-        <Route path="/" element={user ? <Layout user={user} onLogout={() => setUser(null)} /> : <Navigate to="/login" />}>
+        <Route path="/" element={user ? <Layout user={user} onLogout={() => { setUser(null); localStorage.removeItem('usuario_logado'); }} /> : <Navigate to="/login" />}>
           <Route index element={<Calendario user={user} />} />
           <Route path="dashboard" element={<Dashboard user={user} />} />
           <Route path="aprovacoes" element={<Aprovacoes user={user} />} />
