@@ -17,6 +17,7 @@ export default function Layout({ user, onLogout }) {
   const notifRef = useRef(null);
 
   const [categorias, setCategorias] = useState([]);
+  const [pendentesCount, setPendentesCount] = useState(0);
   const [analytics, setAnalytics] = useState({
      hojeCount: 0,
      proxHrs: null,
@@ -44,10 +45,22 @@ export default function Layout({ user, onLogout }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-         const [evtRes, catRes] = await Promise.all([
+         const requests = [
             api.get('/compromissos'),
             api.get('/categorias')
-         ]);
+         ];
+
+         if (user?.role === 'coordenador' || user?.role === 'admin') {
+            requests.push(api.get('/compromissos/pendentes'));
+         }
+
+         const responses = await Promise.all(requests);
+         const evtRes = responses[0];
+         const catRes = responses[1];
+         
+         if (responses[2]) {
+            setPendentesCount(responses[2].data.length);
+         }
 
          setCategorias(catRes.data);
 
@@ -270,6 +283,19 @@ export default function Layout({ user, onLogout }) {
                     <LayoutDashboard size={18} className={location.pathname === '/dashboard' ? 'text-uvv-yellow' : 'group-hover:text-gray-300'} />
                     Meus Compromissos
                  </Link>
+                 {(user?.role === 'admin' || user?.role === 'coordenador') && (
+                    <Link to="/aprovacoes" className={`group flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${location.pathname === '/aprovacoes' ? 'bg-white/10 text-white font-semibold shadow-sm border-l-[3px] border-uvv-yellow' : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-[3px] border-transparent'}`}>
+                       <div className="flex items-center gap-3">
+                          <AlertCircle size={18} className={location.pathname === '/aprovacoes' ? 'text-uvv-yellow' : 'group-hover:text-gray-300'} />
+                          Aprovações
+                       </div>
+                       {pendentesCount > 0 && (
+                          <span className="bg-uvv-yellow text-gray-950 text-[10px] font-black px-2 py-0.5 rounded-full">
+                             {pendentesCount}
+                          </span>
+                       )}
+                    </Link>
+                 )}
               </nav>
            </div>
 

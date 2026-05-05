@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import Calendario from './pages/Calendario';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import Aprovacoes from './pages/Aprovacoes';
 
 function App() {
   // Mock auth state until Supabase is integrated
@@ -21,6 +22,7 @@ function App() {
         <Route path="/" element={user ? <Layout user={user} onLogout={() => setUser(null)} /> : <Navigate to="/login" />}>
           <Route index element={<Calendario user={user} />} />
           <Route path="dashboard" element={<Dashboard user={user} />} />
+          <Route path="aprovacoes" element={<Aprovacoes user={user} />} />
         </Route>
       </Routes>
     </Router>
