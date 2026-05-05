@@ -70,7 +70,7 @@ fakeEvents.forEach((evt, idx) => {
     categoria_id: (i % 5) + 1,
     usuario_id: (i % 3) + 1,
     repeticao: 'nenhuma',
-    aprovado: true
+    status: 'aprovado'
   });
 });
 
@@ -80,7 +80,11 @@ app.get('/api/categorias', (req, res) => res.json(categorias));
 app.get('/api/usuarios', (req, res) => res.json(usuarios));
 
 app.get('/api/compromissos', (req, res) => {
-  res.json(compromissos);
+  res.json(compromissos.filter(c => c.status === 'aprovado'));
+});
+
+app.get('/api/compromissos/pendentes', (req, res) => {
+  res.json(compromissos.filter(c => c.status === 'pendente'));
 });
 
 app.post('/api/compromissos', async (req, res) => {
@@ -92,7 +96,7 @@ app.post('/api/compromissos', async (req, res) => {
     id: compromissos.length + 1,
     titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao,
     usuario_id: 1, // mock
-    aprovado: !isSecretaria
+    status: isSecretaria ? 'pendente' : 'aprovado'
   };
   
   compromissos.push(novoCompromisso);
@@ -118,12 +122,21 @@ app.put('/api/compromissos/:id', (req, res) => {
   res.json(compromissos[index]);
 });
 
-app.put('/api/compromissos/:id/aprovar', (req, res) => {
+app.patch('/api/compromissos/:id/aprovar', (req, res) => {
   const id = parseInt(req.params.id);
   const index = compromissos.findIndex(c => c.id === id);
   if (index === -1) return res.status(404).send('Not found');
   
-  compromissos[index].aprovado = true;
+  compromissos[index].status = 'aprovado';
+  res.json(compromissos[index]);
+});
+
+app.patch('/api/compromissos/:id/recusar', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = compromissos.findIndex(c => c.id === id);
+  if (index === -1) return res.status(404).send('Not found');
+  
+  compromissos[index].status = 'recusado';
   res.json(compromissos[index]);
 });
 
