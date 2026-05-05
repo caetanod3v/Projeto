@@ -69,7 +69,8 @@ fakeEvents.forEach((evt, idx) => {
     curso_id: (i % 5) + 1,
     categoria_id: (i % 5) + 1,
     usuario_id: (i % 3) + 1,
-    repeticao: 'nenhuma'
+    repeticao: 'nenhuma',
+    aprovado: true
   });
 });
 
@@ -83,12 +84,15 @@ app.get('/api/compromissos', (req, res) => {
 });
 
 app.post('/api/compromissos', async (req, res) => {
-  const { titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao } = req.body;
+  const { titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao, usuario_role } = req.body;
+  
+  const isSecretaria = usuario_role === 'secretaria';
   
   const novoCompromisso = {
     id: compromissos.length + 1,
     titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao,
-    usuario_id: 1 // mock
+    usuario_id: 1, // mock
+    aprovado: !isSecretaria
   };
   
   compromissos.push(novoCompromisso);
@@ -111,6 +115,15 @@ app.put('/api/compromissos/:id', (req, res) => {
   if (index === -1) return res.status(404).send('Not found');
   
   compromissos[index] = { ...compromissos[index], ...req.body };
+  res.json(compromissos[index]);
+});
+
+app.put('/api/compromissos/:id/aprovar', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = compromissos.findIndex(c => c.id === id);
+  if (index === -1) return res.status(404).send('Not found');
+  
+  compromissos[index].aprovado = true;
   res.json(compromissos[index]);
 });
 
