@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { Download, Search, CheckCircle2, Trash2, Edit, Calendar as CalendarIcon, Clock, AlertTriangle, Users, CalendarDays, CalendarX, Sparkles } from 'lucide-react';
+import { Download, Search, CheckCircle2, Trash2, Edit, Calendar as CalendarIcon, Clock, AlertTriangle, Users, CalendarDays, CalendarX, Sparkles, XCircle, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 import { isToday, isTomorrow, differenceInHours, differenceInDays, formatDistanceToNow, format, isSameWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -41,6 +41,7 @@ export default function Dashboard({ user }) {
    const categoriaFilter = searchParams.get('categoria');
 
    const [eventos, setEventos] = useState([]);
+   const [pendentes, setPendentes] = useState([]);
    const [stats, setStats] = useState({ total: 0, hojeCount: 0, atrasadosCount: 0, proximoEvt: null });
    const [searchTerm, setSearchTerm] = useState('');
    const [filterChip, setFilterChip] = useState('Todos');
@@ -52,10 +53,11 @@ export default function Dashboard({ user }) {
 
    const fetchData = async () => {
       try {
-         const [evRes, curRes, catRes] = await Promise.all([
+         const [evRes, curRes, catRes, pendRes] = await Promise.all([
             api.get('/compromissos'),
             api.get('/cursos'),
-            api.get('/categorias')
+            api.get('/categorias'),
+            api.get('/compromissos/pendentes')
          ]);
 
          const cursosMap = {};
@@ -111,7 +113,6 @@ export default function Dashboard({ user }) {
                fim,
                isOverdue,
                isCompleted,
-               aprovado: ev.aprovado !== false,
                group,
                urgency,
                relTime,
@@ -136,6 +137,19 @@ export default function Dashboard({ user }) {
          const hojeCount = mapped.filter(e => isToday(e.inicio) && !e.isOverdue && !e.isCompleted).length;
          const atrasadosCount = mapped.filter(e => e.isOverdue).length;
 
+         const formattedPendentes = pendRes.data.map(ev => {
+            const inicio = new Date(ev.dt_inicio);
+            const fim = ev.dt_fim ? new Date(ev.dt_fim) : new Date(inicio.getTime() + 3600000);
+            return {
+               ...ev,
+               inicio, fim,
+               durationStr: formatDuration(inicio, fim),
+               catObj: catMap[ev.categoria_id] || { nome: 'Geral', cor_hex: '#374151' },
+               cursoStr: cursosMap[ev.curso_id] || 'Geral'
+            };
+         });
+         
+         setPendentes(formattedPendentes);
          setStats({ total: mapped.length, hojeCount, atrasadosCount, proximoEvt: nextEvt });
          setEventos(mapped);
 
@@ -189,8 +203,11 @@ export default function Dashboard({ user }) {
             await api.put(`/compromissos/${ev.id}`, payload);
             toast.success("Maravilha! Você concluiu um compromisso.", { id: tid });
          } else if (action === 'approve') {
-            await api.put(`/compromissos/${ev.id}/aprovar`);
+            await api.patch(`/compromissos/${ev.id}/aprovar`);
             toast.success("Compromisso aprovado com sucesso!", { id: tid });
+         } else if (action === 'reject') {
+            await api.patch(`/compromissos/${ev.id}/recusar`);
+            toast.success("Compromisso recusado.", { id: tid });
          }
          fetchData();
       } catch(e) {
@@ -354,6 +371,44 @@ export default function Dashboard({ user }) {
                </div>
             )}
 
+            {/* Seção de Aprovações Pendentes */}
+            {!isLoading && pendentes.length > 0 && (user?.role === 'coordenador' || user?.role === 'admin') && (
+               <div className="mb-12">
+                  <h2 className="text-xl font-black text-uvv-yellow mb-6 uppercase tracking-widest flex items-center gap-3">
+                     <AlertCircle size={24} />
+                     Aprovações Pendentes ({pendentes.length})
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     {pendentes.map(ev => (
+                        <div key={ev.id} className="relative group bg-[#111827] border border-uvv-yellow/30 rounded-2xl p-5 hover:border-uvv-yellow transition-all duration-300 shadow-lg">
+                           <div className="flex justify-between items-start mb-2">
+                              <h5 className="text-lg font-bold text-gray-100">{ev.titulo}</h5>
+                              <span className="bg-uvv-yellow/20 text-uvv-yellow text-[10px] font-black px-2 py-0.5 rounded-full border border-uvv-yellow/30 uppercase tracking-widest">
+                                 Pendente
+                              </span>
+                           </div>
+                           {ev.descricao && <p className="text-sm text-gray-400 mb-4 line-clamp-2">{ev.descricao}</p>}
+                           
+                           <div className="flex items-center gap-4 text-xs font-semibold text-gray-500 mb-6">
+                              <div className="flex items-center gap-1.5"><CalendarIcon size={14} className="text-uvv-yellow" /> {format(ev.inicio, 'dd/MM/yyyy')}</div>
+                              <div className="flex items-center gap-1.5"><Clock size={14} className="text-uvv-yellow" /> {ev.durationStr}</div>
+                              <div className="flex items-center gap-1.5"><Users size={14} className="text-uvv-yellow" /> {ev.cursoStr}</div>
+                           </div>
+
+                           <div className="flex gap-3 w-full">
+                              <button onClick={() => handleAction(ev, 'approve')} className="flex-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 font-bold py-2 rounded-xl transition-all flex items-center justify-center gap-2">
+                                 <CheckCircle2 size={16} /> Aprovar
+                              </button>
+                              <button onClick={() => handleAction(ev, 'reject')} className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-2 rounded-xl transition-all flex items-center justify-center gap-2">
+                                 <XCircle size={16} /> Recusar
+                              </button>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            )}
+
             {/* Timeline View */}
             <div className="space-y-14 relative">
                
@@ -414,15 +469,10 @@ export default function Dashboard({ user }) {
                                           {/* Título & Subdetalhes */}
                                           <div className="flex flex-col border-l border-gray-800/50 pl-0 md:pl-6 mt-3 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0">
                                              <div className="flex items-center gap-3 mb-1.5">
-                                                <h5 className={`text-lg font-bold ${ev.isCompleted ? 'text-gray-600 line-through' : (!ev.aprovado ? 'text-uvv-yellow' : 'text-gray-100')} group-hover:text-white transition-colors`}>
+                                                <h5 className={`text-lg font-bold ${ev.isCompleted ? 'text-gray-600 line-through' : 'text-gray-100'} group-hover:text-white transition-colors`}>
                                                    {ev.titulo}
                                                 </h5>
-                                                {!ev.aprovado && (
-                                                   <span className="bg-uvv-yellow/20 text-uvv-yellow text-[10px] font-black px-2 py-0.5 rounded-full border border-uvv-yellow/30 uppercase tracking-widest shadow-sm">
-                                                      Pendente
-                                                   </span>
-                                                )}
-                                                {ev.isNext && ev.aprovado && (
+                                                {ev.isNext && (
                                                    <span className="bg-uvv-yellow/20 text-uvv-yellow text-[10px] font-black px-2 py-0.5 rounded-full border border-uvv-yellow/30 uppercase tracking-widest shadow-sm">
                                                       Em breve
                                                    </span>
@@ -441,12 +491,7 @@ export default function Dashboard({ user }) {
                                           {/* Hover Actions (Desktop Only para não poluir mobile) */}
                                           {(user?.role === 'admin' || user?.role === 'coordenador') && (
                                              <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 transform md:translate-x-4 md:group-hover:translate-x-0">
-                                                {!ev.aprovado && (
-                                                   <button onClick={() => handleAction(ev, 'approve')} title="Aprovar" className="p-2 text-uvv-yellow hover:text-yellow-600 hover:bg-uvv-yellow/10 rounded-xl transition-all flex items-center justify-center">Aprovar</button>
-                                                )}
-                                                {ev.aprovado && (
-                                                   <button onClick={() => handleAction(ev, 'complete')} title="Concluir" className="p-2 text-gray-500 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-xl transition-all"><CheckCircle2 size={18} /></button>
-                                                )}
+                                                <button onClick={() => handleAction(ev, 'complete')} title="Concluir" className="p-2 text-gray-500 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-xl transition-all"><CheckCircle2 size={18} /></button>
                                                 <button onClick={() => navigate('/', { state: { editEventId: ev.id } })} title="Editar" className="p-2 text-gray-500 hover:text-blue-400 hover:bg-blue-400/10 rounded-xl transition-all"><Edit size={18} /></button>
                                                 <button onClick={() => handleAction(ev, 'delete')} title="Excluir" className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"><Trash2 size={18} /></button>
                                              </div>

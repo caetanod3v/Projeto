@@ -162,8 +162,7 @@ export default function Calendario({ user }) {
              repeticao: ev.repeticao,
              catObj: cat,
              tColor: getContrastYIQ(cat.cor_hex),
-             isCompleted,
-             aprovado: ev.aprovado !== false // se undefined, assume true (mocks velhos)
+             isCompleted
           }
         };
       });
@@ -229,10 +228,15 @@ export default function Calendario({ user }) {
     try {
       if (editingId) {
         await api.put(`/compromissos/${editingId}`, payload);
+        toast.success('Compromisso salvo com sucesso!', { id: toastId });
       } else {
         await api.post(`/compromissos`, payload);
+        if (user?.role === 'secretaria') {
+           toast.success('Compromisso enviado para aprovação do coordenador.', { id: toastId });
+        } else {
+           toast.success('Compromisso criado com sucesso!', { id: toastId });
+        }
       }
-      toast.success('Compromisso salvo com sucesso!', { id: toastId });
       setModalOpen(false);
       fetchData(); 
     } catch (err) {
@@ -274,7 +278,7 @@ export default function Calendario({ user }) {
   // Customização de Renderização de Evento Premium SaaS
   const renderEventContent = (eventInfo) => {
      const start = eventInfo.event.start;
-     const { catObj, isCompleted, aprovado } = eventInfo.event.extendedProps;
+     const { catObj, isCompleted } = eventInfo.event.extendedProps;
      
      const now = new Date();
      const isUrgent = (start > now) && ((start - now) < 86400000);
@@ -286,14 +290,9 @@ export default function Calendario({ user }) {
      if (isCompleted) {
         baseBg = `rgba(255,255,255,0.05)`;
         borderStyle = `1px solid rgba(255,255,255,0.1)`;
-     } else if (!aprovado) {
-        borderStyle = `1px dashed rgba(242,178,0,0.8)`;
-        baseBg = `rgba(242,178,0,0.05)`;
      } else if (isUrgent) {
         borderStyle = `1px solid rgba(242,178,0,0.5)`;
      }
-
-     const displayTitle = !aprovado ? `[Pendente] ${eventInfo.event.title}` : eventInfo.event.title;
 
      return (
         <div 
@@ -311,8 +310,8 @@ export default function Calendario({ user }) {
              <span className="text-[10px] font-bold tracking-wider whitespace-nowrap opacity-90" style={{ color: isCompleted ? '#9ca3af' : catObj.cor_hex }}>
                 {format(start, 'HH:mm')}
              </span>
-             <span className={`text-[11px] font-bold truncate ${isCompleted ? 'text-gray-500 line-through' : (!aprovado ? 'text-uvv-yellow' : 'text-gray-100 group-hover:text-white')}`}>
-                {displayTitle}
+             <span className={`text-[11px] font-bold truncate ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-100 group-hover:text-white'}`}>
+                {eventInfo.event.title}
              </span>
            </div>
 
