@@ -34,6 +34,9 @@ CREATE TABLE IF NOT EXISTS compromissos (
     usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
     repeticao VARCHAR(50) CHECK (repeticao IN ('nenhuma', 'semanal', 'mensal')) DEFAULT 'nenhuma',
     status VARCHAR(20) DEFAULT 'pendente' CHECK (status IN ('pendente', 'aprovado', 'recusado')),
+    aprovado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+    aprovado_em TIMESTAMP,
+    motivo_recusa TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

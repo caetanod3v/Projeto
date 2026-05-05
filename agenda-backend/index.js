@@ -74,6 +74,15 @@ fakeEvents.forEach((evt, idx) => {
   });
 });
 
+// Middleware de RBAC (Role-Based Access Control)
+const checkRoleCoordenador = (req, res, next) => {
+  const role = req.headers['x-user-role'];
+  if (role !== 'coordenador' && role !== 'admin') {
+    return res.status(403).json({ error: 'Acesso negado. Apenas coordenadores e administradores podem realizar esta ação.' });
+  }
+  next();
+};
+
 // REST Endpoints
 app.get('/api/cursos', (req, res) => res.json(cursos));
 app.get('/api/categorias', (req, res) => res.json(categorias));
@@ -83,7 +92,7 @@ app.get('/api/compromissos', (req, res) => {
   res.json(compromissos.filter(c => c.status === 'aprovado'));
 });
 
-app.get('/api/compromissos/pendentes', (req, res) => {
+app.get('/api/compromissos/pendentes', checkRoleCoordenador, (req, res) => {
   res.json(compromissos.filter(c => c.status === 'pendente'));
 });
 
@@ -122,21 +131,25 @@ app.put('/api/compromissos/:id', (req, res) => {
   res.json(compromissos[index]);
 });
 
-app.patch('/api/compromissos/:id/aprovar', (req, res) => {
+app.patch('/api/compromissos/:id/aprovar', checkRoleCoordenador, (req, res) => {
   const id = parseInt(req.params.id);
   const index = compromissos.findIndex(c => c.id === id);
   if (index === -1) return res.status(404).send('Not found');
   
   compromissos[index].status = 'aprovado';
+  compromissos[index].aprovado_por = 1; // mock do ID do coordenador logado
+  compromissos[index].aprovado_em = new Date().toISOString();
+  
   res.json(compromissos[index]);
 });
 
-app.patch('/api/compromissos/:id/recusar', (req, res) => {
+app.patch('/api/compromissos/:id/recusar', checkRoleCoordenador, (req, res) => {
   const id = parseInt(req.params.id);
   const index = compromissos.findIndex(c => c.id === id);
   if (index === -1) return res.status(404).send('Not found');
   
   compromissos[index].status = 'recusado';
+  compromissos[index].motivo_recusa = req.body.motivo_recusa || null;
   res.json(compromissos[index]);
 });
 
