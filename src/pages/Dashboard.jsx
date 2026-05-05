@@ -53,11 +53,12 @@ export default function Dashboard({ user }) {
 
    const fetchData = async () => {
       try {
-         const [evRes, curRes, catRes, pendRes] = await Promise.all([
+         const [evRes, curRes, catRes, pendRes, usrRes] = await Promise.all([
             api.get('/compromissos'),
             api.get('/cursos'),
             api.get('/categorias'),
-            api.get('/compromissos/pendentes')
+            api.get('/compromissos/pendentes'),
+            api.get('/usuarios')
          ]);
 
          const cursosMap = {};
@@ -65,6 +66,9 @@ export default function Dashboard({ user }) {
 
          const catMap = {};
          catRes.data.forEach(c => catMap[c.id] = { nome: c.nome, cor_hex: c.cor_hex });
+
+         const userMap = {};
+         usrRes.data.forEach(u => userMap[u.id] = u.nome);
 
          let rawEvents = evRes.data;
          if (categoriaFilter) {
@@ -145,7 +149,8 @@ export default function Dashboard({ user }) {
                inicio, fim,
                durationStr: formatDuration(inicio, fim),
                catObj: catMap[ev.categoria_id] || { nome: 'Geral', cor_hex: '#374151' },
-               cursoStr: cursosMap[ev.curso_id] || 'Geral'
+               cursoStr: cursosMap[ev.curso_id] || 'Geral',
+               criadorStr: userMap[ev.usuario_id] || 'Secretaria'
             };
          });
          
@@ -372,40 +377,51 @@ export default function Dashboard({ user }) {
             )}
 
             {/* Seção de Aprovações Pendentes */}
-            {!isLoading && pendentes.length > 0 && (user?.role === 'coordenador' || user?.role === 'admin') && (
+            {!isLoading && (user?.role === 'coordenador' || user?.role === 'admin') && (
                <div className="mb-12">
                   <h2 className="text-xl font-black text-uvv-yellow mb-6 uppercase tracking-widest flex items-center gap-3">
                      <AlertCircle size={24} />
-                     Aprovações Pendentes ({pendentes.length})
+                     Compromissos aguardando aprovação
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     {pendentes.map(ev => (
-                        <div key={ev.id} className="relative group bg-[#111827] border border-uvv-yellow/30 rounded-2xl p-5 hover:border-uvv-yellow transition-all duration-300 shadow-lg">
-                           <div className="flex justify-between items-start mb-2">
-                              <h5 className="text-lg font-bold text-gray-100">{ev.titulo}</h5>
-                              <span className="bg-uvv-yellow/20 text-uvv-yellow text-[10px] font-black px-2 py-0.5 rounded-full border border-uvv-yellow/30 uppercase tracking-widest">
-                                 Pendente
-                              </span>
-                           </div>
-                           {ev.descricao && <p className="text-sm text-gray-400 mb-4 line-clamp-2">{ev.descricao}</p>}
-                           
-                           <div className="flex items-center gap-4 text-xs font-semibold text-gray-500 mb-6">
-                              <div className="flex items-center gap-1.5"><CalendarIcon size={14} className="text-uvv-yellow" /> {format(ev.inicio, 'dd/MM/yyyy')}</div>
-                              <div className="flex items-center gap-1.5"><Clock size={14} className="text-uvv-yellow" /> {ev.durationStr}</div>
-                              <div className="flex items-center gap-1.5"><Users size={14} className="text-uvv-yellow" /> {ev.cursoStr}</div>
-                           </div>
+                  
+                  {pendentes.length === 0 ? (
+                     <div className="bg-[#111827] border border-gray-800 rounded-2xl p-6 text-center">
+                        <p className="text-gray-400 font-medium">Nenhum compromisso aguardando aprovação.</p>
+                     </div>
+                  ) : (
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {pendentes.map(ev => (
+                           <div key={ev.id} className="relative group bg-[#111827] border border-uvv-yellow/30 rounded-2xl p-5 hover:border-uvv-yellow transition-all duration-300 shadow-lg">
+                              <div className="flex justify-between items-start mb-2">
+                                 <h5 className="text-lg font-bold text-gray-100">{ev.titulo}</h5>
+                                 <span className="bg-uvv-yellow/20 text-uvv-yellow text-[10px] font-black px-2 py-0.5 rounded-full border border-uvv-yellow/30 uppercase tracking-widest">
+                                    Pendente
+                                 </span>
+                              </div>
+                              {ev.descricao && <p className="text-sm text-gray-400 mb-4 line-clamp-2">{ev.descricao}</p>}
+                              
+                              <div className="flex items-center gap-4 text-xs font-semibold text-gray-500 mb-3 flex-wrap">
+                                 <div className="flex items-center gap-1.5"><CalendarIcon size={14} className="text-uvv-yellow" /> {format(ev.inicio, 'dd/MM/yyyy')}</div>
+                                 <div className="flex items-center gap-1.5"><Clock size={14} className="text-uvv-yellow" /> {ev.durationStr}</div>
+                                 <div className="flex items-center gap-1.5"><Users size={14} className="text-uvv-yellow" /> {ev.cursoStr}</div>
+                              </div>
+                              
+                              <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-6 bg-gray-800/30 w-max px-2 py-1 rounded">
+                                 <span className="font-bold text-gray-500">Criado por:</span> {ev.criadorStr}
+                              </div>
 
-                           <div className="flex gap-3 w-full">
-                              <button onClick={() => handleAction(ev, 'approve')} className="flex-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 font-bold py-2 rounded-xl transition-all flex items-center justify-center gap-2">
-                                 <CheckCircle2 size={16} /> Aprovar
-                              </button>
-                              <button onClick={() => handleAction(ev, 'reject')} className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-2 rounded-xl transition-all flex items-center justify-center gap-2">
-                                 <XCircle size={16} /> Recusar
-                              </button>
+                              <div className="flex gap-3 w-full">
+                                 <button onClick={() => handleAction(ev, 'approve')} className="flex-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 font-bold py-2 rounded-xl transition-all flex items-center justify-center gap-2">
+                                    <CheckCircle2 size={16} /> Aprovar
+                                 </button>
+                                 <button onClick={() => handleAction(ev, 'reject')} className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-2 rounded-xl transition-all flex items-center justify-center gap-2">
+                                    <XCircle size={16} /> Recusar
+                                 </button>
+                              </div>
                            </div>
-                        </div>
-                     ))}
-                  </div>
+                        ))}
+                     </div>
+                  )}
                </div>
             )}
 
