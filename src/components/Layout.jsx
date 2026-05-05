@@ -58,6 +58,8 @@ export default function Layout({ user, onLogout }) {
          const evtRes = responses[0];
          const catRes = responses[1];
          
+         const notifsList = [];
+         
          if (responses[2]) {
             const pendentesArr = responses[2].data;
             setPendentesCount(pendentesArr.length);
@@ -75,7 +77,6 @@ export default function Layout({ user, onLogout }) {
          setCategorias(catRes.data);
 
          const now = new Date();
-         const notifsList = [];
          const eventos = evtRes.data;
          
          let hojeCount = 0;
