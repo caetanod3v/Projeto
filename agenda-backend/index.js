@@ -5,9 +5,12 @@ const { iniciarCronJobs } = require('./cronService');
 
 const app = express();
 app.use(cors({
-  origin: '*' // Permitir localhost para o dev
-}));
-app.use(express.json());
+  origin: [
+    "https://projeto-tavo-sigma.vercel.app",
+    "http://localhost:5173"
+  ],
+  credentials: true
+})); (express.json());
 
 // Seed in-memory database as Supabase/Docker setup was deferred
 let compromissos = [];
@@ -37,17 +40,17 @@ const categorias = [
 // Seed realistic academic events across different dates
 const today = new Date();
 const fakeEvents = [
-  { daysOffset: -1, hour: 10,  title: "Reunião de Colegiado do Curso" },
-  { daysOffset: 0,  hour: 8,   title: "Fechamento de Pauta Escolar [OK]" },
-  { daysOffset: 0,  hour: 14,  title: "Banca de Defesa de TCC" },
-  { daysOffset: 0,  hour: 18,  title: "Apresentação de Projeto Integrador" },
-  { daysOffset: 1,  hour: 9,   title: "Reunião NDE (Núcleo Docente Estruturante)" },
-  { daysOffset: 1,  hour: 16,  title: "Conselho de Classe" },
-  { daysOffset: 2,  hour: 10,  title: "Oficina de Práticas Pedagógicas" },
-  { daysOffset: 3,  hour: 15,  title: "Alinhamento com Ligas Acadêmicas" },
-  { daysOffset: -2, hour: 11,  title: "Reunião Anual Administrativa [OK]"},
-  { daysOffset: 5,  hour: 14,  title: "Avaliação do MEC - Reunião Prévia" },
-  { daysOffset: 0,  hour: Math.max(9, today.getHours() - 2), title: "Integração de Calouros" } // Evento que sempre ficará "Atrasado/Em andamento" hoje
+  { daysOffset: -1, hour: 10, title: "Reunião de Colegiado do Curso" },
+  { daysOffset: 0, hour: 8, title: "Fechamento de Pauta Escolar [OK]" },
+  { daysOffset: 0, hour: 14, title: "Banca de Defesa de TCC" },
+  { daysOffset: 0, hour: 18, title: "Apresentação de Projeto Integrador" },
+  { daysOffset: 1, hour: 9, title: "Reunião NDE (Núcleo Docente Estruturante)" },
+  { daysOffset: 1, hour: 16, title: "Conselho de Classe" },
+  { daysOffset: 2, hour: 10, title: "Oficina de Práticas Pedagógicas" },
+  { daysOffset: 3, hour: 15, title: "Alinhamento com Ligas Acadêmicas" },
+  { daysOffset: -2, hour: 11, title: "Reunião Anual Administrativa [OK]" },
+  { daysOffset: 5, hour: 14, title: "Avaliação do MEC - Reunião Prévia" },
+  { daysOffset: 0, hour: Math.max(9, today.getHours() - 2), title: "Integração de Calouros" } // Evento que sempre ficará "Atrasado/Em andamento" hoje
 ];
 
 fakeEvents.forEach((evt, idx) => {
@@ -55,7 +58,7 @@ fakeEvents.forEach((evt, idx) => {
   const dtInicio = new Date(today);
   dtInicio.setDate(today.getDate() + evt.daysOffset);
   dtInicio.setHours(evt.hour, 0, 0);
-  
+
   const dtFim = new Date(dtInicio);
   // Duração de 1 a 2 horas
   dtFim.setHours(dtInicio.getHours() + ((i % 2 === 0) ? 2 : 1));
@@ -98,16 +101,16 @@ app.get('/api/compromissos/pendentes', checkRoleCoordenador, (req, res) => {
 
 app.post('/api/compromissos', async (req, res) => {
   const { titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao, usuario_role } = req.body;
-  
+
   const isSecretaria = usuario_role === 'secretaria';
-  
+
   const novoCompromisso = {
     id: compromissos.length + 1,
     titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao,
     usuario_id: 1, // mock
     status: isSecretaria ? 'pendente' : 'aprovado'
   };
-  
+
   compromissos.push(novoCompromisso);
 
   // Send an email safely without blocking the HTTP Response
@@ -115,7 +118,7 @@ app.post('/api/compromissos', async (req, res) => {
     sendReminder('coordenador@uvv.br', titulo, dt_inicio).catch(err => {
       console.error("Async Nodemailer error:", err);
     });
-  } catch(err) {
+  } catch (err) {
     console.error("Nodemailer error:", err);
   }
 
@@ -126,7 +129,7 @@ app.put('/api/compromissos/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const index = compromissos.findIndex(c => c.id === id);
   if (index === -1) return res.status(404).send('Not found');
-  
+
   compromissos[index] = { ...compromissos[index], ...req.body };
   res.json(compromissos[index]);
 });
@@ -135,11 +138,11 @@ app.patch('/api/compromissos/:id/aprovar', checkRoleCoordenador, (req, res) => {
   const id = parseInt(req.params.id);
   const index = compromissos.findIndex(c => c.id === id);
   if (index === -1) return res.status(404).send('Not found');
-  
+
   compromissos[index].status = 'aprovado';
   compromissos[index].aprovado_por = 1; // mock do ID do coordenador logado
   compromissos[index].aprovado_em = new Date().toISOString();
-  
+
   res.json(compromissos[index]);
 });
 
@@ -147,7 +150,7 @@ app.patch('/api/compromissos/:id/recusar', checkRoleCoordenador, (req, res) => {
   const id = parseInt(req.params.id);
   const index = compromissos.findIndex(c => c.id === id);
   if (index === -1) return res.status(404).send('Not found');
-  
+
   compromissos[index].status = 'recusado';
   compromissos[index].motivo_recusa = req.body.motivo_recusa || null;
   res.json(compromissos[index]);
@@ -163,7 +166,7 @@ const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Backend rodando na porta ${PORT}`);
   console.log(`DB In-Memory Seeded: 3 usuarios, 2 cursos, 5 tags, 10 eventos.`);
-  
+
   // Start the background cron jobs for email reminders
   iniciarCronJobs(compromissos, usuarios);
 });
