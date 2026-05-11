@@ -53,9 +53,9 @@ export default function Dashboard({ user }) {
    const fetchData = async () => {
       try {
          const [evRes, curRes, catRes] = await Promise.all([
-            api.get('/api/compromissos'),
-            api.get('/api/cursos'),
-            api.get('/api/categorias'),
+            api.get('/compromissos'),
+            api.get('/cursos'),
+            api.get('/categorias'),
 
          ]);
 

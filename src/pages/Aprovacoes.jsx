@@ -32,7 +32,7 @@ export default function Aprovacoes({ user }) {
             api.get('/compromissos/pendentes'),
             api.get('/cursos'),
             api.get('/categorias'),
-            api.get('/usuarios')
+            api.get('/usuarios'),
          ]);
 
          const cursosMap = {};
@@ -56,7 +56,7 @@ export default function Aprovacoes({ user }) {
                criadorStr: userMap[ev.usuario_id] || 'Secretaria'
             };
          }).sort((a, b) => a.inicio - b.inicio);
-         
+
          setPendentes(formattedPendentes);
       } catch (err) {
          console.error(err);
@@ -74,10 +74,10 @@ export default function Aprovacoes({ user }) {
       if (action === 'approve') {
          setLoadingActionId(`${ev.id}-approve`);
          try {
-            await api.patch(`/compromissos/${ev.id}/aprovar`);
+            await api.patch(`/api/compromissos/${ev.id}/aprovar`);
             setPendentes(prev => prev.filter(p => p.id !== ev.id));
             toast.success("Compromisso aprovado e agendado!");
-         } catch(e) {
+         } catch (e) {
             toast.error(e.response?.data?.error || "Erro ao aprovar.");
          } finally {
             setLoadingActionId(null);
@@ -92,7 +92,7 @@ export default function Aprovacoes({ user }) {
       const tid = toast.loading("Recusando compromisso...");
       setLoadingActionId(`${recusarEvt.id}-reject`);
       try {
-         await api.patch(`/compromissos/${recusarEvt.id}/recusar`, { motivo_recusa: motivoRecusa });
+         await api.patch(`/api/compromissos/${recusarEvt.id}/recusar`, { motivo_recusa: motivoRecusa });
          setPendentes(prev => prev.filter(p => p.id !== recusarEvt.id));
          toast.success("Compromisso recusado e removido.", { id: tid });
       } catch (e) {
@@ -122,7 +122,7 @@ export default function Aprovacoes({ user }) {
                   <AlertCircle size={24} />
                   Aguardando aprovação ({pendentes.length})
                </h2>
-               
+
                {pendentes.length === 0 ? (
                   <div className="bg-[#111827] border border-gray-800 rounded-2xl p-16 text-center flex flex-col items-center">
                      <div className="w-16 h-16 bg-uvv-yellow/10 text-uvv-yellow rounded-full flex items-center justify-center mb-4">
@@ -143,13 +143,13 @@ export default function Aprovacoes({ user }) {
                                  </span>
                               </div>
                               {ev.descricao && <p className="text-sm text-gray-400 mb-5 line-clamp-3">{ev.descricao}</p>}
-                              
+
                               <div className="flex items-center gap-5 text-sm font-semibold text-gray-500 mb-4 flex-wrap">
                                  <div className="flex items-center gap-2"><CalendarIcon size={16} className="text-uvv-yellow" /> {format(ev.inicio, 'dd/MM/yyyy')}</div>
                                  <div className="flex items-center gap-2"><Clock size={16} className="text-uvv-yellow" /> {ev.durationStr}</div>
                                  <div className="flex items-center gap-2"><Users size={16} className="text-uvv-yellow" /> {ev.cursoStr}</div>
                               </div>
-                              
+
                               <div className="flex flex-col gap-1.5 text-xs text-gray-400 mb-8 bg-[#0B1220] px-4 py-3 rounded-xl border border-gray-800 w-max">
                                  <div><span className="font-bold text-gray-500">Criado por:</span> {ev.criadorStr}</div>
                                  <div><span className="font-bold text-gray-500">Data de Criação:</span> {format(new Date(ev.created_at || ev.inicio), 'dd/MM/yyyy HH:mm')}</div>
@@ -157,8 +157,8 @@ export default function Aprovacoes({ user }) {
                            </div>
 
                            <div className="flex gap-4 w-full mt-auto">
-                              <button 
-                                 onClick={() => handleAction(ev, 'approve')} 
+                              <button
+                                 onClick={() => handleAction(ev, 'approve')}
                                  disabled={loadingActionId === `${ev.id}-approve` || loadingActionId === `${ev.id}-reject`}
                                  className="flex-1 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed text-emerald-500 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider"
                               >
@@ -168,8 +168,8 @@ export default function Aprovacoes({ user }) {
                                     <><CheckCircle2 size={18} /> Aprovar</>
                                  )}
                               </button>
-                              <button 
-                                 onClick={() => handleAction(ev, 'reject')} 
+                              <button
+                                 onClick={() => handleAction(ev, 'reject')}
                                  disabled={loadingActionId === `${ev.id}-approve` || loadingActionId === `${ev.id}-reject`}
                                  className="flex-1 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed text-red-500 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider"
                               >
@@ -192,7 +192,7 @@ export default function Aprovacoes({ user }) {
             <div className="fixed inset-0 z-50 bg-[#0B1220]/80 backdrop-blur-sm flex items-center justify-center p-4">
                <div className="bg-[#111827] border border-gray-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
-                  
+
                   <div className="flex items-center gap-4 mb-6">
                      <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 flex-shrink-0">
                         <AlertTriangle size={24} />
