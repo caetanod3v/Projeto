@@ -6,7 +6,7 @@ const { iniciarCronJobs } = require('./cronService');
 const app = express();
 app.use(cors({
   origin: [
-    "https://projeto-tavo-sigma.vercel.app",
+    "https://projeto-two-sigma.vercel.app",
     "http://localhost:5173"
   ],
   credentials: true
