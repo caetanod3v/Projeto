@@ -18,11 +18,11 @@ function getContrastYIQ(hexcolor) {
 }
 
 function hexToRgba(hex, alpha) {
-  if (!hex) return `rgba(55, 65, 81, ${alpha})`;
-  const r = parseInt(hex.slice(1, 3), 16),
-        g = parseInt(hex.slice(3, 5), 16),
-        b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+   if (!hex) return `rgba(55, 65, 81, ${alpha})`;
+   const r = parseInt(hex.slice(1, 3), 16),
+      g = parseInt(hex.slice(3, 5), 16),
+      b = parseInt(hex.slice(5, 7), 16);
+   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function formatDuration(start, end) {
@@ -53,9 +53,10 @@ export default function Dashboard({ user }) {
    const fetchData = async () => {
       try {
          const [evRes, curRes, catRes] = await Promise.all([
-            api.get('/compromissos'),
-            api.get('/cursos'),
-            api.get('/categorias')
+            api.get('/api/compromissos'),
+            api.get('/api/cursos'),
+            api.get('/api/categorias'),
+
          ]);
 
          const cursosMap = {};
@@ -134,7 +135,7 @@ export default function Dashboard({ user }) {
 
          const hojeCount = mapped.filter(e => isToday(e.inicio) && !e.isOverdue && !e.isCompleted).length;
          const atrasadosCount = mapped.filter(e => e.isOverdue).length;
-         
+
          setStats({ total: mapped.length, hojeCount, atrasadosCount, proximoEvt: nextEvt });
          setEventos(mapped);
 
@@ -180,16 +181,16 @@ export default function Dashboard({ user }) {
       const tid = toast.loading('Processando...');
       try {
          if (action === 'delete') {
-            await api.delete(`/compromissos/${ev.id}`);
+            await api.delete(`/api/compromissos/${ev.id}`);
             toast.success("Compromisso excluído para sempre.", { id: tid });
             fetchData();
          } else if (action === 'complete') {
             const payload = { ...ev, status: 'concluido' };
-            await api.put(`/compromissos/${ev.id}`, payload);
+            await api.put(`/api/compromissos/${ev.id}`, payload);
             toast.success("Maravilha! Você concluiu um compromisso.", { id: tid });
             fetchData();
          }
-      } catch(e) {
+      } catch (e) {
          console.error(e);
          toast.error(e.response?.data?.error || "Ocorreu um erro na ação.", { id: tid });
       }
@@ -209,7 +210,7 @@ export default function Dashboard({ user }) {
          return [titulo, dtInicio, dtFim, cat, curso, status].join(';');
       });
       const csvContent = [headers.join(';'), ...rows].join('\n');
-      const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = 'relatorio_agenda_uvv.csv';
@@ -221,20 +222,20 @@ export default function Dashboard({ user }) {
 
    return (
       <div className="min-h-full bg-[#0B1220] p-4 md:p-8 rounded-2xl animate-fade-in text-gray-100 font-sans shadow-2xl">
-         
+
          {/* Bloco Inteligente */}
          <div className="mb-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
             <div>
                <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
-                  Meus Compromissos 
+                  Meus Compromissos
                   <span className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold border border-white/10 text-gray-300">
                      SaaS View
                   </span>
                </h1>
                <p className="text-gray-400 mt-2 text-sm md:text-base font-medium flex items-center gap-2">
                   <Sparkles size={16} className="text-uvv-yellow" />
-                  {stats.hojeCount > 0 
-                     ? `Você tem ${stats.hojeCount} compromisso(s) pendente(s) hoje.` 
+                  {stats.hojeCount > 0
+                     ? `Você tem ${stats.hojeCount} compromisso(s) pendente(s) hoje.`
                      : "Você não tem compromissos pendentes para hoje!"}
                   {stats.proximoEvt && (
                      <span className="hidden md:inline">
@@ -250,7 +251,7 @@ export default function Dashboard({ user }) {
 
          {/* Mini Dashboard KPIs */}
          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            
+
             {/* KPI: Hoje */}
             <div className="bg-[#111827]/60 backdrop-blur-md border border-white/5 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-[1.01] transition-transform duration-300">
                <div className="flex items-center gap-4">
@@ -281,7 +282,7 @@ export default function Dashboard({ user }) {
             </div>
 
             {/* KPI: Próximo Evento */}
-            <div 
+            <div
                className="col-span-1 border rounded-2xl p-6 shadow-[0_15px_40px_rgba(0,0,0,0.3)] hover:scale-[1.02] transition-all duration-300 relative overflow-hidden group"
                style={{
                   background: 'linear-gradient(145deg, #0f172a, #0b1220)',
@@ -308,10 +309,10 @@ export default function Dashboard({ user }) {
 
          {/* Área Principal (Filtros e Timeline) */}
          <div className="bg-[#0F172A] border border-gray-800/50 rounded-2xl shadow-2xl p-6 md:p-10 relative">
-            
+
             {/* Ferramentas */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-               
+
                {/* Chips */}
                <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
                   {chips.map(c => (
@@ -319,9 +320,9 @@ export default function Dashboard({ user }) {
                         key={c}
                         onClick={() => setFilterChip(c)}
                         className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap 
-                        ${filterChip === c 
-                           ? 'bg-uvv-yellow text-gray-900 shadow-[0_0_15px_rgba(242,178,0,0.3)]' 
-                           : 'bg-[#111827] border border-gray-800 text-gray-400 hover:text-white hover:bg-gray-800'}`}
+                        ${filterChip === c
+                              ? 'bg-uvv-yellow text-gray-900 shadow-[0_0_15px_rgba(242,178,0,0.3)]'
+                              : 'bg-[#111827] border border-gray-800 text-gray-400 hover:text-white hover:bg-gray-800'}`}
                      >
                         {c}
                      </button>
@@ -353,14 +354,14 @@ export default function Dashboard({ user }) {
 
             {/* Timeline View */}
             <div className="space-y-14 relative">
-               
+
                {!isLoading && Object.keys(grouped).map(groupName => {
                   const items = grouped[groupName];
                   if (items.length === 0) return null;
 
                   return (
                      <div key={groupName} className="relative z-0">
-                        
+
                         {/* Seção Header */}
                         <div className="flex items-center gap-4 mb-6">
                            <h4 className="text-sm font-black text-white uppercase tracking-[0.2em]">{groupName}</h4>
@@ -371,7 +372,7 @@ export default function Dashboard({ user }) {
                         {/* Eventos da Seção */}
                         <div className="relative border-l-2 border-gray-800/80 ml-2 md:ml-4 space-y-8 pb-4">
                            {items.map(ev => {
-                              
+
                               let dotColor = "bg-gray-600";
                               let borderGlow = "border-transparent";
                               let cardBg = "bg-[#111827]/40 hover:bg-[#111827]/80";
@@ -389,15 +390,15 @@ export default function Dashboard({ user }) {
 
                               return (
                                  <div key={ev.id} className="relative pl-6 md:pl-10 group">
-                                    
+
                                     {/* Bolinha da Timeline */}
                                     <div className={`absolute -left-[7px] top-4 w-3 h-3 rounded-full border-2 border-[#0F172A] ${dotColor} transition-transform duration-300 group-hover:scale-125 z-10`}></div>
 
                                     {/* Card do Evento */}
                                     <div className={`flex flex-col md:flex-row md:items-center justify-between p-5 rounded-2xl border ${borderGlow} ${cardBg} backdrop-blur-sm transition-all duration-300 transform group-hover:-translate-y-1 group-hover:shadow-xl`}>
-                                       
+
                                        <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
-                                          
+
                                           {/* Tempo */}
                                           <div className="flex flex-col min-w-[130px]">
                                              <span className={`text-sm font-bold ${ev.isOverdue ? 'text-red-400' : (ev.isNext ? 'text-uvv-yellow' : 'text-gray-300')}`}>
@@ -429,7 +430,7 @@ export default function Dashboard({ user }) {
 
                                        {/* Ações & Badges Direita */}
                                        <div className="flex flex-row-reverse md:flex-row items-center justify-between md:justify-end gap-5 mt-4 md:mt-0 w-full md:w-auto">
-                                          
+
                                           {/* Hover Actions (Desktop Only para não poluir mobile) */}
                                           {(user?.role === 'admin' || user?.role === 'coordenador') && (
                                              <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 transform md:translate-x-4 md:group-hover:translate-x-0">
@@ -440,7 +441,7 @@ export default function Dashboard({ user }) {
                                           )}
 
                                           {/* Glass Badge */}
-                                          <div 
+                                          <div
                                              style={{ backgroundColor: hexToRgba(ev.catObj.cor_hex, 0.15), borderColor: hexToRgba(ev.catObj.cor_hex, 0.3), color: ev.catObj.cor_hex }}
                                              className="px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest border backdrop-blur-md shadow-sm whitespace-nowrap"
                                           >
