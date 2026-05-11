@@ -10,7 +10,9 @@ app.use(cors({
     "http://localhost:5173"
   ],
   credentials: true
-})); (express.json());
+}));
+
+app.use(express.json());
 
 // Seed in-memory database as Supabase/Docker setup was deferred
 let compromissos = [];
@@ -87,19 +89,25 @@ const checkRoleCoordenador = (req, res, next) => {
 };
 
 // REST Endpoints
-app.get('/api/cursos', (req, res) => res.json(cursos));
-app.get('/api/categorias', (req, res) => res.json(categorias));
-app.get('/api/usuarios', (req, res) => res.json(usuarios));
+app.get("/", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "Backend Agenda UVV online"
+  });
+});
+app.get('/cursos', (req, res) => res.json(cursos));
+app.get('/categorias', (req, res) => res.json(categorias));
+app.get('/usuarios', (req, res) => res.json(usuarios));
 
-app.get('/api/compromissos', (req, res) => {
+app.get('/compromissos', (req, res) => {
   res.json(compromissos.filter(c => c.status === 'aprovado'));
 });
 
-app.get('/api/compromissos/pendentes', checkRoleCoordenador, (req, res) => {
+app.get('/compromissos/pendentes', checkRoleCoordenador, (req, res) => {
   res.json(compromissos.filter(c => c.status === 'pendente'));
 });
 
-app.post('/api/compromissos', async (req, res) => {
+app.post('/compromissos', async (req, res) => {
   const { titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao, usuario_role } = req.body;
 
   const isSecretaria = usuario_role === 'secretaria';
@@ -125,7 +133,7 @@ app.post('/api/compromissos', async (req, res) => {
   res.status(201).json(novoCompromisso);
 });
 
-app.put('/api/compromissos/:id', (req, res) => {
+app.put('/compromissos/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const index = compromissos.findIndex(c => c.id === id);
   if (index === -1) return res.status(404).send('Not found');
@@ -134,7 +142,7 @@ app.put('/api/compromissos/:id', (req, res) => {
   res.json(compromissos[index]);
 });
 
-app.patch('/api/compromissos/:id/aprovar', checkRoleCoordenador, (req, res) => {
+app.patch('/compromissos/:id/aprovar', checkRoleCoordenador, (req, res) => {
   const id = parseInt(req.params.id);
   const index = compromissos.findIndex(c => c.id === id);
   if (index === -1) return res.status(404).send('Not found');
@@ -146,7 +154,7 @@ app.patch('/api/compromissos/:id/aprovar', checkRoleCoordenador, (req, res) => {
   res.json(compromissos[index]);
 });
 
-app.patch('/api/compromissos/:id/recusar', checkRoleCoordenador, (req, res) => {
+app.patch('/compromissos/:id/recusar', checkRoleCoordenador, (req, res) => {
   const id = parseInt(req.params.id);
   const index = compromissos.findIndex(c => c.id === id);
   if (index === -1) return res.status(404).send('Not found');
@@ -156,7 +164,7 @@ app.patch('/api/compromissos/:id/recusar', checkRoleCoordenador, (req, res) => {
   res.json(compromissos[index]);
 });
 
-app.delete('/api/compromissos/:id', (req, res) => {
+app.delete('/compromissos/:id', (req, res) => {
   const id = parseInt(req.params.id);
   compromissos = compromissos.filter(c => c.id !== id);
   res.json({ success: true });
