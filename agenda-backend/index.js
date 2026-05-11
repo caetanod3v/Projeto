@@ -1,9 +1,8 @@
-const express = require('express');
-const cors = require('cors');
-const { sendReminder } = require('./emailService');
-const { iniciarCronJobs } = require('./cronService');
+const express = require("express");
+const cors = require("cors");
 
 const app = express();
+
 app.use(cors({
   origin: [
     "https://projeto-two-sigma.vercel.app",
@@ -95,19 +94,20 @@ app.get("/", (req, res) => {
     message: "Backend Agenda UVV online"
   });
 });
-app.get('/cursos', (req, res) => res.json(cursos));
-app.get('/categorias', (req, res) => res.json(categorias));
-app.get('/usuarios', (req, res) => res.json(usuarios));
 
-app.get('/compromissos', (req, res) => {
-  res.json(compromissos.filter(c => c.status === 'aprovado'));
+app.get("/api/cursos", (req, res) => res.json(cursos));
+app.get("/api/categorias", (req, res) => res.json(categorias));
+app.get("/api/usuarios", (req, res) => res.json(usuarios));
+
+app.get("/api/compromissos", (req, res) => {
+  res.json(compromissos.filter(c => c.status === "aprovado"));
 });
 
-app.get('/compromissos/pendentes', checkRoleCoordenador, (req, res) => {
-  res.json(compromissos.filter(c => c.status === 'pendente'));
+app.get("/api/compromissos/pendentes", checkRoleCoordenador, (req, res) => {
+  res.json(compromissos.filter(c => c.status === "pendente"));
 });
 
-app.post('/compromissos', async (req, res) => {
+app.post('/api/compromissos', async (req, res) => {
   const { titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao, usuario_role } = req.body;
 
   const isSecretaria = usuario_role === 'secretaria';
