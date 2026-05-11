@@ -176,5 +176,5 @@ app.listen(PORT, () => {
   console.log(`DB In-Memory Seeded: 3 usuarios, 2 cursos, 5 tags, 10 eventos.`);
 
   // Start the background cron jobs for email reminders
-  iniciarCronJobs(compromissos, usuarios);
+  //iniciarCronJobs(compromissos, usuarios);
 });
