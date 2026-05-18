@@ -23,7 +23,7 @@ app.use(express.json());
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  
+
   if (!token) return res.status(401).json({ error: 'Token não fornecido.' });
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
@@ -82,7 +82,7 @@ app.post('/api/auth/register', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   const { email, senha } = req.body;
-  
+
   try {
     const user = await prisma.usuario.findUnique({ where: { email } });
     if (!user) return res.status(401).json({ error: 'Credenciais inválidas.' });
@@ -178,13 +178,13 @@ app.get("/", (req, res) => {
 });
 
 // ── Cursos ────────────────────────────────────────────────────────────────────
-app.get("/api/cursos", async (req, res) => {
+app.get('/api/cursos', async (req, res) => {
   try {
-    const cursos = await prisma.curso.findMany({ orderBy: { id: 'asc' } });
+    const cursos = await prisma.curso.findMany();
     res.json(cursos);
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Erro ao buscar cursos." });
+    console.error('Erro ao buscar cursos:', e);
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -202,7 +202,7 @@ app.get("/api/categorias", async (req, res) => {
 // ── Usuários (Admin) ─────────────────────────────────────────────────────────
 app.get("/api/users", authenticateToken, requireRole('admin'), async (req, res) => {
   try {
-    const usuarios = await prisma.usuario.findMany({ 
+    const usuarios = await prisma.usuario.findMany({
       orderBy: { id: 'asc' },
       select: { id: true, nome: true, email: true, role: true, status: true, curso_id: true, created_at: true, curso: true }
     });
@@ -325,13 +325,13 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
       data: {
         titulo,
         descricao,
-        dt_inicio:    new Date(dt_inicio),
-        dt_fim:       new Date(dt_fim),
-        curso_id:     curso_id     ? parseInt(curso_id)     : null,
+        dt_inicio: new Date(dt_inicio),
+        dt_fim: new Date(dt_fim),
+        curso_id: curso_id ? parseInt(curso_id) : null,
         categoria_id: categoria_id ? parseInt(categoria_id) : null,
-        usuario_id:   req.user.id,
-        repeticao:    repeticao || 'nenhuma',
-        status:       isSecretaria ? 'pendente' : 'aprovado',
+        usuario_id: req.user.id,
+        repeticao: repeticao || 'nenhuma',
+        status: isSecretaria ? 'pendente' : 'aprovado',
       }
     });
 
@@ -358,16 +358,16 @@ app.put('/api/compromissos/:id', authenticateToken, async (req, res) => {
     const updated = await prisma.compromisso.update({
       where: { id },
       data: {
-        ...(titulo        && { titulo }),
-        ...(descricao     !== undefined && { descricao }),
-        ...(dt_inicio     && { dt_inicio:    new Date(dt_inicio) }),
-        ...(dt_fim        && { dt_fim:       new Date(dt_fim) }),
-        ...(curso_id      !== undefined && { curso_id:     curso_id     ? parseInt(curso_id)     : null }),
-        ...(categoria_id  !== undefined && { categoria_id: categoria_id ? parseInt(categoria_id) : null }),
-        ...(repeticao     && { repeticao }),
+        ...(titulo && { titulo }),
+        ...(descricao !== undefined && { descricao }),
+        ...(dt_inicio && { dt_inicio: new Date(dt_inicio) }),
+        ...(dt_fim && { dt_fim: new Date(dt_fim) }),
+        ...(curso_id !== undefined && { curso_id: curso_id ? parseInt(curso_id) : null }),
+        ...(categoria_id !== undefined && { categoria_id: categoria_id ? parseInt(categoria_id) : null }),
+        ...(repeticao && { repeticao }),
       }
     });
-    
+
     await registrarLog(req.user.id, 'EDITAR_COMPROMISSO', `Editou compromisso: ${updated.titulo}`);
     res.json(updated);
   } catch (e) {
@@ -383,7 +383,7 @@ app.patch('/api/compromissos/:id/aprovar', authenticateToken, requireRole('coord
   try {
     const comp = await prisma.compromisso.findUnique({ where: { id } });
     if (!comp) return res.status(404).json({ error: 'Compromisso não encontrado.' });
-    
+
     if (req.user.role === 'coordenador' && comp.curso_id !== req.user.curso_id) {
       return res.status(403).json({ error: 'Você só pode aprovar compromissos do seu próprio curso.' });
     }
@@ -391,9 +391,9 @@ app.patch('/api/compromissos/:id/aprovar', authenticateToken, requireRole('coord
     const updated = await prisma.compromisso.update({
       where: { id },
       data: {
-        status:       'aprovado',
+        status: 'aprovado',
         aprovado_por: req.user.id,
-        aprovado_em:  new Date(),
+        aprovado_em: new Date(),
       }
     });
 
@@ -412,7 +412,7 @@ app.patch('/api/compromissos/:id/recusar', authenticateToken, requireRole('coord
   try {
     const comp = await prisma.compromisso.findUnique({ where: { id } });
     if (!comp) return res.status(404).json({ error: 'Compromisso não encontrado.' });
-    
+
     if (req.user.role === 'coordenador' && comp.curso_id !== req.user.curso_id) {
       return res.status(403).json({ error: 'Você só pode recusar compromissos do seu próprio curso.' });
     }
@@ -420,7 +420,7 @@ app.patch('/api/compromissos/:id/recusar', authenticateToken, requireRole('coord
     const updated = await prisma.compromisso.update({
       where: { id },
       data: {
-        status:       'recusado',
+        status: 'recusado',
         motivo_recusa: motivo_recusa || null,
       }
     });
