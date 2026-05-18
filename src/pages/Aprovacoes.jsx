@@ -74,7 +74,7 @@ export default function Aprovacoes({ user }) {
       if (action === 'approve') {
          setLoadingActionId(`${ev.id}-approve`);
          try {
-            await api.patch(`/api/compromissos/${ev.id}/aprovar`);
+            await api.patch(`/compromissos/${ev.id}/aprovar`);
             setPendentes(prev => prev.filter(p => p.id !== ev.id));
             toast.success("Compromisso aprovado e agendado!");
          } catch (e) {
@@ -92,7 +92,7 @@ export default function Aprovacoes({ user }) {
       const tid = toast.loading("Recusando compromisso...");
       setLoadingActionId(`${recusarEvt.id}-reject`);
       try {
-         await api.patch(`/api/compromissos/${recusarEvt.id}/recusar`, { motivo_recusa: motivoRecusa });
+         await api.patch(`/compromissos/${recusarEvt.id}/recusar`, { motivo_recusa: motivoRecusa });
          setPendentes(prev => prev.filter(p => p.id !== recusarEvt.id));
          toast.success("Compromisso recusado e removido.", { id: tid });
       } catch (e) {

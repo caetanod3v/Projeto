@@ -227,10 +227,10 @@ export default function Calendario({ user }) {
 
     try {
       if (editingId) {
-        await api.put(`/api/compromissos/${editingId}`, payload);
+        await api.put(`/compromissos/${editingId}`, payload);
         toast.success('Compromisso salvo com sucesso!', { id: toastId });
       } else {
-        await api.post(`/api/compromissos`, payload);
+        await api.post(`/compromissos`, payload);
         if (user?.role === 'secretaria') {
           toast.success('Compromisso enviado para aprovação do coordenador.', { id: toastId });
         } else {
@@ -253,7 +253,7 @@ export default function Calendario({ user }) {
         titulo: titulo + ' (Cópia)', dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao,
         usuario_role: user?.role
       };
-      await api.post(`/api/compromissos`, payload);
+      await api.post(`/compromissos`, payload);
       toast.success('Compromisso duplicado!', { id: toastId });
       setModalOpen(false);
       fetchData();
@@ -266,7 +266,7 @@ export default function Calendario({ user }) {
     if (!window.confirm("Excluir este compromisso?")) return;
     const toastId = toast.loading('Excluindo...');
     try {
-      await api.delete(`/api/compromissos/${editingId}`);
+      await api.delete(`/compromissos/${editingId}`);
       toast.success('Excluído com sucesso.', { id: toastId });
       setModalOpen(false);
       fetchData();

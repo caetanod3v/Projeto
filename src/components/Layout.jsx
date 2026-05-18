@@ -316,6 +316,12 @@ export default function Layout({ user, onLogout }) {
                            )}
                         </Link>
                      )}
+                     {user?.role === 'admin' && (
+                        <Link to="/admin/usuarios" className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${location.pathname === '/admin/usuarios' ? 'bg-white/10 text-white font-semibold shadow-sm border-l-[3px] border-uvv-yellow' : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-[3px] border-transparent'}`}>
+                           <LayoutDashboard size={18} className={location.pathname === '/admin/usuarios' ? 'text-uvv-yellow' : 'group-hover:text-gray-300'} />
+                           Gestão de Usuários
+                        </Link>
+                     )}
                   </nav>
                </div>
 

@@ -13,14 +13,25 @@ api.interceptors.request.use((config) => {
 
   if (userStr) {
     try {
-      const user = JSON.parse(userStr);
-      if (user?.role) {
-        config.headers["x-user-role"] = user.role;
+      const data = JSON.parse(userStr);
+      if (data?.token) {
+        config.headers["Authorization"] = `Bearer ${data.token}`;
       }
     } catch (e) { }
   }
 
   return config;
 });
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Token expirado ou inválido
+      localStorage.removeItem("usuario_logado");
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

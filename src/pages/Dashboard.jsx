@@ -181,12 +181,12 @@ export default function Dashboard({ user }) {
       const tid = toast.loading('Processando...');
       try {
          if (action === 'delete') {
-            await api.delete(`/api/compromissos/${ev.id}`);
+            await api.delete(`/compromissos/${ev.id}`);
             toast.success("Compromisso excluído para sempre.", { id: tid });
             fetchData();
          } else if (action === 'complete') {
             const payload = { ...ev, status: 'concluido' };
-            await api.put(`/api/compromissos/${ev.id}`, payload);
+            await api.put(`/compromissos/${ev.id}`, payload);
             toast.success("Maravilha! Você concluiu um compromisso.", { id: tid });
             fetchData();
          }
