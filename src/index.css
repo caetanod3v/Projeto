@@ -10,16 +10,17 @@
 @layer base {
   :root {
     color-scheme: light;
-    --app-bg: #f8f9fc;
-    --app-bg-2: #eef1f7;
+    --app-bg: #f6f7fb;
+    --app-bg-2: #e9edf5;
     --app-surface: #ffffff;
-    --app-surface-muted: #f3f5f9;
-    --app-surface-soft: #f8f9fc;
-    --app-text: #151821;
-    --app-text-muted: #697083;
-    --app-text-soft: #9aa1af;
-    --app-border: rgba(21, 24, 33, 0.07);
-    --app-border-strong: rgba(21, 24, 33, 0.12);
+    --app-surface-muted: #eef2f7;
+    --app-surface-soft: #f9fafc;
+    --app-text: #111520;
+    --app-text-muted: #4f5868;
+    --app-text-soft: #6f7888;
+    --app-placeholder: #7d8696;
+    --app-border: rgba(17, 21, 32, 0.09);
+    --app-border-strong: rgba(17, 21, 32, 0.16);
     --app-accent: #5b6ee1;
     --app-accent-2: #8d6cf6;
     --app-accent-soft: #eef1ff;
@@ -34,16 +35,17 @@
 
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --app-bg: #151821;
-    --app-bg-2: #1a1e29;
-    --app-surface: #20242f;
-    --app-surface-muted: #282d39;
-    --app-surface-soft: #1b1f2a;
-    --app-text: #f4f6fb;
-    --app-text-muted: #a7adba;
-    --app-text-soft: #777f90;
-    --app-border: rgba(255, 255, 255, 0.08);
-    --app-border-strong: rgba(255, 255, 255, 0.14);
+    --app-bg: #131720;
+    --app-bg-2: #181d28;
+    --app-surface: #232936;
+    --app-surface-muted: #2e3544;
+    --app-surface-soft: #1b202b;
+    --app-text: #f7f9fc;
+    --app-text-muted: #c3cad6;
+    --app-text-soft: #9ea8b8;
+    --app-placeholder: #aab3c1;
+    --app-border: rgba(255, 255, 255, 0.11);
+    --app-border-strong: rgba(255, 255, 255, 0.18);
     --app-accent: #8fa0ff;
     --app-accent-2: #b395ff;
     --app-accent-soft: rgba(143, 160, 255, 0.13);
@@ -74,7 +76,7 @@
     background:
       radial-gradient(circle at 14% -12%, rgba(143, 160, 255, 0.12), transparent 30rem),
       radial-gradient(circle at 96% 0%, rgba(179, 149, 255, 0.08), transparent 28rem),
-      linear-gradient(180deg, #151925 0%, var(--app-bg) 40%, var(--app-bg) 100%);
+      linear-gradient(180deg, #171c27 0%, var(--app-bg) 40%, var(--app-bg) 100%);
   }
 
   #root {
@@ -178,11 +180,33 @@ main,
   color: var(--app-text) !important;
 }
 
-[class*="text-gray-400"],
-[class*="text-gray-500"],
-[class*="text-gray-600"],
 [class*="text-gray-700"] {
+  color: var(--app-text) !important;
+}
+
+[class*="text-gray-500"],
+[class*="text-gray-600"] {
   color: var(--app-text-muted) !important;
+}
+
+[class*="text-gray-400"] {
+  color: var(--app-text-soft) !important;
+}
+
+[class*="text-white/"] {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+[class*="text-white/45"] {
+  color: rgba(255, 255, 255, 0.66) !important;
+}
+
+[class*="text-white/52"] {
+  color: rgba(255, 255, 255, 0.70) !important;
+}
+
+[class*="text-white/62"] {
+  color: rgba(255, 255, 255, 0.78) !important;
 }
 
 [class*="border-white/5"],
@@ -249,14 +273,14 @@ input,
 select,
 textarea {
   background: var(--app-surface) !important;
-  border-color: var(--app-border) !important;
+  border-color: var(--app-border-strong) !important;
   color: var(--app-text) !important;
   box-shadow: none !important;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: var(--app-text-soft) !important;
+  color: var(--app-placeholder) !important;
 }
 
 input:focus,
@@ -272,12 +296,12 @@ a:not(:disabled):active {
 }
 
 aside {
-  background: rgba(255, 255, 255, 0.88) !important;
+  background: rgba(255, 255, 255, 0.94) !important;
   border-color: var(--app-border) !important;
 }
 
 :root[data-theme="dark"] aside {
-  background: rgba(25, 29, 40, 0.86) !important;
+  background: rgba(31, 36, 49, 0.94) !important;
 }
 
 table {
@@ -314,6 +338,10 @@ tbody tr:hover {
   --fc-button-active-border-color: transparent;
   --fc-today-bg-color: rgba(91, 110, 225, 0.045);
   color: var(--app-text);
+}
+
+:root[data-theme="dark"] .fc {
+  --fc-today-bg-color: rgba(143, 160, 255, 0.12);
 }
 
 .fc .fc-toolbar-title {
@@ -383,7 +411,7 @@ tbody tr:hover {
 }
 
 .fc-col-header-cell-cushion {
-  color: var(--app-text-soft) !important;
+  color: var(--app-text-muted) !important;
   font-size: 0.64rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -396,7 +424,7 @@ tbody tr:hover {
 }
 
 .fc-daygrid-day-frame {
-  background: rgba(248, 249, 252, 0.62);
+  background: rgba(241, 244, 249, 0.86);
   min-height: 5.55rem;
   padding: 0.24rem;
   border-radius: 10px;
@@ -414,7 +442,7 @@ tbody tr:hover {
 }
 
 :root[data-theme="dark"] .fc-daygrid-day-frame {
-  background: rgba(255, 255, 255, 0.025);
+  background: rgba(255, 255, 255, 0.055);
 }
 
 .fc-daygrid-day-top {
@@ -425,7 +453,7 @@ tbody tr:hover {
 .fc-daygrid-day-number {
   align-items: center;
   border-radius: 999px;
-  color: var(--app-text-soft) !important;
+  color: var(--app-text-muted) !important;
   display: flex !important;
   font-size: 0.68rem;
   font-variant-numeric: tabular-nums;
@@ -445,7 +473,14 @@ tbody tr:hover {
 }
 
 .fc-day-other .fc-daygrid-day-number {
-  opacity: 0.46;
+  opacity: 0.70;
+}
+
+.fc .fc-list-event-title,
+.fc .fc-list-event-time,
+.fc .fc-timegrid-slot-label,
+.fc .fc-timegrid-axis-cushion {
+  color: var(--app-text-muted) !important;
 }
 
 .fc-event {
@@ -567,8 +602,7 @@ tbody tr:hover {
   color: #ffffff !important;
 }
 
-.bg-white.text-gray-950,
-.bg-white [class*="text-gray-950"] {
+:root[data-theme="dark"] [class*="dark:text-gray-950"] {
   color: #151821 !important;
 }
 
