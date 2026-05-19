@@ -17,6 +17,10 @@ function App() {
   const [user, setUser] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';
+  }, []);
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('token');

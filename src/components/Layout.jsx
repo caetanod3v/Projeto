@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate, useSearchParams } from 'react-r
 import api from '../services/api';
 import { toast } from 'react-hot-toast';
 import { Calendar, LayoutDashboard, LogOut, Menu, X, Bell, BellRing, Plus, Tag, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import ThemeToggle from './ThemeToggle';
 
 export default function Layout({ user, onLogout }) {
    const location = useLocation();
@@ -398,6 +399,8 @@ export default function Layout({ user, onLogout }) {
                </div>
 
                {/* Notificações Widget */}
+               <div className="flex items-center gap-2">
+               <ThemeToggle />
                <div className="relative" ref={notifRef}>
                   <button
                      onClick={() => setNotifOpen(!isNotifOpen)}
@@ -456,6 +459,7 @@ export default function Layout({ user, onLogout }) {
                         )}
                      </div>
                   )}
+               </div>
                </div>
             </header>
 

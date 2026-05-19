@@ -2,14 +2,63 @@
 
 @theme {
   --color-uvv-blue: #0D234A;
-  --color-uvv-yellow: #F2B200;
-  --color-uvv-light: #111827;
-  --color-uvv-dark: #f8fafc;
+  --color-uvv-yellow: #F4B400;
+  --color-uvv-light: #f5f7fb;
+  --color-uvv-dark: #111827;
 }
 
 @layer base {
+  :root {
+    color-scheme: light;
+    --app-bg: #f5f7fb;
+    --app-surface: #ffffff;
+    --app-surface-muted: #f9fafb;
+    --app-surface-soft: #f3f4f6;
+    --app-text: #111827;
+    --app-text-muted: #6b7280;
+    --app-text-soft: #9ca3af;
+    --app-border: #e5e7eb;
+    --app-border-strong: #d1d5db;
+    --app-accent: #f4b400;
+    --app-accent-soft: #fff7d6;
+    --app-shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 10px 30px rgba(17, 24, 39, 0.06);
+    --app-shadow-soft: 0 1px 2px rgba(17, 24, 39, 0.04);
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --app-bg: #0f1117;
+    --app-surface: #171a22;
+    --app-surface-muted: #1f232d;
+    --app-surface-soft: #262b36;
+    --app-text: #f8fafc;
+    --app-text-muted: #a1a1aa;
+    --app-text-soft: #71717a;
+    --app-border: #2f3542;
+    --app-border-strong: #3f4654;
+    --app-accent: #f4b400;
+    --app-accent-soft: rgba(244, 180, 0, 0.14);
+    --app-shadow: 0 1px 2px rgba(0, 0, 0, 0.22), 0 18px 50px rgba(0, 0, 0, 0.22);
+    --app-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.18);
+  }
+
+  html {
+    font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--app-bg);
+  }
+
   body {
-    @apply bg-gray-950 text-gray-100 antialiased;
+    background: var(--app-bg);
+    color: var(--app-text);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
   }
 }
 
@@ -243,4 +292,252 @@
 * {
   -ms-overflow-style: none !important;  /* IE and Edge */
   scrollbar-width: none !important;  /* Firefox */
+}
+
+/* Agenda UVV SaaS visual system */
+body,
+#root {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(244, 180, 0, 0.08), transparent 32rem),
+    var(--app-bg) !important;
+  color: var(--app-text) !important;
+}
+
+[class*="bg-gray-950"],
+[class*="bg-[#0B1220]"],
+[class*="bg-[#0F172A]"] {
+  background: var(--app-bg) !important;
+}
+
+[class*="bg-gray-900"],
+[class*="bg-[#111827]"],
+[class*="bg-gray-800"],
+[class*="bg-[#1f2937]"] {
+  background: var(--app-surface) !important;
+}
+
+[class*="bg-white/5"],
+[class*="bg-white/10"],
+[class*="bg-gray-800/30"],
+[class*="bg-\\[\\#111827\\]/"],
+[class*="bg-\\[\\#0B1220\\]/"],
+[class*="bg-\\[\\#0F172A\\]/"] {
+  background: var(--app-surface-muted) !important;
+}
+
+[class*="from-\\[\\#0B1220\\]"],
+[class*="from-\\[\\#111827\\]"],
+[class*="to-\\[\\#111827\\]"],
+[class*="to-\\[\\#0B1220\\]"] {
+  --tw-gradient-from: var(--app-surface) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: var(--app-surface-muted) var(--tw-gradient-to-position) !important;
+}
+
+[class*="text-white"],
+[class*="text-gray-50"],
+[class*="text-gray-100"],
+[class*="text-gray-200"],
+[class*="text-gray-300"] {
+  color: var(--app-text) !important;
+}
+
+[class*="text-gray-400"],
+[class*="text-gray-500"],
+[class*="text-gray-600"] {
+  color: var(--app-text-muted) !important;
+}
+
+[class*="border-white/5"],
+[class*="border-white/10"],
+[class*="border-gray-800"],
+[class*="border-gray-700"],
+[class*="border-gray-600"] {
+  border-color: var(--app-border) !important;
+}
+
+[class*="shadow-2xl"],
+[class*="shadow-xl"],
+[class*="shadow-lg"],
+[class*="shadow-\\["] {
+  box-shadow: var(--app-shadow) !important;
+}
+
+aside {
+  background: var(--app-surface) !important;
+  border-right: 1px solid var(--app-border) !important;
+  box-shadow: var(--app-shadow-soft) !important;
+}
+
+main {
+  background: var(--app-bg) !important;
+}
+
+input,
+select,
+textarea {
+  background: var(--app-surface) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+  box-shadow: none !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--app-text-soft) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(244, 180, 0, 0.7) !important;
+  box-shadow: 0 0 0 4px rgba(244, 180, 0, 0.12) !important;
+}
+
+button,
+a {
+  letter-spacing: 0;
+}
+
+.bg-uvv-yellow,
+[class*="bg-uvv-yellow"] {
+  background-color: var(--app-accent) !important;
+}
+
+.text-uvv-yellow,
+[class*="text-uvv-yellow"] {
+  color: var(--app-accent) !important;
+}
+
+[class*="border-uvv-yellow"] {
+  border-color: rgba(244, 180, 0, 0.55) !important;
+}
+
+[class*="rounded-3xl"] {
+  border-radius: 18px !important;
+}
+
+[class*="rounded-2xl"] {
+  border-radius: 16px !important;
+}
+
+[class*="rounded-xl"] {
+  border-radius: 12px !important;
+}
+
+.group[class*="border-l-\\[3px\\]"],
+a[class*="border-l-\\[3px\\]"] {
+  border-left-width: 0 !important;
+}
+
+a[class*="bg-white/10"],
+a[aria-current="page"] {
+  background: var(--app-accent-soft) !important;
+  color: var(--app-text) !important;
+}
+
+table {
+  background: var(--app-surface) !important;
+  color: var(--app-text) !important;
+}
+
+thead tr {
+  background: var(--app-surface-muted) !important;
+}
+
+tbody tr:hover {
+  background: var(--app-surface-muted) !important;
+}
+
+.backdrop-blur-xl,
+.backdrop-blur-md,
+.backdrop-blur-sm {
+  backdrop-filter: blur(12px);
+}
+
+/* FullCalendar light SaaS skin */
+.fc {
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: var(--app-surface-muted);
+  --fc-neutral-text-color: var(--app-text-muted);
+  --fc-border-color: var(--app-border);
+  --fc-button-text-color: var(--app-text);
+  --fc-button-bg-color: var(--app-surface);
+  --fc-button-border-color: var(--app-border);
+  --fc-button-hover-bg-color: var(--app-surface-muted);
+  --fc-button-hover-border-color: var(--app-border-strong);
+  --fc-button-active-bg-color: var(--app-accent-soft);
+  --fc-button-active-border-color: var(--app-accent);
+  --fc-today-bg-color: rgba(244, 180, 0, 0.08);
+  color: var(--app-text);
+}
+
+.fc .fc-toolbar-title {
+  color: var(--app-text) !important;
+  font-size: 1.1rem !important;
+  font-weight: 750 !important;
+}
+
+.fc .fc-button-primary {
+  background: var(--app-surface) !important;
+  border: 1px solid var(--app-border) !important;
+  color: var(--app-text-muted) !important;
+  border-radius: 10px !important;
+  font-size: 0.78rem !important;
+  font-weight: 650 !important;
+}
+
+.fc .fc-today-button,
+.fc .fc-button-primary:not(:disabled).fc-button-active {
+  background: var(--app-accent-soft) !important;
+  border-color: var(--app-accent) !important;
+  color: var(--app-text) !important;
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th {
+  border-color: var(--app-border) !important;
+}
+
+.fc-col-header-cell-cushion,
+.fc-daygrid-day-number {
+  color: var(--app-text-muted) !important;
+}
+
+.fc-daygrid-day-frame:hover {
+  background-color: var(--app-surface-muted) !important;
+}
+
+.fc-day-today .fc-daygrid-day-number {
+  background-color: var(--app-accent) !important;
+  color: #111827 !important;
+  box-shadow: none !important;
+}
+
+.fc-popover {
+  background: var(--app-surface) !important;
+  border: 1px solid var(--app-border) !important;
+  box-shadow: var(--app-shadow) !important;
+}
+
+.fc-popover-header {
+  background: var(--app-surface-muted) !important;
+  border-bottom: 1px solid var(--app-border) !important;
+}
+
+.fc-popover-title {
+  color: var(--app-text) !important;
+}
+
+.fc-popover-close {
+  color: var(--app-text-muted) !important;
+  background: var(--app-surface) !important;
+  border-color: var(--app-border) !important;
+}
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] #root {
+  background:
+    radial-gradient(circle at top left, rgba(244, 180, 0, 0.08), transparent 34rem),
+    var(--app-bg) !important;
 }

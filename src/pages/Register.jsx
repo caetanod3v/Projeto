@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import api from '../services/api';
 import { Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function Register() {
   const [nome, setNome] = useState('');
@@ -59,6 +60,7 @@ export default function Register() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4 transition-colors">
+        <ThemeToggle className="fixed right-5 top-5" />
         <div className="bg-gray-900 max-w-md w-full rounded-2xl shadow-2xl overflow-hidden border border-gray-800 my-8 text-center p-10 animate-fade-in-up">
           <div className="w-20 h-20 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/20">
             <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
@@ -79,6 +81,7 @@ export default function Register() {
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4 transition-colors">
+      <ThemeToggle className="fixed right-5 top-5" />
       <div className="bg-gray-900 max-w-md w-full rounded-2xl shadow-2xl overflow-hidden border border-gray-800 my-8">
         <div className="bg-gray-800 p-8 text-center border-b border-gray-700">
           <h1 className="text-3xl font-bold text-uvv-yellow mb-2">Agenda Institucional</h1>

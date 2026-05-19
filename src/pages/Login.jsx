@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import api from '../services/api';
 import { Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -37,6 +38,7 @@ export default function Login({ onLogin }) {
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4 transition-colors">
+      <ThemeToggle className="fixed right-5 top-5" />
       <div className="bg-gray-900 max-w-md w-full rounded-2xl shadow-2xl overflow-hidden border border-gray-800">
         <div className="bg-gray-800 p-8 text-center border-b border-gray-700">
           <h1 className="text-3xl font-bold text-uvv-yellow mb-2 transition-all">Agenda UVV</h1>

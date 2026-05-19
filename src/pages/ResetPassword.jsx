@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import api from '../services/api';
 import { Loader2 } from 'lucide-react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -15,6 +16,7 @@ export default function ResetPassword() {
   if (!token) {
     return (
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-4">
+        <ThemeToggle className="fixed right-5 top-5" />
         <h2 className="text-2xl text-white font-bold mb-4">Link inválido</h2>
         <p className="text-gray-400 mb-6">O link de recuperação não possui um token válido.</p>
         <Link to="/login" className="bg-uvv-yellow text-gray-900 px-6 py-2 rounded-lg font-bold">Voltar para Login</Link>
@@ -42,6 +44,7 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4 transition-colors">
+      <ThemeToggle className="fixed right-5 top-5" />
       <div className="bg-gray-900 max-w-md w-full rounded-2xl shadow-2xl overflow-hidden border border-gray-800">
         <div className="bg-gray-800 p-8 text-center border-b border-gray-700">
           <h1 className="text-2xl font-bold text-uvv-yellow mb-2">Redefinir Senha</h1>
