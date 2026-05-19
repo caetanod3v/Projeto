@@ -10,6 +10,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import AdminUsers from './pages/AdminUsers';
 import Aprovacoes from './pages/Aprovacoes';
+import RetornosAprovacao from './pages/RetornosAprovacao';
 import api from './services/api';
 
 function App() {
@@ -85,7 +86,8 @@ function App() {
         >
           <Route index element={<Calendario user={user} />} />
           <Route path="dashboard" element={<Dashboard user={user} />} />
-          <Route path="aprovacoes" element={<Aprovacoes user={user} />} />
+          <Route path="aprovacoes" element={user?.role === 'secretaria' ? <RetornosAprovacao user={user} /> : <Aprovacoes user={user} />} />
+          <Route path="retornos-aprovacao" element={<Navigate to="/aprovacoes" replace />} />
           <Route path="admin/usuarios" element={user?.role === 'admin' ? <AdminUsers /> : <Navigate to="/" replace />} />
         </Route>
       </Routes>

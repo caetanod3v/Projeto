@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { toast } from 'react-hot-toast';
-import { Calendar, LayoutDashboard, LogOut, Menu, X, Bell, BellRing, Plus, Tag, Clock, AlertCircle } from 'lucide-react';
+import { Calendar, LayoutDashboard, LogOut, Menu, X, Bell, BellRing, Plus, Tag, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function Layout({ user, onLogout }) {
    const location = useLocation();
@@ -316,6 +316,12 @@ export default function Layout({ user, onLogout }) {
                            )}
                         </Link>
                      )}
+                     {user?.role === 'secretaria' && (
+                        <Link to="/aprovacoes" className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${location.pathname === '/aprovacoes' ? 'bg-white/10 text-white font-semibold shadow-sm border-l-[3px] border-uvv-yellow' : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-[3px] border-transparent'}`}>
+                           <CheckCircle2 size={18} className={location.pathname === '/aprovacoes' ? 'text-uvv-yellow' : 'group-hover:text-gray-300'} />
+                           Aprovações
+                        </Link>
+                     )}
                      {user?.role === 'admin' && (
                         <Link to="/admin/usuarios" className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${location.pathname === '/admin/usuarios' ? 'bg-white/10 text-white font-semibold shadow-sm border-l-[3px] border-uvv-yellow' : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-[3px] border-transparent'}`}>
                            <LayoutDashboard size={18} className={location.pathname === '/admin/usuarios' ? 'text-uvv-yellow' : 'group-hover:text-gray-300'} />
@@ -386,7 +392,7 @@ export default function Layout({ user, onLogout }) {
                      <Menu size={20} />
                   </button>
                   <h2 className="text-xl md:text-3xl font-bold text-white tracking-tight truncate flex items-center gap-2">
-                     {location.pathname === '/' ? 'Calendário' : 'Meus Compromissos'}
+                     {location.pathname === '/' ? 'Calendário' : location.pathname === '/aprovacoes' ? 'Aprovações' : 'Meus Compromissos'}
                      {currentCategory && <span className="bg-uvv-yellow/20 text-uvv-yellow text-xs px-2 py-0.5 rounded-full border border-uvv-yellow/30 align-middle">Filtrado</span>}
                   </h2>
                </div>
