@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS compromissos (
     curso_id INTEGER REFERENCES cursos(id) ON DELETE SET NULL,
     categoria_id INTEGER REFERENCES categorias(id) ON DELETE SET NULL,
     usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
+    coordenador_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
     repeticao VARCHAR(50) CHECK (repeticao IN ('nenhuma', 'semanal', 'mensal')) DEFAULT 'nenhuma',
     status VARCHAR(20) DEFAULT 'pendente' CHECK (status IN ('pendente', 'aprovado', 'recusado')),
     aprovado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,

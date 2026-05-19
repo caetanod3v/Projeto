@@ -53,6 +53,22 @@ async function registrarLog(usuario_id, acao, detalhes = null) {
   }
 }
 
+const usuarioPublicSelect = {
+  id: true,
+  nome: true,
+  email: true,
+  role: true,
+  status: true,
+  curso_id: true,
+  curso: { select: { id: true, nome: true } }
+};
+
+const parseOptionalInt = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
 // ── Autenticação ─────────────────────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
   const { nome, email, senha, role, curso_id } = req.body;
@@ -189,6 +205,27 @@ app.get('/api/cursos', async (req, res) => {
 });
 
 // ── Categorias ────────────────────────────────────────────────────────────────
+app.get('/api/coordenadores', authenticateToken, async (req, res) => {
+  try {
+    const coordenadores = await prisma.usuario.findMany({
+      where: { role: 'coordenador', status: 'ativo' },
+      orderBy: { nome: 'asc' },
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        curso_id: true,
+        curso: { select: { id: true, nome: true } }
+      }
+    });
+
+    res.json(coordenadores);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Erro ao buscar coordenadores." });
+  }
+});
+
 app.get("/api/categorias", async (req, res) => {
   try {
     const categorias = await prisma.categoria.findMany({ orderBy: { id: 'asc' } });
@@ -300,12 +337,17 @@ app.get("/api/compromissos/pendentes", authenticateToken, requireRole('coordenad
   try {
     const whereClause = { status: 'pendente' };
     if (req.user.role === 'coordenador') {
-      whereClause.curso_id = req.user.curso_id;
+      whereClause.coordenador_id = req.user.id;
     }
     const pendentes = await prisma.compromisso.findMany({
       where: whereClause,
       orderBy: { created_at: 'asc' },
-      include: { curso: true, categoria: true, usuario: true }
+      include: {
+        curso: true,
+        categoria: true,
+        usuario: { select: usuarioPublicSelect },
+        coordenador: { select: usuarioPublicSelect }
+      }
     });
     res.json(pendentes);
   } catch (e) {
@@ -316,31 +358,66 @@ app.get("/api/compromissos/pendentes", authenticateToken, requireRole('coordenad
 
 // ── Criar compromisso ─────────────────────────────────────────────────────────
 app.post('/api/compromissos', authenticateToken, async (req, res) => {
-  const { titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao } = req.body;
+  const { titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao, coordenador_id } = req.body;
 
   const isSecretaria = req.user.role === 'secretaria';
+  const coordenadorId = parseOptionalInt(coordenador_id);
+
+  if (!titulo || !dt_inicio || !dt_fim) {
+    return res.status(400).json({ error: "Informe titulo, data de inicio e data de fim." });
+  }
+
+  const dtInicio = new Date(dt_inicio);
+  const dtFim = new Date(dt_fim);
+  if (Number.isNaN(dtInicio.getTime()) || Number.isNaN(dtFim.getTime()) || dtFim <= dtInicio) {
+    return res.status(400).json({ error: "Informe um periodo valido para o compromisso." });
+  }
+
+  if (isSecretaria && !coordenadorId) {
+    return res.status(400).json({ error: "Selecione o coordenador responsavel pelo compromisso." });
+  }
 
   try {
+    let coordenador = null;
+    if (coordenadorId) {
+      coordenador = await prisma.usuario.findFirst({
+        where: { id: coordenadorId, role: 'coordenador', status: 'ativo' },
+        select: usuarioPublicSelect
+      });
+
+      if (!coordenador) {
+        return res.status(400).json({ error: "Coordenador responsavel invalido ou inativo." });
+      }
+    }
+
     const novoCompromisso = await prisma.compromisso.create({
       data: {
         titulo,
         descricao,
-        dt_inicio: new Date(dt_inicio),
-        dt_fim: new Date(dt_fim),
-        curso_id: curso_id ? parseInt(curso_id) : null,
-        categoria_id: categoria_id ? parseInt(categoria_id) : null,
+        dt_inicio: dtInicio,
+        dt_fim: dtFim,
+        curso_id: parseOptionalInt(curso_id) || coordenador?.curso_id || null,
+        categoria_id: parseOptionalInt(categoria_id),
         usuario_id: req.user.id,
+        coordenador_id: coordenadorId,
         repeticao: repeticao || 'nenhuma',
         status: isSecretaria ? 'pendente' : 'aprovado',
+      },
+      include: {
+        curso: true,
+        categoria: true,
+        usuario: { select: usuarioPublicSelect },
+        coordenador: { select: usuarioPublicSelect }
       }
     });
 
     await registrarLog(req.user.id, 'CRIAR_COMPROMISSO', `Criou compromisso: ${titulo}`);
 
-    // Notifica coordenador por e-mail (não bloqueia a resposta)
-    sendReminder('coordenador@uvv.br', titulo, dt_inicio).catch(err => {
-      console.error("Erro no e-mail de notificação:", err);
-    });
+    if (isSecretaria && coordenador?.email) {
+      sendReminder(coordenador.email, titulo, dt_inicio).catch(err => {
+        console.error("Erro no e-mail de notificacao:", err);
+      });
+    }
 
     res.status(201).json(novoCompromisso);
   } catch (e) {
@@ -384,8 +461,8 @@ app.patch('/api/compromissos/:id/aprovar', authenticateToken, requireRole('coord
     const comp = await prisma.compromisso.findUnique({ where: { id } });
     if (!comp) return res.status(404).json({ error: 'Compromisso não encontrado.' });
 
-    if (req.user.role === 'coordenador' && comp.curso_id !== req.user.curso_id) {
-      return res.status(403).json({ error: 'Você só pode aprovar compromissos do seu próprio curso.' });
+    if (req.user.role === 'coordenador' && comp.coordenador_id !== req.user.id) {
+      return res.status(403).json({ error: 'Voce so pode aprovar compromissos enviados para voce.' });
     }
 
     const updated = await prisma.compromisso.update({
@@ -413,8 +490,8 @@ app.patch('/api/compromissos/:id/recusar', authenticateToken, requireRole('coord
     const comp = await prisma.compromisso.findUnique({ where: { id } });
     if (!comp) return res.status(404).json({ error: 'Compromisso não encontrado.' });
 
-    if (req.user.role === 'coordenador' && comp.curso_id !== req.user.curso_id) {
-      return res.status(403).json({ error: 'Você só pode recusar compromissos do seu próprio curso.' });
+    if (req.user.role === 'coordenador' && comp.coordenador_id !== req.user.id) {
+      return res.status(403).json({ error: 'Voce so pode recusar compromissos enviados para voce.' });
     }
 
     const updated = await prisma.compromisso.update({

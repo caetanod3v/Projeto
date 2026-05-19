@@ -33,23 +33,24 @@ enum StatusUsuario {
 }
 
 model Usuario {
-  id                  Int           @id @default(autoincrement())
-  nome                String
-  email               String        @unique
-  senha               String
-  role                Role
-  status              StatusUsuario @default(pendente)
-  created_at          DateTime      @default(now())
-  
-  curso_id            Int?
-  curso               Curso?        @relation(fields: [curso_id], references: [id])
+  id         Int           @id @default(autoincrement())
+  nome       String
+  email      String        @unique
+  senha      String
+  role       Role
+  status     StatusUsuario @default(pendente)
+  created_at DateTime      @default(now())
+
+  curso_id Int?
+  curso    Curso? @relation(fields: [curso_id], references: [id])
 
   reset_token         String?
   reset_token_expires DateTime?
 
-  compromissos_criados   Compromisso[] @relation("CriadorCompromisso")
-  compromissos_aprovados Compromisso[] @relation("AprovadorCompromisso")
-  logs                   LogAuditoria[]
+  compromissos_criados     Compromisso[]  @relation("CriadorCompromisso")
+  compromissos_aprovados   Compromisso[]  @relation("AprovadorCompromisso")
+  compromissos_responsavel Compromisso[]  @relation("CoordenadorResponsavel")
+  logs                     LogAuditoria[]
 
   @@map("usuarios")
 }
@@ -97,17 +98,20 @@ model Compromisso {
   aprovado_em   DateTime?
   created_at    DateTime          @default(now())
 
-  curso_id     Int?
-  curso        Curso?     @relation(fields: [curso_id], references: [id])
+  curso_id Int?
+  curso    Curso? @relation(fields: [curso_id], references: [id])
 
   categoria_id Int?
   categoria    Categoria? @relation(fields: [categoria_id], references: [id])
 
-  usuario_id   Int?
-  usuario      Usuario?   @relation("CriadorCompromisso", fields: [usuario_id], references: [id])
+  usuario_id Int?
+  usuario    Usuario? @relation("CriadorCompromisso", fields: [usuario_id], references: [id])
+
+  coordenador_id Int?
+  coordenador    Usuario? @relation("CoordenadorResponsavel", fields: [coordenador_id], references: [id])
 
   aprovado_por Int?
-  aprovador    Usuario?   @relation("AprovadorCompromisso", fields: [aprovado_por], references: [id])
+  aprovador    Usuario? @relation("AprovadorCompromisso", fields: [aprovado_por], references: [id])
 
   @@map("compromissos")
 }

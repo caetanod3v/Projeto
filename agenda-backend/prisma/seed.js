@@ -113,6 +113,7 @@ async function main() {
         curso_id:     cursos[i % 5].id,
         categoria_id: categorias[i % 5].id,
         usuario_id:   usuarios[i % 3].id,
+        coordenador_id: usuarios[i % 3].id,
         repeticao:    'nenhuma',
         status:       'aprovado',
       },
