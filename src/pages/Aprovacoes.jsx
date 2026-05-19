@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { CheckCircle2, XCircle, AlertCircle, AlertTriangle, Calendar as CalendarIcon, Clock, Users } from 'lucide-react';
-import api from '../services/api';
+import { AlertCircle, AlertTriangle, Calendar as CalendarIcon, CheckCircle2, Clock, Users, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import api from '../services/api';
 
 function formatDuration(start, end) {
    const diffMs = end - start;
@@ -45,7 +45,8 @@ export default function Aprovacoes({ user }) {
             const fim = ev.dt_fim ? new Date(ev.dt_fim) : new Date(inicio.getTime() + 3600000);
             return {
                ...ev,
-               inicio, fim,
+               inicio,
+               fim,
                durationStr: formatDuration(inicio, fim),
                catObj: catMap[ev.categoria_id] || { nome: 'Geral', cor_hex: '#374151' },
                cursoStr: ev.curso?.nome || cursosMap[ev.curso_id] || 'Geral',
@@ -58,7 +59,7 @@ export default function Aprovacoes({ user }) {
          setPendentes(formattedPendentes);
       } catch (err) {
          console.error(err);
-         toast.error("Erro ao carregar aprovações.");
+         toast.error('Erro ao carregar aprovações.');
       } finally {
          setIsLoading(false);
       }
@@ -76,9 +77,9 @@ export default function Aprovacoes({ user }) {
                mensagem_resposta: 'Compromisso aprovado pelo coordenador.'
             });
             setPendentes(prev => prev.filter(p => p.id !== ev.id));
-            toast.success("Compromisso aprovado e agendado!");
+            toast.success('Compromisso aprovado e agendado!');
          } catch (e) {
-            toast.error(e.response?.data?.error || "Erro ao aprovar.");
+            toast.error(e.response?.data?.error || 'Erro ao aprovar.');
          } finally {
             setLoadingActionId(null);
          }
@@ -90,9 +91,9 @@ export default function Aprovacoes({ user }) {
    const confirmReject = async () => {
       if (!recusarEvt) return;
       if (!motivoRecusa.trim()) {
-         return toast.error("Informe o motivo da recusa.");
+         return toast.error('Informe o motivo da recusa.');
       }
-      const tid = toast.loading("Recusando compromisso...");
+      const tid = toast.loading('Recusando compromisso...');
       setLoadingActionId(`${recusarEvt.id}-reject`);
       try {
          await api.patch(`/compromissos/${recusarEvt.id}/recusar`, {
@@ -100,9 +101,9 @@ export default function Aprovacoes({ user }) {
             mensagem_resposta: motivoRecusa
          });
          setPendentes(prev => prev.filter(p => p.id !== recusarEvt.id));
-         toast.success("Compromisso recusado e removido.", { id: tid });
+         toast.success('Compromisso recusado e removido.', { id: tid });
       } catch (e) {
-         toast.error("Erro ao recusar compromisso.", { id: tid });
+         toast.error('Erro ao recusar compromisso.', { id: tid });
       } finally {
          setLoadingActionId(null);
          setRecusarEvt(null);
@@ -110,66 +111,82 @@ export default function Aprovacoes({ user }) {
       }
    };
 
+   const proximas24h = pendentes.filter(ev => ev.inicio <= new Date(Date.now() + 86400000)).length;
+
    return (
-      <div className="w-full relative min-h-[500px]">
-         <div className="mb-8">
-            <h1 className="text-3xl font-black text-white mb-2">Aprovações de Compromissos</h1>
-            <p className="text-gray-400">Gerencie solicitações enviadas pela secretaria</p>
+      <div className="w-full relative min-h-[500px] text-gray-900 dark:text-gray-100">
+         <div className="mb-6 grid gap-4 lg:grid-cols-[1fr_280px]">
+            <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#171a22]">
+               <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Fila do coordenador</p>
+               <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">Aprovações de compromissos</h1>
+               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Solicitações enviadas pela secretaria, direcionadas para análise.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+               <div className="rounded-[24px] border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#171a22]">
+                  <p className="text-3xl font-black text-gray-950 dark:text-white">{pendentes.length}</p>
+                  <p className="text-xs font-semibold text-gray-500">Pendentes</p>
+               </div>
+               <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4 shadow-sm dark:border-uvv-yellow/20 dark:bg-uvv-yellow/10">
+                  <p className="text-3xl font-black text-amber-700 dark:text-uvv-yellow">{proximas24h}</p>
+                  <p className="text-xs font-semibold text-amber-700/70 dark:text-uvv-yellow/80">Próx. 24h</p>
+               </div>
+            </div>
          </div>
 
          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-32 bg-[#111827] border border-gray-800 rounded-2xl">
-               <div className="w-10 h-10 border-4 border-[#0B1220] border-t-uvv-yellow rounded-full animate-spin mb-4"></div>
+            <div className="flex flex-col items-center justify-center py-32 bg-white border border-gray-200 rounded-[28px] dark:border-white/10 dark:bg-[#171a22]">
+               <div className="w-10 h-10 border-4 border-gray-200 border-t-uvv-yellow rounded-full animate-spin mb-4" />
                <span className="text-gray-400 font-semibold tracking-wide">Carregando fila...</span>
             </div>
          ) : (
-            <div className="mb-12">
-               <h2 className="text-xl font-black text-uvv-yellow mb-6 uppercase tracking-widest flex items-center gap-3">
-                  <AlertCircle size={24} />
+            <div className="mb-12 rounded-[28px] border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#171a22] md:p-5">
+               <h2 className="mb-4 flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+                  <AlertCircle size={18} />
                   Aguardando aprovação ({pendentes.length})
                </h2>
 
                {pendentes.length === 0 ? (
-                  <div className="bg-[#111827] border border-gray-800 rounded-2xl p-16 text-center flex flex-col items-center">
-                     <div className="w-16 h-16 bg-uvv-yellow/10 text-uvv-yellow rounded-full flex items-center justify-center mb-4">
-                        <CheckCircle2 size={32} />
+                  <div className="rounded-[24px] border border-dashed border-gray-200 bg-gray-50 p-16 text-center flex flex-col items-center dark:border-white/10 dark:bg-white/5">
+                     <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 dark:bg-emerald-500/10 dark:text-emerald-300">
+                        <CheckCircle2 size={30} />
                      </div>
-                     <h3 className="text-xl font-bold text-white mb-2">Tudo em dia!</h3>
-                     <p className="text-gray-400 font-medium">Nenhum compromisso aguardando aprovação.</p>
+                     <h3 className="text-lg font-bold text-gray-950 dark:text-white mb-2">Tudo em dia!</h3>
+                     <p className="text-gray-500 font-medium">Nenhum compromisso aguardando aprovação.</p>
                   </div>
                ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-3">
                      {pendentes.map(ev => (
-                        <div key={ev.id} className="relative group bg-[#111827] border border-uvv-yellow/30 rounded-2xl p-6 hover:border-uvv-yellow transition-all duration-300 shadow-xl flex flex-col justify-between">
-                           <div>
-                              <div className="flex justify-between items-start mb-3">
-                                 <h5 className="text-xl font-bold text-gray-100">{ev.titulo}</h5>
-                                 <span className="bg-uvv-yellow/10 text-uvv-yellow text-xs font-black px-3 py-1 rounded-full border border-uvv-yellow/30 uppercase tracking-widest flex-shrink-0 ml-4">
+                        <article key={ev.id} className="group grid gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-4 transition hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 xl:grid-cols-[1fr_260px]">
+                           <div className="min-w-0">
+                              <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                                 <div>
+                                    <h5 className="text-lg font-semibold text-gray-950 dark:text-white">{ev.titulo}</h5>
+                                    {ev.descricao && <p className="mt-1 text-sm text-gray-500 line-clamp-2 dark:text-gray-400">{ev.descricao}</p>}
+                                 </div>
+                                 <span className="bg-uvv-yellow/10 text-amber-700 text-[11px] font-black px-3 py-1 rounded-full border border-uvv-yellow/30 uppercase tracking-widest">
                                     Pendente
                                  </span>
                               </div>
-                              {ev.descricao && <p className="text-sm text-gray-400 mb-5 line-clamp-3">{ev.descricao}</p>}
 
-                              <div className="flex items-center gap-5 text-sm font-semibold text-gray-500 mb-4 flex-wrap">
+                              <div className="mb-4 flex flex-wrap items-center gap-5 text-sm font-semibold text-gray-500">
                                  <div className="flex items-center gap-2"><CalendarIcon size={16} className="text-uvv-yellow" /> {format(ev.inicio, 'dd/MM/yyyy')}</div>
                                  <div className="flex items-center gap-2"><Clock size={16} className="text-uvv-yellow" /> {ev.durationStr}</div>
                                  <div className="flex items-center gap-2"><Users size={16} className="text-uvv-yellow" /> {ev.cursoStr}</div>
                               </div>
 
-                              <div className="flex flex-col gap-1.5 text-xs text-gray-400 mb-8 bg-[#0B1220] px-4 py-3 rounded-xl border border-gray-800 w-full max-w-sm">
-                                 <div><span className="font-bold text-gray-500">Solicitante:</span> {ev.criadorStr}</div>
-                                 <div><span className="font-bold text-gray-500">Coordenador responsavel:</span> {ev.coordenadorStr}</div>
-                                 <div><span className="font-bold text-gray-500">Curso:</span> {ev.cursoStr}</div>
-                                 <div><span className="font-bold text-gray-500">Status:</span> {ev.statusStr}</div>
-                                 <div><span className="font-bold text-gray-500">Data de Criação:</span> {format(new Date(ev.created_at || ev.inicio), 'dd/MM/yyyy HH:mm')}</div>
+                              <div className="grid gap-2 text-xs text-gray-500 sm:grid-cols-2 lg:grid-cols-4">
+                                 <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-[#171a22]"><span className="block font-bold text-gray-400">Solicitante</span>{ev.criadorStr}</div>
+                                 <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-[#171a22]"><span className="block font-bold text-gray-400">Responsável</span>{ev.coordenadorStr}</div>
+                                 <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-[#171a22]"><span className="block font-bold text-gray-400">Status</span>{ev.statusStr}</div>
+                                 <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-[#171a22]"><span className="block font-bold text-gray-400">Criado em</span>{format(new Date(ev.created_at || ev.inicio), 'dd/MM HH:mm')}</div>
                               </div>
                            </div>
 
-                           <div className="flex gap-4 w-full mt-auto">
+                           <div className="flex items-stretch gap-3 xl:flex-col xl:justify-center">
                               <button
                                  onClick={() => handleAction(ev, 'approve')}
                                  disabled={loadingActionId === `${ev.id}-approve` || loadingActionId === `${ev.id}-reject`}
-                                 className="flex-1 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed text-emerald-500 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider"
+                                 className="flex-1 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed text-emerald-700 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-sm dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
                               >
                                  {loadingActionId === `${ev.id}-approve` ? (
                                     <div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
@@ -180,7 +197,7 @@ export default function Aprovacoes({ user }) {
                               <button
                                  onClick={() => handleAction(ev, 'reject')}
                                  disabled={loadingActionId === `${ev.id}-approve` || loadingActionId === `${ev.id}-reject`}
-                                 className="flex-1 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed text-red-500 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider"
+                                 className="flex-1 bg-red-50 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed text-red-700 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-sm dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
                               >
                                  {loadingActionId === `${ev.id}-reject` ? (
                                     <div className="w-5 h-5 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
@@ -189,50 +206,49 @@ export default function Aprovacoes({ user }) {
                                  )}
                               </button>
                            </div>
-                        </div>
+                        </article>
                      ))}
                   </div>
                )}
             </div>
          )}
 
-         {/* Modal de Recusa */}
          {recusarEvt && (
-            <div className="fixed inset-0 z-50 bg-[#0B1220]/80 backdrop-blur-sm flex items-center justify-center p-4">
-               <div className="bg-[#111827] border border-gray-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+            <div className="fixed inset-0 z-50 bg-gray-950/50 backdrop-blur-sm flex items-center justify-center p-4">
+               <div className="bg-white border border-gray-200 rounded-[28px] p-6 md:p-8 max-w-md w-full shadow-2xl relative overflow-hidden dark:border-white/10 dark:bg-[#171a22]">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-red-500" />
 
                   <div className="flex items-center gap-4 mb-6">
-                     <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 flex-shrink-0">
+                     <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-600 flex-shrink-0 dark:bg-red-500/10 dark:text-red-300">
                         <AlertTriangle size={24} />
                      </div>
                      <div>
-                        <h3 className="text-xl font-bold text-white">Recusar Compromisso</h3>
-                        <p className="text-sm text-gray-400 mt-1 line-clamp-1">{recusarEvt.titulo}</p>
+                        <h3 className="text-xl font-bold text-gray-950 dark:text-white">Recusar compromisso</h3>
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-1">{recusarEvt.titulo}</p>
                      </div>
                   </div>
 
-                  <p className="text-gray-300 text-sm mb-6 leading-relaxed">
-                     Tem certeza que deseja recusar este compromisso? Ele não aparecerá no calendário principal.
+                  <p className="text-gray-600 text-sm mb-6 leading-relaxed dark:text-gray-300">
+                     Informe o motivo da recusa. A secretaria verá essa resposta no retorno da solicitação.
                   </p>
 
                   <div className="mb-6">
                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                        Motivo da Recusa
+                        Motivo da recusa
                      </label>
                      <textarea
                         value={motivoRecusa}
                         onChange={(e) => setMotivoRecusa(e.target.value)}
                         required
                         placeholder="Ex: Faltam informações sobre a sala..."
-                        className="w-full bg-[#0B1220] border border-gray-800 rounded-xl p-4 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors resize-none h-24"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm text-gray-950 placeholder-gray-400 focus:outline-none focus:border-red-400 transition-colors resize-none h-24 dark:border-white/10 dark:bg-white/5 dark:text-white"
                      />
                   </div>
 
                   <div className="flex gap-3">
                      <button
                         onClick={() => { setRecusarEvt(null); setMotivoRecusa(''); }}
-                        className="flex-1 bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 rounded-xl transition-all"
+                        className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition-all dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
                      >
                         Cancelar
                      </button>
@@ -244,7 +260,7 @@ export default function Aprovacoes({ user }) {
                         {loadingActionId === `${recusarEvt.id}-reject` ? (
                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
-                           'Confirmar Recusa'
+                           'Confirmar recusa'
                         )}
                      </button>
                   </div>

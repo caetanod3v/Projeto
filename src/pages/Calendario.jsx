@@ -9,7 +9,7 @@ import listPlugin from '@fullcalendar/list';
 import api from '../services/api';
 import { format, isToday, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Sparkles } from 'lucide-react';
+import { CalendarDays, Clock, Plus, Tag } from 'lucide-react';
 
 // Helper de contraste
 function getContrastYIQ(hexcolor) {
@@ -304,20 +304,19 @@ export default function Calendario({ user }) {
     const now = new Date();
     const isUrgent = (start > now) && ((start - now) < 86400000);
 
-    // Base style
-    let baseBg = `linear-gradient(90deg, ${hexToRgba(catObj.cor_hex, 0.4)} 0%, ${hexToRgba(catObj.cor_hex, 0.1)} 100%)`;
-    let borderStyle = `1px solid ${hexToRgba(catObj.cor_hex, 0.2)}`;
+    let baseBg = `linear-gradient(90deg, ${hexToRgba(catObj.cor_hex, 0.14)} 0%, ${hexToRgba(catObj.cor_hex, 0.05)} 100%)`;
+    let borderStyle = `1px solid ${hexToRgba(catObj.cor_hex, 0.22)}`;
 
     if (isCompleted) {
-      baseBg = `rgba(255,255,255,0.05)`;
-      borderStyle = `1px solid rgba(255,255,255,0.1)`;
+      baseBg = `rgba(107,114,128,0.08)`;
+      borderStyle = `1px solid rgba(107,114,128,0.16)`;
     } else if (isUrgent) {
       borderStyle = `1px solid rgba(242,178,0,0.5)`;
     }
 
     return (
       <div
-        className="w-full h-full flex flex-row items-center gap-2 px-2 py-0.5 rounded-md cursor-pointer transition-all duration-200 transform hover:scale-[1.02] hover:-translate-y-[1px] hover:shadow-lg relative overflow-hidden group"
+        className="w-full h-full flex flex-row items-center gap-2 px-2 py-0.5 rounded-md cursor-pointer transition-all duration-200 hover:-translate-y-[1px] hover:shadow-sm relative overflow-hidden group"
         style={{ background: baseBg, border: borderStyle }}
       >
         {/* Mobile Dot */}
@@ -331,7 +330,7 @@ export default function Calendario({ user }) {
           <span className="text-[10px] font-bold tracking-wider whitespace-nowrap opacity-90" style={{ color: isCompleted ? '#9ca3af' : catObj.cor_hex }}>
             {format(start, 'HH:mm')}
           </span>
-          <span className={`text-[11px] font-bold truncate ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-100 group-hover:text-white'}`}>
+          <span className={`text-[11px] font-semibold truncate ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-800 group-hover:text-gray-950'}`}>
             {eventInfo.event.title}
           </span>
         </div>
@@ -345,34 +344,100 @@ export default function Calendario({ user }) {
   const canEdit = user?.role === 'admin' || user?.role === 'coordenador';
   const isFormDisabled = editingId ? !canEdit : false;
   const isSecretaria = user?.role === 'secretaria';
+  const upcomingEvents = events
+    .filter(ev => new Date(ev.start) >= new Date() && !ev.extendedProps.isCompleted)
+    .sort((a, b) => new Date(a.start) - new Date(b.start))
+    .slice(0, 5);
+  const todayLabel = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' });
 
   return (
-    <div className="min-h-full animate-fade-in text-gray-100 font-sans p-4 md:p-8">
+    <div className="min-h-full animate-fade-in text-gray-900 dark:text-gray-100">
 
-      {/* Bloco Inteligente */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#111827]/40 backdrop-blur-md border border-white/5 p-5 rounded-2xl shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-uvv-yellow/10 rounded-xl flex items-center justify-center border border-uvv-yellow/20">
-            <CalendarIcon size={24} className="text-uvv-yellow" />
+      <section className="mb-6 grid gap-4 lg:grid-cols-[1fr_320px]">
+        <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#171a22]">
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Agenda institucional</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">Calendário de compromissos</h2>
+              <p className="mt-2 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+                Visão consolidada por curso, categoria e responsável. {stats.proxHrs ? `Próximo evento em ${stats.proxHrs}.` : 'Nenhum evento imediato.'}
+              </p>
+            </div>
+            {(user?.role === 'admin' || user?.role === 'coordenador' || user?.role === 'secretaria') && (
+              <button
+                onClick={() => {
+                  const d = new Date();
+                  abrirModalCriacao(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+                }}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800 dark:bg-white dark:text-gray-950"
+              >
+                <Plus size={16} />
+                Novo evento
+              </button>
+            )}
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">Visão Geral <Sparkles size={16} className="text-uvv-yellow" /></h2>
-            <p className="text-sm text-gray-400 font-medium mt-0.5">
-              Você tem <span className="text-gray-200 font-bold">{stats.hoje} compromissos</span> hoje.
-              {stats.proxHrs && ` O próximo começa em ${stats.proxHrs}.`}
-            </p>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/5">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300">
+                <CalendarDays size={18} />
+              </div>
+              <p className="text-2xl font-black text-gray-950 dark:text-white">{stats.hoje}</p>
+              <p className="mt-1 text-xs font-semibold text-gray-500">Compromissos hoje</p>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/5">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-uvv-yellow/10 dark:text-uvv-yellow">
+                <Clock size={18} />
+              </div>
+              <p className="text-2xl font-black text-gray-950 dark:text-white">{stats.proxHrs || '--'}</p>
+              <p className="mt-1 text-xs font-semibold text-gray-500">Próximo início</p>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/5">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
+                <Tag size={18} />
+              </div>
+              <p className="text-2xl font-black text-gray-950 dark:text-white">{categorias.length}</p>
+              <p className="mt-1 text-xs font-semibold text-gray-500">Categorias ativas</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Container FullCalendar (Glassmorphism) */}
-      <div className="bg-[#111827]/60 backdrop-blur-xl border border-white/5 p-4 md:p-8 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] relative z-0">
+        <aside className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#171a22]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Hoje</p>
+          <h3 className="mt-1 text-lg font-semibold capitalize text-gray-950 dark:text-white">{todayLabel}</h3>
+          <div className="mt-5 space-y-3">
+            {upcomingEvents.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-white/10 dark:bg-white/5">
+                Sem próximos compromissos na fila.
+              </div>
+            ) : (
+              upcomingEvents.map(ev => (
+                <button
+                  key={ev.id}
+                  onClick={() => handleEventClick({ event: { ...ev, start: new Date(ev.start), end: ev.end ? new Date(ev.end) : null, id: ev.id, title: ev.title, extendedProps: ev.extendedProps } })}
+                  className="flex w-full items-start gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 text-left transition hover:border-gray-200 hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                >
+                  <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: ev.extendedProps.catObj.cor_hex }} />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-gray-950 dark:text-white">{ev.title}</span>
+                    <span className="mt-1 block text-xs text-gray-500">
+                      {format(new Date(ev.start), 'dd/MM HH:mm')} - {ev.extendedProps.cursoStr}
+                    </span>
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        </aside>
+      </section>
+
+      <div className="relative z-0 rounded-[28px] border border-gray-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-[#171a22] md:p-5">
 
         {isLoading && (
-          <div className="absolute inset-0 z-50 bg-[#0B1220]/80 backdrop-blur-sm flex items-center justify-center rounded-3xl">
+          <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex items-center justify-center rounded-[28px] dark:bg-[#0f1117]/80">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 border-4 border-[#1f2937] border-t-uvv-yellow rounded-full animate-spin"></div>
-              <span className="text-gray-300 font-semibold tracking-wide">Desenhando calendário...</span>
+              <div className="w-10 h-10 border-4 border-gray-200 border-t-uvv-yellow rounded-full animate-spin"></div>
+              <span className="text-gray-500 font-semibold tracking-wide">Carregando calendário...</span>
             </div>
           </div>
         )}
@@ -388,7 +453,7 @@ export default function Calendario({ user }) {
           events={events}
           dateClick={handleDateClick}
           eventClick={handleEventClick}
-          height="75vh"
+          height="640px"
           locale={ptBR}
           dayMaxEvents={3}
           moreLinkText={(n) => `+${n} eventos`}

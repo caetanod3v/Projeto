@@ -541,3 +541,38 @@ tbody tr:hover {
     radial-gradient(circle at top left, rgba(244, 180, 0, 0.08), transparent 34rem),
     var(--app-bg) !important;
 }
+
+button[class*="bg-gray-950"],
+a[class*="bg-gray-950"],
+button[class*="bg-\\[\\#111827\\]"],
+a[class*="bg-\\[\\#111827\\]"] {
+  background: #111827 !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="dark"] button[class*="bg-gray-950"],
+:root[data-theme="dark"] a[class*="bg-gray-950"],
+:root[data-theme="dark"] button[class*="bg-\\[\\#111827\\]"],
+:root[data-theme="dark"] a[class*="bg-\\[\\#111827\\]"] {
+  background: #ffffff !important;
+  color: #111827 !important;
+}
+
+:root[data-theme="dark"] [class*="bg-white"],
+:root[data-theme="dark"] [class*="bg-gray-50"],
+:root[data-theme="dark"] [class*="bg-gray-100"] {
+  background: var(--app-surface) !important;
+}
+
+:root[data-theme="dark"] [class*="text-gray-950"],
+:root[data-theme="dark"] [class*="text-gray-900"],
+:root[data-theme="dark"] [class*="text-gray-800"],
+:root[data-theme="dark"] [class*="text-gray-700"] {
+  color: var(--app-text) !important;
+}
+
+:root[data-theme="dark"] [class*="border-gray-100"],
+:root[data-theme="dark"] [class*="border-gray-200"],
+:root[data-theme="dark"] [class*="border-gray-300"] {
+  border-color: var(--app-border) !important;
+}

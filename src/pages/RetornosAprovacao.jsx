@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -9,17 +9,17 @@ const statusMeta = {
    pendente: {
       label: 'Em análise',
       icon: AlertCircle,
-      className: 'bg-uvv-yellow/10 text-uvv-yellow border-uvv-yellow/30'
+      className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-uvv-yellow/10 dark:text-uvv-yellow dark:border-uvv-yellow/30'
    },
    aprovado: {
       label: 'Aprovado',
       icon: CheckCircle2,
-      className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+      className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30'
    },
    recusado: {
       label: 'Recusado',
       icon: XCircle,
-      className: 'bg-red-500/10 text-red-400 border-red-500/30'
+      className: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/30'
    }
 };
 
@@ -57,106 +57,127 @@ export default function RetornosAprovacao({ user }) {
       fetchSolicitacoes();
    }, []);
 
+   const stats = useMemo(() => ({
+      pendente: solicitacoes.filter(item => item.status === 'pendente').length,
+      aprovado: solicitacoes.filter(item => item.status === 'aprovado').length,
+      recusado: solicitacoes.filter(item => item.status === 'recusado').length,
+   }), [solicitacoes]);
+
    return (
-      <div className="w-full relative min-h-[500px]">
-         <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-            <div>
-               <h1 className="text-3xl font-black text-white mb-2">Aprovações</h1>
-               <p className="text-gray-400">Acompanhe o retorno dos coordenadores para suas solicitações</p>
+      <div className="w-full relative min-h-[500px] text-gray-900 dark:text-gray-100">
+         <div className="mb-6 grid gap-4 lg:grid-cols-[1fr_420px]">
+            <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#171a22]">
+               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                     <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Secretaria</p>
+                     <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">Aprovações</h1>
+                     <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Acompanhe o retorno dos coordenadores para suas solicitações.</p>
+                  </div>
+                  <button
+                     onClick={fetchSolicitacoes}
+                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10"
+                  >
+                     <RefreshCw size={16} />
+                     Atualizar
+                  </button>
+               </div>
             </div>
-            <button
-               onClick={fetchSolicitacoes}
-               className="inline-flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 font-bold px-4 py-3 rounded-xl transition-all"
-            >
-               <RefreshCw size={16} />
-               Atualizar
-            </button>
+
+            <div className="grid grid-cols-3 gap-3">
+               <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4 dark:border-uvv-yellow/20 dark:bg-uvv-yellow/10">
+                  <p className="text-2xl font-black text-amber-700 dark:text-uvv-yellow">{stats.pendente}</p>
+                  <p className="text-[11px] font-bold text-amber-700/70 dark:text-uvv-yellow/80">Em análise</p>
+               </div>
+               <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10">
+                  <p className="text-2xl font-black text-emerald-700 dark:text-emerald-300">{stats.aprovado}</p>
+                  <p className="text-[11px] font-bold text-emerald-700/70 dark:text-emerald-300/80">Aprovadas</p>
+               </div>
+               <div className="rounded-[24px] border border-red-200 bg-red-50 p-4 dark:border-red-500/20 dark:bg-red-500/10">
+                  <p className="text-2xl font-black text-red-700 dark:text-red-300">{stats.recusado}</p>
+                  <p className="text-[11px] font-bold text-red-700/70 dark:text-red-300/80">Recusadas</p>
+               </div>
+            </div>
          </div>
 
          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-32 bg-[#111827] border border-gray-800 rounded-2xl">
-               <div className="w-10 h-10 border-4 border-[#0B1220] border-t-uvv-yellow rounded-full animate-spin mb-4"></div>
+            <div className="flex flex-col items-center justify-center py-32 bg-white border border-gray-200 rounded-[28px] dark:border-white/10 dark:bg-[#171a22]">
+               <div className="w-10 h-10 border-4 border-gray-200 border-t-uvv-yellow rounded-full animate-spin mb-4" />
                <span className="text-gray-400 font-semibold tracking-wide">Carregando retornos...</span>
             </div>
          ) : solicitacoes.length === 0 ? (
-            <div className="bg-[#111827] border border-gray-800 rounded-2xl p-16 text-center flex flex-col items-center">
-               <div className="w-16 h-16 bg-uvv-yellow/10 text-uvv-yellow rounded-full flex items-center justify-center mb-4">
+            <div className="bg-white border border-gray-200 rounded-[28px] p-16 text-center flex flex-col items-center dark:border-white/10 dark:bg-[#171a22]">
+               <div className="w-16 h-16 bg-uvv-yellow/10 text-uvv-yellow rounded-2xl flex items-center justify-center mb-4">
                   <MessageSquare size={32} />
                </div>
-               <h3 className="text-xl font-bold text-white mb-2">Nenhuma solicitação encontrada</h3>
-               <p className="text-gray-400 font-medium">Quando você criar compromissos para aprovação, eles aparecerão aqui.</p>
+               <h3 className="text-xl font-bold text-gray-950 dark:text-white mb-2">Nenhuma solicitação encontrada</h3>
+               <p className="text-gray-500 font-medium">Quando você criar compromissos para aprovação, eles aparecerão aqui.</p>
             </div>
          ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-               {solicitacoes.map(item => {
-                  const meta = statusMeta[item.status] || statusMeta.pendente;
-                  const StatusIcon = meta.icon;
-                  const { data, horario } = formatDateRange(item);
-                  const resposta = item.status === 'recusado'
-                     ? item.motivo_recusa || item.mensagem_resposta
-                     : item.mensagem_resposta;
+            <div className="rounded-[28px] border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#171a22]">
+               <div className="grid grid-cols-[1fr_170px_170px] gap-4 border-b border-gray-100 px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-gray-400 dark:border-white/10 max-lg:hidden">
+                  <span>Solicitação</span>
+                  <span>Responsável</span>
+                  <span>Status</span>
+               </div>
 
-                  return (
-                     <article key={item.id} className="bg-[#111827] border border-white/5 hover:border-white/10 rounded-2xl p-6 shadow-xl transition-all">
-                        <div className="flex items-start justify-between gap-4 mb-5">
+               <div className="divide-y divide-gray-100 dark:divide-white/10">
+                  {solicitacoes.map(item => {
+                     const meta = statusMeta[item.status] || statusMeta.pendente;
+                     const StatusIcon = meta.icon;
+                     const { data, horario } = formatDateRange(item);
+                     const resposta = item.status === 'recusado'
+                        ? item.motivo_recusa || item.mensagem_resposta
+                        : item.mensagem_resposta;
+
+                     return (
+                        <article key={item.id} className="grid gap-4 px-5 py-5 transition hover:bg-gray-50/70 dark:hover:bg-white/5 lg:grid-cols-[1fr_170px_170px]">
                            <div className="min-w-0">
-                              <h2 className="text-xl font-black text-white leading-tight mb-2">{item.titulo}</h2>
-                              {item.descricao && <p className="text-sm text-gray-400 line-clamp-2">{item.descricao}</p>}
-                           </div>
-                           <span className={`inline-flex items-center gap-2 text-xs font-black px-3 py-1 rounded-full border uppercase tracking-widest shrink-0 ${meta.className}`}>
-                              <StatusIcon size={14} />
-                              {meta.label}
-                           </span>
-                        </div>
+                              <div className="mb-3 flex flex-wrap items-center gap-2">
+                                 <h2 className="text-base font-semibold text-gray-950 dark:text-white">{item.titulo}</h2>
+                                 <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-bold text-gray-500 dark:border-white/10 dark:bg-white/5">
+                                    {item.categoria?.nome || 'Sem categoria'}
+                                 </span>
+                              </div>
+                              {item.descricao && <p className="mb-3 text-sm text-gray-500 line-clamp-2 dark:text-gray-400">{item.descricao}</p>}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5 text-sm text-gray-400">
-                           <div className="flex items-center gap-2 bg-[#0B1220] border border-gray-800 rounded-xl px-3 py-2">
-                              <CalendarIcon size={16} className="text-uvv-yellow" />
-                              {data}
-                           </div>
-                           <div className="flex items-center gap-2 bg-[#0B1220] border border-gray-800 rounded-xl px-3 py-2">
-                              <Clock size={16} className="text-uvv-yellow" />
-                              {horario}
-                           </div>
-                           <div className="flex items-center gap-2 bg-[#0B1220] border border-gray-800 rounded-xl px-3 py-2">
-                              <UserCheck size={16} className="text-uvv-yellow" />
-                              {item.coordenador?.nome || 'Coordenador não definido'}
-                           </div>
-                           <div className="bg-[#0B1220] border border-gray-800 rounded-xl px-3 py-2 truncate">
-                              {item.curso?.nome || 'Curso não vinculado'}
-                           </div>
-                        </div>
+                              <div className="mb-3 flex flex-wrap gap-3 text-xs font-semibold text-gray-500">
+                                 <span className="inline-flex items-center gap-1.5"><CalendarIcon size={14} className="text-uvv-yellow" /> {data}</span>
+                                 <span className="inline-flex items-center gap-1.5"><Clock size={14} className="text-uvv-yellow" /> {horario}</span>
+                                 {item.created_at && <span>Solicitado em {format(new Date(item.created_at), 'dd/MM HH:mm')}</span>}
+                                 {item.respondido_em && <span>Respondido em {format(new Date(item.respondido_em), 'dd/MM HH:mm')}</span>}
+                              </div>
 
-                        <div className="flex flex-wrap gap-2 mb-5">
-                           <span className="text-xs font-bold text-gray-400 bg-white/5 border border-white/5 rounded-lg px-3 py-1.5">
-                              {item.categoria?.nome || 'Sem categoria'}
-                           </span>
-                           {item.created_at && (
-                              <span className="text-xs font-bold text-gray-400 bg-white/5 border border-white/5 rounded-lg px-3 py-1.5">
-                                 Solicitado em {format(new Date(item.created_at), 'dd/MM/yyyy HH:mm')}
-                              </span>
-                           )}
-                           {item.respondido_em && (
-                              <span className="text-xs font-bold text-gray-400 bg-white/5 border border-white/5 rounded-lg px-3 py-1.5">
-                                 Respondido em {format(new Date(item.respondido_em), 'dd/MM/yyyy HH:mm')}
-                              </span>
-                           )}
-                        </div>
+                              <div className={`rounded-2xl border px-4 py-3 ${item.status === 'recusado' ? 'bg-red-50 border-red-100 dark:bg-red-500/10 dark:border-red-500/20' : 'bg-gray-50 border-gray-100 dark:bg-white/5 dark:border-white/10'}`}>
+                                 <div className="mb-1 flex items-center gap-2">
+                                    <MessageSquare size={15} className={item.status === 'recusado' ? 'text-red-500' : 'text-uvv-yellow'} />
+                                    <span className="text-[11px] font-black uppercase tracking-widest text-gray-400">
+                                       {item.status === 'pendente' ? 'Retorno' : 'Mensagem do coordenador'}
+                                    </span>
+                                 </div>
+                                 <p className={`text-sm leading-relaxed ${item.status === 'recusado' ? 'text-red-700 dark:text-red-200' : 'text-gray-600 dark:text-gray-300'}`}>
+                                    {item.status === 'pendente' ? 'Aguardando análise do coordenador.' : resposta || 'Sem mensagem adicional.'}
+                                 </p>
+                              </div>
+                           </div>
 
-                        <div className={`rounded-xl border px-4 py-3 ${item.status === 'recusado' ? 'bg-red-500/10 border-red-500/20' : 'bg-[#0B1220] border-gray-800'}`}>
-                           <div className="flex items-center gap-2 mb-2">
-                              <MessageSquare size={16} className={item.status === 'recusado' ? 'text-red-400' : 'text-uvv-yellow'} />
-                              <span className="text-xs font-black uppercase tracking-widest text-gray-500">
-                                 {item.status === 'pendente' ? 'Retorno' : 'Mensagem do coordenador'}
+                           <div className="text-sm text-gray-600 dark:text-gray-300">
+                              <div className="flex items-center gap-2 font-semibold">
+                                 <UserCheck size={16} className="text-uvv-yellow" />
+                                 {item.coordenador?.nome || 'Coordenador não definido'}
+                              </div>
+                              <p className="mt-1 text-xs text-gray-500">{item.curso?.nome || 'Curso não vinculado'}</p>
+                           </div>
+
+                           <div>
+                              <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-widest ${meta.className}`}>
+                                 <StatusIcon size={14} />
+                                 {meta.label}
                               </span>
                            </div>
-                           <p className={`text-sm leading-relaxed ${item.status === 'recusado' ? 'text-red-200' : 'text-gray-300'}`}>
-                              {item.status === 'pendente' ? 'Aguardando análise do coordenador.' : resposta || 'Sem mensagem adicional.'}
-                           </p>
-                        </div>
-                     </article>
-                  );
-               })}
+                        </article>
+                     );
+                  })}
+               </div>
             </div>
          )}
       </div>
