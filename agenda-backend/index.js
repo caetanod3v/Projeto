@@ -69,6 +69,31 @@ const parseOptionalInt = (value) => {
   return Number.isNaN(parsed) ? null : parsed;
 };
 
+const formatDateOnly = (date) => date.toISOString().slice(0, 10);
+const formatTimeOnly = (date) => date.toISOString().slice(11, 16);
+
+const toSolicitacaoSecretaria = (compromisso) => ({
+  id: compromisso.id,
+  titulo: compromisso.titulo,
+  descricao: compromisso.descricao,
+  data: formatDateOnly(compromisso.dt_inicio),
+  horario_inicio: formatTimeOnly(compromisso.dt_inicio),
+  horario_fim: formatTimeOnly(compromisso.dt_fim),
+  dt_inicio: compromisso.dt_inicio,
+  dt_fim: compromisso.dt_fim,
+  status: compromisso.status,
+  mensagem_resposta: compromisso.mensagem_resposta,
+  motivo_recusa: compromisso.motivo_recusa,
+  respondido_em: compromisso.respondido_em,
+  coordenador: compromisso.coordenador ? {
+    id: compromisso.coordenador.id,
+    nome: compromisso.coordenador.nome,
+    email: compromisso.coordenador.email,
+  } : null,
+  curso: compromisso.coordenador?.curso || compromisso.curso || null,
+  categoria: compromisso.categoria || null,
+});
+
 // ── Autenticação ─────────────────────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
   const { nome, email, senha, role, curso_id } = req.body;
@@ -357,6 +382,25 @@ app.get("/api/compromissos/pendentes", authenticateToken, requireRole('coordenad
 });
 
 // ── Criar compromisso ─────────────────────────────────────────────────────────
+app.get("/api/minhas-solicitacoes", authenticateToken, requireRole('secretaria'), async (req, res) => {
+  try {
+    const solicitacoes = await prisma.compromisso.findMany({
+      where: { usuario_id: req.user.id },
+      orderBy: { created_at: 'desc' },
+      include: {
+        curso: true,
+        categoria: true,
+        coordenador: { select: usuarioPublicSelect }
+      }
+    });
+
+    res.json(solicitacoes.map(toSolicitacaoSecretaria));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Erro ao buscar suas solicitacoes." });
+  }
+});
+
 app.post('/api/compromissos', authenticateToken, async (req, res) => {
   const { titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao, coordenador_id } = req.body;
 
@@ -457,6 +501,7 @@ app.put('/api/compromissos/:id', authenticateToken, async (req, res) => {
 // ── Aprovar compromisso (RBAC) ────────────────────────────────────────────────
 app.patch('/api/compromissos/:id/aprovar', authenticateToken, requireRole('coordenador', 'admin'), async (req, res) => {
   const id = parseInt(req.params.id);
+  const { mensagem_resposta } = req.body || {};
   try {
     const comp = await prisma.compromisso.findUnique({ where: { id } });
     if (!comp) return res.status(404).json({ error: 'Compromisso não encontrado.' });
@@ -469,8 +514,11 @@ app.patch('/api/compromissos/:id/aprovar', authenticateToken, requireRole('coord
       where: { id },
       data: {
         status: 'aprovado',
+        motivo_recusa: null,
+        mensagem_resposta: mensagem_resposta?.trim() || 'Compromisso aprovado pelo coordenador.',
         aprovado_por: req.user.id,
         aprovado_em: new Date(),
+        respondido_em: new Date(),
       }
     });
 
@@ -485,7 +533,7 @@ app.patch('/api/compromissos/:id/aprovar', authenticateToken, requireRole('coord
 // ── Recusar compromisso (RBAC) ────────────────────────────────────────────────
 app.patch('/api/compromissos/:id/recusar', authenticateToken, requireRole('coordenador', 'admin'), async (req, res) => {
   const id = parseInt(req.params.id);
-  const { motivo_recusa } = req.body;
+  const { motivo_recusa, mensagem_resposta } = req.body || {};
   try {
     const comp = await prisma.compromisso.findUnique({ where: { id } });
     if (!comp) return res.status(404).json({ error: 'Compromisso não encontrado.' });
@@ -494,11 +542,18 @@ app.patch('/api/compromissos/:id/recusar', authenticateToken, requireRole('coord
       return res.status(403).json({ error: 'Voce so pode recusar compromissos enviados para voce.' });
     }
 
+    const motivo = motivo_recusa?.trim();
+    if (!motivo) {
+      return res.status(400).json({ error: 'Informe o motivo da recusa.' });
+    }
+
     const updated = await prisma.compromisso.update({
       where: { id },
       data: {
         status: 'recusado',
-        motivo_recusa: motivo_recusa || null,
+        motivo_recusa: motivo,
+        mensagem_resposta: mensagem_resposta?.trim() || motivo,
+        respondido_em: new Date(),
       }
     });
     await registrarLog(req.user.id, 'RECUSAR_COMPROMISSO', `Recusou compromisso: ${updated.titulo}`);

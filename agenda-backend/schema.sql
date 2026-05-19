@@ -38,6 +38,8 @@ CREATE TABLE IF NOT EXISTS compromissos (
     aprovado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
     aprovado_em TIMESTAMP,
     motivo_recusa TEXT,
+    mensagem_resposta TEXT,
+    respondido_em TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
