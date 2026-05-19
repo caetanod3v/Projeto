@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import FullCalendar from '@fullcalendar/react';
@@ -32,6 +32,7 @@ function hexToRgba(hex, alpha) {
 }
 
 export default function Calendario({ user }) {
+  const calendarRef = useRef(null);
   const [events, setEvents] = useState([]);
   const [cursos, setCursos] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -41,6 +42,8 @@ export default function Calendario({ user }) {
   const [selectedDate, setSelectedDate] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [calendarTitle, setCalendarTitle] = useState('');
+  const [calendarView, setCalendarView] = useState('dayGridMonth');
 
   // Resumo Inteligente Stats
   const [stats, setStats] = useState({ hoje: 0, proxHrs: null });
@@ -304,19 +307,19 @@ export default function Calendario({ user }) {
     const now = new Date();
     const isUrgent = (start > now) && ((start - now) < 86400000);
 
-    let baseBg = hexToRgba(catObj.cor_hex, 0.105);
-    let borderStyle = `1px solid ${hexToRgba(catObj.cor_hex, 0.16)}`;
+    let baseBg = hexToRgba(catObj.cor_hex, 0.095);
+    let borderStyle = `1px solid transparent`;
 
     if (isCompleted) {
       baseBg = `rgba(107,114,128,0.08)`;
-      borderStyle = `1px solid rgba(107,114,128,0.12)`;
+      borderStyle = `1px solid transparent`;
     } else if (isUrgent) {
-      borderStyle = `1px solid rgba(91,110,225,0.28)`;
+      borderStyle = `1px solid rgba(91,110,225,0.18)`;
     }
 
     return (
       <div
-        className="group relative flex h-full w-full cursor-pointer flex-row items-center gap-2 overflow-hidden rounded-lg px-2 py-1 transition-all duration-300 hover:-translate-y-[1px] hover:shadow-sm"
+        className="group relative flex h-full w-full cursor-pointer flex-row items-center gap-1.5 overflow-hidden rounded-md px-1.5 py-0.5 transition-all duration-300 hover:-translate-y-[1px] hover:shadow-sm"
         style={{ background: baseBg, border: borderStyle }}
       >
         {/* Mobile Dot */}
@@ -327,10 +330,10 @@ export default function Calendario({ user }) {
 
         {/* Desktop Content */}
         <div className="hidden md:flex items-center gap-2 flex-1 min-w-0 z-10">
-          <span className="text-[10px] font-bold tracking-wider whitespace-nowrap opacity-90" style={{ color: isCompleted ? '#9ca3af' : catObj.cor_hex }}>
+          <span className="whitespace-nowrap text-[9px] font-semibold tracking-wide opacity-90" style={{ color: isCompleted ? '#9ca3af' : catObj.cor_hex }}>
             {format(start, 'HH:mm')}
           </span>
-          <span className={`truncate text-[11px] font-semibold ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-800 group-hover:text-gray-950'}`}>
+          <span className={`truncate text-[10px] font-medium ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-800 group-hover:text-gray-950'}`}>
             {eventInfo.event.title}
           </span>
         </div>
@@ -349,107 +352,81 @@ export default function Calendario({ user }) {
     .sort((a, b) => new Date(a.start) - new Date(b.start))
     .slice(0, 5);
   const todayLabel = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' });
+  const canCreate = user?.role === 'admin' || user?.role === 'coordenador' || user?.role === 'secretaria';
+  const calendarApi = () => calendarRef.current?.getApi();
+  const changeCalendarView = (view) => {
+    calendarApi()?.changeView(view);
+    setCalendarView(view);
+  };
 
   return (
     <div className="min-h-full animate-fade-in text-gray-900 dark:text-gray-100">
-
-      <section className="mb-6 grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10">
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Instituicao</p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">Calendario academico</h2>
-              <p className="mt-2 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
-                Visao consolidada por curso, categoria e responsavel. {stats.proxHrs ? `Proximo evento em ${stats.proxHrs}.` : 'Nenhum evento imediato.'}
-              </p>
-            </div>
-            {(user?.role === 'admin' || user?.role === 'coordenador' || user?.role === 'secretaria') && (
-              <button
-                onClick={() => {
-                  const d = new Date();
-                  abrirModalCriacao(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
-                }}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800 dark:bg-white dark:text-gray-950"
-              >
-                <Plus size={16} />
-                Novo evento
-              </button>
-            )}
-          </div>
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200/60 dark:bg-white/5 dark:ring-white/10">
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300">
-                <CalendarDays size={18} />
-              </div>
-              <p className="text-2xl font-semibold tabular-nums text-gray-950 dark:text-white">{stats.hoje}</p>
-              <p className="mt-1 text-xs font-semibold text-gray-500">Compromissos hoje</p>
-            </div>
-            <div className="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200/60 dark:bg-white/5 dark:ring-white/10">
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-uvv-yellow/10 text-uvv-yellow">
-                <Clock size={18} />
-              </div>
-              <p className="text-2xl font-semibold tabular-nums text-gray-950 dark:text-white">{stats.proxHrs || '--'}</p>
-              <p className="mt-1 text-xs font-semibold text-gray-500">Proximo inicio</p>
-            </div>
-            <div className="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200/60 dark:bg-white/5 dark:ring-white/10">
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
-                <Tag size={18} />
-              </div>
-              <p className="text-2xl font-semibold tabular-nums text-gray-950 dark:text-white">{categorias.length}</p>
-              <p className="mt-1 text-xs font-semibold text-gray-500">Categorias ativas</p>
-            </div>
-          </div>
+      <section className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold tracking-tight text-gray-950 dark:text-white">Calendario academico</h2>
+          <p className="mt-1 text-xs text-gray-500">
+            {stats.proxHrs ? `Proximo evento em ${stats.proxHrs}.` : 'Nenhum evento imediato.'}
+          </p>
         </div>
 
-        <aside className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10">
-          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Hoje</p>
-          <h3 className="mt-1 text-lg font-semibold capitalize text-gray-950 dark:text-white">{todayLabel}</h3>
-          <div className="mt-5 space-y-3">
-            {upcomingEvents.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-white/10 dark:bg-white/5">
-                Sem proximos compromissos na fila.
-              </div>
-            ) : (
-              upcomingEvents.map(ev => (
-                <button
-                  key={ev.id}
-                  onClick={() => handleEventClick({ event: { ...ev, start: new Date(ev.start), end: ev.end ? new Date(ev.end) : null, id: ev.id, title: ev.title, extendedProps: ev.extendedProps } })}
-                  className="flex w-full items-start gap-3 rounded-2xl bg-gray-50 p-3 text-left ring-1 ring-gray-200/50 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm dark:bg-white/5 dark:ring-white/10 dark:hover:bg-white/10"
-                >
-                  <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: ev.extendedProps.catObj.cor_hex }} />
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-gray-950 dark:text-white">{ev.title}</span>
-                    <span className="mt-1 block text-xs text-gray-500">
-                      {format(new Date(ev.start), 'dd/MM HH:mm')} - {ev.extendedProps.cursoStr}
-                    </span>
-                  </span>
-                </button>
-              ))
-            )}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1 rounded-xl bg-white p-1 shadow-sm ring-1 ring-gray-200/60 dark:bg-white/5 dark:ring-white/10">
+            {[
+              ['dayGridMonth', 'Mes'],
+              ['timeGridWeek', 'Semana'],
+              ['timeGridDay', 'Dia'],
+              ['listWeek', 'Lista'],
+            ].map(([view, label]) => (
+              <button
+                key={view}
+                onClick={() => changeCalendarView(view)}
+                className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${calendarView === view ? 'bg-gray-950 text-white dark:bg-white dark:text-gray-950' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-950 dark:hover:bg-white/10'}`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
-        </aside>
+
+          {canCreate && (
+            <button
+              onClick={() => {
+                const d = new Date();
+                abrirModalCriacao(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gray-950 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800 dark:bg-white dark:text-gray-950"
+            >
+              <Plus size={14} />
+              Novo evento
+            </button>
+          )}
+        </div>
       </section>
 
-      <div className="relative z-0 rounded-[28px] bg-white p-3 shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10 md:p-5">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_286px]">
+        <div className="relative z-0 overflow-hidden rounded-[18px] bg-white p-3 shadow-sm ring-1 ring-gray-200/50 dark:bg-[#191d28] dark:ring-white/10 md:p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <button onClick={() => calendarApi()?.prev()} className="rounded-lg bg-gray-50 px-2.5 py-1.5 text-sm font-semibold text-gray-500 transition hover:bg-gray-100 hover:text-gray-950 dark:bg-white/5 dark:hover:bg-white/10">{'<'}</button>
+              <button onClick={() => calendarApi()?.next()} className="rounded-lg bg-gray-50 px-2.5 py-1.5 text-sm font-semibold text-gray-500 transition hover:bg-gray-100 hover:text-gray-950 dark:bg-white/5 dark:hover:bg-white/10">{'>'}</button>
+              <button onClick={() => calendarApi()?.today()} className="rounded-lg bg-gray-50 px-2.5 py-1.5 text-xs font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-950 dark:bg-white/5 dark:hover:bg-white/10">Hoje</button>
+            </div>
+            <h3 className="text-sm font-semibold capitalize tracking-tight text-gray-950 dark:text-white">{calendarTitle}</h3>
+          </div>
 
         {isLoading && (
-          <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex items-center justify-center rounded-[28px] dark:bg-[#0f1117]/80">
+          <div className="absolute inset-0 z-50 flex items-center justify-center rounded-[18px] bg-white/80 backdrop-blur-sm dark:bg-[#0f1117]/80">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 border-4 border-gray-200 border-t-uvv-yellow rounded-full animate-spin"></div>
-              <span className="text-gray-500 font-semibold tracking-wide">Carregando calendario...</span>
+              <div className="h-7 w-7 animate-spin rounded-full border-2 border-gray-200 border-t-uvv-yellow"></div>
+              <span className="text-xs font-medium tracking-wide text-gray-500">Carregando calendario...</span>
             </div>
           </div>
         )}
 
         <FullCalendar
+          ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
           initialView="dayGridMonth"
-          headerToolbar={{
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-          }}
+          headerToolbar={false}
           buttonText={{
             today: 'Hoje',
             month: 'Mes',
@@ -460,12 +437,16 @@ export default function Calendario({ user }) {
           events={events}
           dateClick={handleDateClick}
           eventClick={handleEventClick}
-          height="660px"
+          height="calc(100vh - 188px)"
           locale={ptBR}
-          dayMaxEvents={3}
+          dayMaxEvents={2}
           moreLinkText={(n) => `+${n} eventos`}
           eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
           eventContent={renderEventContent}
+          datesSet={(arg) => {
+            setCalendarTitle(arg.view.title);
+            setCalendarView(arg.view.type);
+          }}
 
           eventMouseEnter={(info) => {
             const rect = info.el.getBoundingClientRect();
@@ -486,6 +467,91 @@ export default function Calendario({ user }) {
           }}
           eventMouseLeave={() => setTooltip(prev => ({ ...prev, open: false }))}
         />
+        </div>
+
+        <aside className="grid content-start gap-3">
+          <div className="rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-gray-200/50 dark:bg-[#191d28] dark:ring-white/10">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">Hoje</p>
+            <h3 className="mt-1 text-sm font-semibold capitalize text-gray-950 dark:text-white">{todayLabel}</h3>
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="rounded-xl bg-gray-50 p-2.5 dark:bg-white/5">
+                <CalendarDays size={14} className="mb-2 text-emerald-600" />
+                <p className="text-lg font-semibold tabular-nums text-gray-950 dark:text-white">{stats.hoje}</p>
+                <p className="text-[10px] font-medium text-gray-500">Hoje</p>
+              </div>
+              <div className="rounded-xl bg-gray-50 p-2.5 dark:bg-white/5">
+                <Clock size={14} className="mb-2 text-uvv-yellow" />
+                <p className="text-lg font-semibold tabular-nums text-gray-950 dark:text-white">{stats.proxHrs || '--'}</p>
+                <p className="text-[10px] font-medium text-gray-500">Prox.</p>
+              </div>
+              <div className="rounded-xl bg-gray-50 p-2.5 dark:bg-white/5">
+                <Tag size={14} className="mb-2 text-indigo-500" />
+                <p className="text-lg font-semibold tabular-nums text-gray-950 dark:text-white">{categorias.length}</p>
+                <p className="text-[10px] font-medium text-gray-500">Tags</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[18px] bg-white p-3 shadow-sm ring-1 ring-gray-200/50 dark:bg-[#191d28] dark:ring-white/10">
+            <div className="mb-2 flex items-center justify-between px-1">
+              <p className="text-xs font-semibold text-gray-950 dark:text-white">Proximos</p>
+              <span className="text-[11px] text-gray-400">{upcomingEvents.length}</span>
+            </div>
+            <div className="space-y-1.5">
+              {upcomingEvents.length === 0 ? (
+                <div className="rounded-xl bg-gray-50 p-3 text-xs text-gray-500 dark:bg-white/5">Sem proximos compromissos.</div>
+              ) : (
+                upcomingEvents.map(ev => (
+                  <button
+                    key={ev.id}
+                    onClick={() => handleEventClick({ event: { ...ev, start: new Date(ev.start), end: ev.end ? new Date(ev.end) : null, id: ev.id, title: ev.title, extendedProps: ev.extendedProps } })}
+                    className="flex w-full items-start gap-2 rounded-xl p-2.5 text-left transition hover:bg-gray-50 dark:hover:bg-white/5"
+                  >
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: ev.extendedProps.catObj.cor_hex }} />
+                    <span className="min-w-0">
+                      <span className="block truncate text-xs font-semibold text-gray-950 dark:text-white">{ev.title}</span>
+                      <span className="mt-0.5 block truncate text-[11px] text-gray-500">
+                        {format(new Date(ev.start), 'dd/MM HH:mm')} - {ev.extendedProps.cursoStr}
+                      </span>
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+
+          {categorias.length > 0 && (
+            <div className="rounded-[18px] bg-white p-3 shadow-sm ring-1 ring-gray-200/50 dark:bg-[#191d28] dark:ring-white/10">
+              <div className="mb-2 flex items-center justify-between px-1">
+                <p className="text-xs font-semibold text-gray-950 dark:text-white">Categorias</p>
+                {categoriaFilter && (
+                  <button onClick={() => navigate(location.pathname)} className="text-[11px] font-medium text-uvv-yellow">Limpar</button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {categorias.slice(0, 12).map(cat => {
+                  const active = categoriaFilter === String(cat.id);
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        const params = new URLSearchParams(searchParams);
+                        if (active) params.delete('categoria');
+                        else params.set('categoria', cat.id);
+                        navigate(`${location.pathname}?${params.toString()}`);
+                      }}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition ${active ? 'bg-gray-950 text-white dark:bg-white dark:text-gray-950' : 'bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10'}`}
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: cat.cor_hex }} />
+                      {cat.nome}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </aside>
+      </section>
 
         {/* Tooltip Premium Glassmorphism */}
         {tooltip.open && (
@@ -593,7 +659,6 @@ export default function Calendario({ user }) {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }

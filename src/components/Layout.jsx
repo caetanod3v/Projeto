@@ -287,15 +287,15 @@ export default function Layout({ user, onLogout }) {
             <div className="fixed inset-0 z-30 bg-gray-950/35 backdrop-blur-sm lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
          )}
 
-         <aside className={`fixed z-40 h-full w-[232px] shrink-0 border-r border-gray-200 bg-white/90 backdrop-blur-xl transition-transform duration-300 dark:border-white/10 dark:bg-[#191d28]/90 lg:relative ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+         <aside className={`fixed z-40 h-full w-[196px] shrink-0 bg-white/80 backdrop-blur-xl transition-transform duration-300 dark:bg-[#191d28]/82 lg:relative ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
             <div className="flex h-full flex-col">
-               <div className="px-4 py-4">
+               <div className="px-3 py-3">
                   <div className="flex items-center justify-between">
-                     <Link to="/" className="flex items-center gap-2.5">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-950 text-[13px] font-semibold text-white shadow-sm dark:bg-white dark:text-gray-950">M</div>
+                     <Link to="/" className="flex items-center gap-2">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-950 text-xs font-semibold text-white shadow-sm dark:bg-white dark:text-gray-950">M</div>
                         <div>
                            <p className="text-sm font-semibold leading-none tracking-tight text-gray-950 dark:text-white">Meridian</p>
-                           <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">Academic OS</p>
+                           <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-gray-400">Academic OS</p>
                         </div>
                      </Link>
                      <button onClick={() => setSidebarOpen(false)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 lg:hidden">
@@ -304,12 +304,12 @@ export default function Layout({ user, onLogout }) {
                   </div>
                </div>
 
-               <div className="px-3">
+               <div className="px-2.5">
                   <button
                      onClick={handleCreateGlobal}
-                     className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gray-950 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800 dark:bg-white dark:text-gray-950"
+                     className="mb-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-2.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800 dark:bg-white dark:text-gray-950"
                   >
-                     <Plus size={16} />
+                     <Plus size={14} />
                      Novo evento
                   </button>
 
@@ -321,12 +321,12 @@ export default function Layout({ user, onLogout }) {
                            <Link
                               key={item.to}
                               to={item.to}
-                              className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive
-                                 ? 'bg-white text-gray-950 shadow-sm ring-1 ring-gray-200 dark:bg-white/10 dark:text-white dark:ring-white/10'
-                                 : 'text-gray-500 hover:bg-white/70 hover:text-gray-950 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'}`}
+                              className={`group flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium transition ${isActive
+                                 ? 'bg-white text-gray-950 shadow-sm dark:bg-white/10 dark:text-white'
+                                 : 'text-gray-500 hover:bg-white/60 hover:text-gray-950 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'}`}
                            >
-                              <span className="flex items-center gap-3">
-                                 <Icon size={17} className={isActive ? 'text-uvv-yellow' : 'text-gray-400'} />
+                              <span className="flex items-center gap-2.5">
+                                 <Icon size={15} className={isActive ? 'text-uvv-yellow' : 'text-gray-400'} />
                                  {item.label}
                               </span>
                               {item.count > 0 && (
@@ -338,11 +338,11 @@ export default function Layout({ user, onLogout }) {
                   </nav>
                </div>
 
-               <div className="mt-6 flex-1 overflow-y-auto px-3 pb-4 no-scrollbar">
+               <div className="mt-4 flex-1 overflow-y-auto px-2.5 pb-3 no-scrollbar">
                   {categorias.length > 0 && (
-                     <div className="rounded-2xl bg-white/62 p-3 ring-1 ring-gray-200/70 dark:bg-white/5 dark:ring-white/10">
-                        <div className="mb-2 flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">
-                           <Tag size={13} />
+                     <div className="p-1">
+                        <div className="mb-2 flex items-center gap-2 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-400">
+                           <Tag size={12} />
                            Categorias
                         </div>
                         <div className="space-y-1">
@@ -352,7 +352,7 @@ export default function Layout({ user, onLogout }) {
                                  <button
                                     key={cat.id}
                                     onClick={() => toggleCategory(cat.id)}
-                                    className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs font-medium transition ${isActive ? 'bg-white text-gray-950 shadow-sm dark:bg-white/10 dark:text-white' : 'text-gray-500 hover:bg-white/70 dark:text-gray-400 dark:hover:bg-white/5'}`}
+                                    className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-[11px] font-medium transition ${isActive ? 'bg-white text-gray-950 shadow-sm dark:bg-white/10 dark:text-white' : 'text-gray-500 hover:bg-white/60 dark:text-gray-400 dark:hover:bg-white/5'}`}
                                  >
                                     <span className="flex min-w-0 items-center gap-2">
                                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cat.cor_hex }} />
@@ -366,30 +366,30 @@ export default function Layout({ user, onLogout }) {
                      </div>
                   )}
 
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                     <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-200/70 dark:bg-white/5 dark:ring-white/10">
-                        <p className="text-lg font-semibold tabular-nums text-gray-950 dark:text-white">{analytics.semanaCount}</p>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Semana</p>
+                  <div className="mt-4 grid grid-cols-2 gap-2 px-1">
+                     <div>
+                        <p className="text-base font-semibold tabular-nums text-gray-950 dark:text-white">{analytics.semanaCount}</p>
+                        <p className="text-[9px] font-semibold uppercase tracking-wider text-gray-400">Semana</p>
                      </div>
-                     <div className="rounded-xl bg-red-50 p-3 ring-1 ring-red-100 dark:bg-red-500/10 dark:ring-red-500/20">
-                        <p className="text-lg font-semibold tabular-nums text-red-600 dark:text-red-300">{analytics.atrasadosCount}</p>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400">Atrasos</p>
+                     <div>
+                        <p className="text-base font-semibold tabular-nums text-red-600 dark:text-red-300">{analytics.atrasadosCount}</p>
+                        <p className="text-[9px] font-semibold uppercase tracking-wider text-red-400">Atrasos</p>
                      </div>
                   </div>
                </div>
 
-               <div className="p-3">
-                  <div className="mb-2 flex items-center gap-3 rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-200/70 dark:bg-white/5 dark:ring-white/10">
-                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-uvv-yellow/15 text-sm font-semibold text-uvv-yellow">
+               <div className="p-2.5">
+                  <div className="mb-1.5 flex items-center gap-2 rounded-lg p-1.5 hover:bg-white/60 dark:hover:bg-white/5">
+                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-uvv-yellow/15 text-xs font-semibold text-uvv-yellow">
                         {user?.nome?.charAt(0) || 'U'}
                      </div>
                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-gray-950 dark:text-white">{user?.nome}</p>
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">{user?.role}</p>
+                        <p className="truncate text-xs font-semibold text-gray-950 dark:text-white">{user?.nome}</p>
+                        <p className="text-[9px] font-semibold uppercase tracking-widest text-gray-400">{user?.role}</p>
                      </div>
                   </div>
-                  <button onClick={onLogout} className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10">
-                     <LogOut size={16} />
+                  <button onClick={onLogout} className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10">
+                     <LogOut size={14} />
                      Sair
                   </button>
                </div>
@@ -397,17 +397,17 @@ export default function Layout({ user, onLogout }) {
          </aside>
 
          <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-            <header className="z-20 flex h-[72px] shrink-0 items-center justify-between border-b border-gray-200/70 bg-[#f7f8fb]/78 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#11141d]/78 md:px-8">
+            <header className="z-20 flex h-[58px] shrink-0 items-center justify-between bg-[#f7f8fb]/78 px-4 backdrop-blur-xl dark:bg-[#11141d]/78 md:px-6">
                <div className="flex min-w-0 items-center gap-3">
                   <button onClick={() => setSidebarOpen(true)} className="rounded-xl bg-white p-2 text-gray-500 shadow-sm ring-1 ring-gray-200/70 transition hover:text-gray-950 dark:bg-white/5 dark:ring-white/10 lg:hidden">
                      <Menu size={20} />
                   </button>
-                  <div className="hidden h-10 w-10 items-center justify-center rounded-xl bg-white text-gray-500 shadow-sm ring-1 ring-gray-200/70 dark:bg-white/5 dark:ring-white/10 md:flex">
-                     <CurrentIcon size={18} />
+                  <div className="hidden h-8 w-8 items-center justify-center rounded-lg bg-white text-gray-500 shadow-sm dark:bg-white/5 md:flex">
+                     <CurrentIcon size={16} />
                   </div>
                   <div className="min-w-0">
-                     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400">{currentPage.kicker}</p>
-                     <h1 className="truncate text-xl font-semibold tracking-tight text-gray-950 dark:text-white">{currentPage.title}</h1>
+                     <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400">{currentPage.kicker}</p>
+                     <h1 className="truncate text-base font-semibold tracking-tight text-gray-950 dark:text-white">{currentPage.title}</h1>
                   </div>
                   {currentCategory && (
                      <span className="hidden rounded-full bg-uvv-yellow/10 px-2.5 py-1 text-xs font-semibold text-uvv-yellow md:inline-flex">
@@ -417,7 +417,7 @@ export default function Layout({ user, onLogout }) {
                </div>
 
                <div className="flex items-center gap-2">
-                  <div className="hidden rounded-xl bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm ring-1 ring-gray-200/70 dark:bg-white/5 dark:ring-white/10 sm:flex">
+                  <div className="hidden rounded-lg bg-white px-2.5 py-1.5 text-xs font-medium text-gray-500 shadow-sm dark:bg-white/5 sm:flex">
                      Hoje: <span className="ml-1 text-gray-950 dark:text-white">{analytics.hojeCount}</span>
                      {analytics.proxHrs && <span className="ml-2 text-uvv-yellow">prox. {analytics.proxHrs}</span>}
                   </div>
@@ -425,7 +425,7 @@ export default function Layout({ user, onLogout }) {
                   <div className="relative" ref={notifRef}>
                      <button
                         onClick={() => setNotifOpen(!isNotifOpen)}
-                        className="relative rounded-xl bg-white p-2.5 text-gray-500 shadow-sm ring-1 ring-gray-200/70 transition hover:text-gray-950 dark:bg-white/5 dark:ring-white/10"
+                        className="relative rounded-lg bg-white p-2 text-gray-500 shadow-sm transition hover:text-gray-950 dark:bg-white/5"
                      >
                         {unreadNotifsCount > 0 ? <BellRing size={20} className="text-uvv-yellow" /> : <Bell size={20} />}
                         {unreadNotifsCount > 0 && (
@@ -470,8 +470,8 @@ export default function Layout({ user, onLogout }) {
                </div>
             </header>
 
-            <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
-               <div className="mx-auto w-full max-w-[1440px]">
+            <div className="flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
+               <div className="mx-auto w-full max-w-[1500px]">
                   <Outlet />
                </div>
             </div>
