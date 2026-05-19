@@ -292,10 +292,9 @@ export default function Layout({ user, onLogout }) {
                <div className="px-3 py-3">
                   <div className="flex items-center justify-between">
                      <Link to="/" className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-950 text-xs font-semibold text-white shadow-sm dark:bg-white dark:text-gray-950">M</div>
                         <div>
-                           <p className="text-sm font-semibold leading-none tracking-tight text-gray-950 dark:text-white">Meridian</p>
-                           <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-gray-400">Academic OS</p>
+                           <p className="text-sm font-semibold leading-none tracking-tight text-gray-950 dark:text-white">Fluxus</p>
+                           <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-gray-400">Academic operations</p>
                         </div>
                      </Link>
                      <button onClick={() => setSidebarOpen(false)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 lg:hidden">

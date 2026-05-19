@@ -47,7 +47,7 @@ export default function ForgotPassword() {
         ) : (
           <>
             <div className="mb-8">
-              <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-gray-950 text-sm font-semibold text-white">M</div>
+              <p className="auth-brand mb-5">Fluxus</p>
               <p className="auth-eyebrow text-[11px] font-semibold uppercase tracking-[0.22em]">Recuperacao</p>
               <h1 className="auth-title mt-2 text-2xl font-semibold tracking-tight">Redefinir senha</h1>
               <p className="auth-muted mt-2 text-sm">Enviaremos as instrucoes para o e-mail cadastrado.</p>

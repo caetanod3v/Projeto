@@ -47,7 +47,7 @@ export default function ResetPassword() {
       <ThemeToggle className="fixed right-5 top-5 z-20" />
       <section className="auth-card w-full max-w-md rounded-[24px] p-6 ring-1 ring-gray-200/70 dark:ring-white/10 sm:p-9">
         <div className="mb-8">
-          <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-gray-950 text-sm font-semibold text-white">M</div>
+          <p className="auth-brand mb-5">Fluxus</p>
           <p className="auth-eyebrow text-[11px] font-semibold uppercase tracking-[0.22em]">Seguranca</p>
           <h1 className="auth-title mt-2 text-2xl font-semibold tracking-tight">Criar nova senha</h1>
           <p className="auth-muted mt-2 text-sm">Defina uma senha para voltar ao workspace.</p>

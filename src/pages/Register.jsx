@@ -61,7 +61,7 @@ export default function Register() {
           </div>
           <h2 className="auth-title text-2xl font-semibold tracking-tight">Solicitacao enviada</h2>
           <p className="auth-muted mt-3 text-sm leading-6">
-            Sua conta esta com status pendente. O acesso ao Meridian sera liberado apos aprovacao administrativa.
+            Sua conta esta com status pendente. O acesso ao Fluxus sera liberado apos aprovacao administrativa.
           </p>
           <Link to="/login" className="mt-7 inline-flex w-full items-center justify-center rounded-xl bg-gray-950 py-3 text-sm font-semibold text-white transition hover:bg-gray-800">
             Voltar para acesso
@@ -78,7 +78,7 @@ export default function Register() {
 
       <section className="auth-card relative w-full max-w-md rounded-[24px] p-6 ring-1 ring-gray-200/70 dark:ring-white/10 sm:p-9">
         <div className="mb-8">
-          <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-gray-950 text-sm font-semibold text-white">M</div>
+          <p className="auth-brand mb-5">Fluxus</p>
           <p className="auth-eyebrow text-[11px] font-semibold uppercase tracking-[0.22em]">Novo workspace</p>
           <h1 className="auth-title mt-2 text-2xl font-semibold tracking-tight">Solicitar acesso</h1>
           <p className="auth-muted mt-2 text-sm">A conta passa por aprovacao antes de entrar em operacao.</p>

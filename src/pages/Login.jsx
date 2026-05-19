@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import api from '../services/api';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight, CalendarCheck, CheckCircle2, Clock3, Loader2, Send, UserCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
+
+const previewItems = [
+  { icon: Send, label: 'Solicitacao enviada para Coordenacao', meta: 'Secretaria academica', tone: 'blue' },
+  { icon: CheckCircle2, label: 'Compromisso aprovado', meta: 'Coordenador de curso', tone: 'green' },
+  { icon: UserCheck, label: 'Retorno disponivel para Secretaria', meta: 'Resposta registrada', tone: 'purple' },
+  { icon: CalendarCheck, label: 'Agenda sincronizada', meta: 'Calendario institucional', tone: 'slate' }
+];
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -44,12 +51,9 @@ export default function Login({ onLogin }) {
       <section className="auth-card relative grid w-full max-w-5xl overflow-hidden rounded-[24px] ring-1 ring-gray-200/70 dark:ring-white/10 lg:grid-cols-[1fr_430px]">
         <div className="hidden min-h-[620px] flex-col justify-between bg-[#151821] p-10 text-white lg:flex">
           <div>
-            <div className="mb-14 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-semibold text-gray-950">M</div>
-              <div>
-                <p className="text-sm font-semibold text-white">Meridian</p>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/68">Academic OS</p>
-              </div>
+            <div className="mb-14">
+              <p className="text-sm font-semibold text-white">Fluxus</p>
+              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/58">Academic operations</p>
             </div>
             <h1 className="max-w-xl text-4xl font-semibold tracking-[-0.03em] text-white">
               Planejamento academico com a clareza de um workspace moderno.
@@ -59,22 +63,63 @@ export default function Login({ onLogin }) {
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            {['Cursos', 'Aprovacoes', 'Agenda'].map(item => (
-              <div key={item} className="rounded-2xl bg-white/[0.06] p-4 ring-1 ring-white/10">
-                <p className="text-xs font-medium text-white/68">{item}</p>
-                <div className="mt-8 h-1.5 rounded-full bg-white/15">
-                  <div className="h-full w-2/3 rounded-full bg-white/70" />
-                </div>
+          <div className="auth-preview">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-white">Fluxus em tempo real</p>
+                <p className="mt-1 text-[11px] text-white/58">Fluxo de agenda e aprovacoes</p>
               </div>
-            ))}
+              <span className="rounded-full bg-white/[0.08] px-2.5 py-1 text-[11px] font-medium text-white/76 ring-1 ring-white/10">3 em analise</span>
+            </div>
+
+            <div className="auth-preview-calendar">
+              <div className="auth-preview-day">
+                <span>09:00</span>
+                <strong>Aula inaugural</strong>
+              </div>
+              <div className="auth-preview-day is-live">
+                <span>11:30</span>
+                <strong>Banca confirmada</strong>
+              </div>
+              <div className="auth-preview-day">
+                <span>15:00</span>
+                <strong>Reuniao de curso</strong>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {previewItems.map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.label} className="auth-preview-card" style={{ '--delay': `${index * 1.2}s` }}>
+                    <div className={`auth-preview-icon auth-preview-icon-${item.tone}`}>
+                      <Icon size={14} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p>{item.label}</p>
+                      <span>{item.meta}</span>
+                    </div>
+                    <Clock3 size={13} className="text-white/42" />
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 rounded-2xl bg-white/[0.055] p-3 ring-1 ring-white/10">
+              <div className="mb-2 flex items-center justify-between text-[11px] text-white/58">
+                <span>Status semanal</span>
+                <span>Sincronizado</span>
+              </div>
+              <div className="flex h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div className="auth-preview-progress h-full rounded-full" />
+              </div>
+            </div>
           </div>
         </div>
 
         <div className="p-6 sm:p-10">
           <div className="mb-10 lg:hidden">
-            <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-gray-950 text-sm font-semibold text-white">M</div>
-            <p className="text-sm font-semibold text-gray-950 dark:text-white">Meridian</p>
+            <p className="auth-brand">Fluxus</p>
           </div>
 
           <div className="mb-8">
@@ -118,7 +163,7 @@ export default function Login({ onLogin }) {
               disabled={loading}
               className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gray-950 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-gray-800 disabled:opacity-70"
             >
-              {loading ? <Loader2 className="animate-spin" size={18} /> : <>Acessar Meridian <ArrowRight size={16} className="transition group-hover:translate-x-0.5" /></>}
+              {loading ? <Loader2 className="animate-spin" size={18} /> : <>Acessar Fluxus <ArrowRight size={16} className="transition group-hover:translate-x-0.5" /></>}
             </button>
           </form>
 
