@@ -12,15 +12,15 @@ export default function ResetPassword() {
 
   const [novaSenha, setNovaSenha] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   if (!token) {
     return (
-      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-4">
+      <main className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#f7f8fb] p-4 text-center">
         <ThemeToggle className="fixed right-5 top-5" />
-        <h2 className="text-2xl text-white font-bold mb-4">Link inválido</h2>
-        <p className="text-gray-400 mb-6">O link de recuperação não possui um token válido.</p>
-        <Link to="/login" className="bg-uvv-yellow text-gray-900 px-6 py-2 rounded-lg font-bold">Voltar para Login</Link>
-      </div>
+        <h2 className="text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">Link invalido</h2>
+        <p className="mt-2 max-w-sm text-sm text-gray-500">O link de recuperacao nao possui um token valido.</p>
+        <Link to="/login" className="mt-6 rounded-xl bg-gray-950 px-6 py-3 text-sm font-semibold text-white">Voltar para login</Link>
+      </main>
     );
   }
 
@@ -29,7 +29,7 @@ export default function ResetPassword() {
     setLoading(true);
     try {
       await api.post('/auth/reset-password', { token, nova_senha: novaSenha });
-      toast.success('Senha redefinida com sucesso!');
+      toast.success('Senha redefinida com sucesso.');
       navigate('/login');
     } catch (err) {
       if (err.response && err.response.data.error) {
@@ -43,40 +43,40 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4 transition-colors">
-      <ThemeToggle className="fixed right-5 top-5" />
-      <div className="bg-gray-900 max-w-md w-full rounded-2xl shadow-2xl overflow-hidden border border-gray-800">
-        <div className="bg-gray-800 p-8 text-center border-b border-gray-700">
-          <h1 className="text-2xl font-bold text-uvv-yellow mb-2">Redefinir Senha</h1>
-          <p className="text-gray-400 text-sm">
-            Crie uma nova senha para sua conta
-          </p>
+    <main className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-[#f7f8fb] p-4">
+      <ThemeToggle className="fixed right-5 top-5 z-20" />
+      <section className="w-full max-w-md rounded-[24px] bg-white p-6 shadow-[0_24px_80px_rgba(35,42,62,0.10)] ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10 sm:p-9">
+        <div className="mb-8">
+          <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-gray-950 text-sm font-semibold text-white">M</div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Seguranca</p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">Criar nova senha</h1>
+          <p className="mt-2 text-sm text-gray-500">Defina uma senha para voltar ao workspace.</p>
         </div>
-        
-        <form onSubmit={handleSubmit} className="p-8 pb-10">
-          <div className="mb-8">
-            <label className="block text-sm font-medium text-gray-400 mb-2">Nova Senha</label>
-            <input 
-              type="password" 
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-600">Nova senha</label>
+            <input
+              type="password"
               required
               minLength="6"
               value={novaSenha}
               onChange={e => setNovaSenha(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-700 bg-gray-800 text-gray-100 placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-uvv-yellow focus:border-transparent transition-shadow"
-              placeholder="••••••••"
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-950 outline-none transition"
+              placeholder="********"
               disabled={loading}
             />
           </div>
-          
-          <button 
-            type="submit" 
+
+          <button
+            type="submit"
             disabled={loading}
-            className="w-full flex justify-center items-center gap-2 bg-uvv-yellow hover:bg-yellow-500 text-gray-900 font-bold py-3 rounded-lg transition-all duration-300 transform hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gray-950 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-gray-800 disabled:opacity-70"
           >
-            {loading ? <Loader2 className="animate-spin" size={20} /> : 'Salvar Nova Senha'}
+            {loading ? <Loader2 className="animate-spin" size={18} /> : 'Salvar senha'}
           </button>
         </form>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

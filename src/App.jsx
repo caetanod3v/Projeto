@@ -57,8 +57,8 @@ function App() {
     return (
       <div style={{
         minHeight: '100vh',
-        background: '#020617',
-        color: '#fff',
+        background: '#f7f8fb',
+        color: '#151821',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -71,7 +71,7 @@ function App() {
   return (
     <Router>
       <Toaster position="top-right" toastOptions={{
-        style: { background: '#111827', color: '#fff', border: '1px solid #374151' }
+        style: { background: '#151821', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px' }
       }} />
 
       <Routes>

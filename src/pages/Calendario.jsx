@@ -9,7 +9,7 @@ import listPlugin from '@fullcalendar/list';
 import api from '../services/api';
 import { format, isToday, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarDays, Clock, Plus, Tag } from 'lucide-react';
+import { CalendarDays, Clock, Copy, Plus, Tag, Trash2, X } from 'lucide-react';
 
 // Helper de contraste
 function getContrastYIQ(hexcolor) {
@@ -192,7 +192,7 @@ export default function Calendario({ user }) {
 
   const handleDateClick = (arg) => {
     if (user?.role !== 'admin' && user?.role !== 'coordenador' && user?.role !== 'secretaria') {
-      toast('Sem permissão para criar compromissos.', { icon: '🔒' });
+      toast.error('Sem permissao para criar compromissos.');
       return;
     }
     abrirModalCriacao(arg.dateStr);
@@ -230,9 +230,9 @@ export default function Calendario({ user }) {
   };
 
   const handleSave = async () => {
-    if (!titulo) return toast.error('Insira um título para o compromisso');
+    if (!titulo) return toast.error('Insira um titulo para o compromisso');
     if (!editingId && user?.role === 'secretaria' && !form.coordenador_id) {
-      return toast.error('Selecione o coordenador responsável.');
+      return toast.error('Selecione o coordenador responsavel.');
     }
 
     const toastId = toast.loading('Salvando compromisso...');
@@ -252,7 +252,7 @@ export default function Calendario({ user }) {
       } else {
         await api.post(`/compromissos`, payload);
         if (user?.role === 'secretaria') {
-          toast.success('Compromisso enviado para aprovação do coordenador.', { id: toastId });
+          toast.success('Compromisso enviado para aprovacao do coordenador.', { id: toastId });
         } else {
           toast.success('Compromisso criado com sucesso!', { id: toastId });
         }
@@ -270,7 +270,7 @@ export default function Calendario({ user }) {
       const inicioISO = new Date(`${selectedDate}T${horaInicio}:00`).toISOString();
       const fimISO = new Date(`${selectedDate}T${horaFim}:00`).toISOString();
       const payload = {
-        titulo: titulo + ' (Cópia)', dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao,
+        titulo: titulo + ' (Copia)', dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao,
         coordenador_id: form.coordenador_id,
         usuario_role: user?.role
       };
@@ -288,7 +288,7 @@ export default function Calendario({ user }) {
     const toastId = toast.loading('Excluindo...');
     try {
       await api.delete(`/compromissos/${editingId}`);
-      toast.success('Excluído com sucesso.', { id: toastId });
+      toast.success('Excluido com sucesso.', { id: toastId });
       setModalOpen(false);
       fetchData();
     } catch (err) {
@@ -304,19 +304,19 @@ export default function Calendario({ user }) {
     const now = new Date();
     const isUrgent = (start > now) && ((start - now) < 86400000);
 
-    let baseBg = `linear-gradient(90deg, ${hexToRgba(catObj.cor_hex, 0.14)} 0%, ${hexToRgba(catObj.cor_hex, 0.05)} 100%)`;
-    let borderStyle = `1px solid ${hexToRgba(catObj.cor_hex, 0.22)}`;
+    let baseBg = hexToRgba(catObj.cor_hex, 0.105);
+    let borderStyle = `1px solid ${hexToRgba(catObj.cor_hex, 0.16)}`;
 
     if (isCompleted) {
       baseBg = `rgba(107,114,128,0.08)`;
-      borderStyle = `1px solid rgba(107,114,128,0.16)`;
+      borderStyle = `1px solid rgba(107,114,128,0.12)`;
     } else if (isUrgent) {
-      borderStyle = `1px solid rgba(242,178,0,0.5)`;
+      borderStyle = `1px solid rgba(91,110,225,0.28)`;
     }
 
     return (
       <div
-        className="w-full h-full flex flex-row items-center gap-2 px-2 py-0.5 rounded-md cursor-pointer transition-all duration-200 hover:-translate-y-[1px] hover:shadow-sm relative overflow-hidden group"
+        className="group relative flex h-full w-full cursor-pointer flex-row items-center gap-2 overflow-hidden rounded-lg px-2 py-1 transition-all duration-300 hover:-translate-y-[1px] hover:shadow-sm"
         style={{ background: baseBg, border: borderStyle }}
       >
         {/* Mobile Dot */}
@@ -330,13 +330,13 @@ export default function Calendario({ user }) {
           <span className="text-[10px] font-bold tracking-wider whitespace-nowrap opacity-90" style={{ color: isCompleted ? '#9ca3af' : catObj.cor_hex }}>
             {format(start, 'HH:mm')}
           </span>
-          <span className={`text-[11px] font-semibold truncate ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-800 group-hover:text-gray-950'}`}>
+          <span className={`truncate text-[11px] font-semibold ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-800 group-hover:text-gray-950'}`}>
             {eventInfo.event.title}
           </span>
         </div>
 
         {/* Subtle glow effect on hover */}
-        <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-5 transition-opacity duration-200"></div>
+        <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 group-hover:opacity-30"></div>
       </div>
     );
   };
@@ -354,13 +354,13 @@ export default function Calendario({ user }) {
     <div className="min-h-full animate-fade-in text-gray-900 dark:text-gray-100">
 
       <section className="mb-6 grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#171a22]">
+        <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Agenda institucional</p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">Calendário de compromissos</h2>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Instituicao</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">Calendario academico</h2>
               <p className="mt-2 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
-                Visão consolidada por curso, categoria e responsável. {stats.proxHrs ? `Próximo evento em ${stats.proxHrs}.` : 'Nenhum evento imediato.'}
+                Visao consolidada por curso, categoria e responsavel. {stats.proxHrs ? `Proximo evento em ${stats.proxHrs}.` : 'Nenhum evento imediato.'}
               </p>
             </div>
             {(user?.role === 'admin' || user?.role === 'coordenador' || user?.role === 'secretaria') && (
@@ -378,44 +378,44 @@ export default function Calendario({ user }) {
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200/60 dark:bg-white/5 dark:ring-white/10">
               <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300">
                 <CalendarDays size={18} />
               </div>
-              <p className="text-2xl font-black text-gray-950 dark:text-white">{stats.hoje}</p>
+              <p className="text-2xl font-semibold tabular-nums text-gray-950 dark:text-white">{stats.hoje}</p>
               <p className="mt-1 text-xs font-semibold text-gray-500">Compromissos hoje</p>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/5">
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-uvv-yellow/10 dark:text-uvv-yellow">
+            <div className="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200/60 dark:bg-white/5 dark:ring-white/10">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-uvv-yellow/10 text-uvv-yellow">
                 <Clock size={18} />
               </div>
-              <p className="text-2xl font-black text-gray-950 dark:text-white">{stats.proxHrs || '--'}</p>
-              <p className="mt-1 text-xs font-semibold text-gray-500">Próximo início</p>
+              <p className="text-2xl font-semibold tabular-nums text-gray-950 dark:text-white">{stats.proxHrs || '--'}</p>
+              <p className="mt-1 text-xs font-semibold text-gray-500">Proximo inicio</p>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200/60 dark:bg-white/5 dark:ring-white/10">
               <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
                 <Tag size={18} />
               </div>
-              <p className="text-2xl font-black text-gray-950 dark:text-white">{categorias.length}</p>
+              <p className="text-2xl font-semibold tabular-nums text-gray-950 dark:text-white">{categorias.length}</p>
               <p className="mt-1 text-xs font-semibold text-gray-500">Categorias ativas</p>
             </div>
           </div>
         </div>
 
-        <aside className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#171a22]">
+        <aside className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10">
           <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Hoje</p>
           <h3 className="mt-1 text-lg font-semibold capitalize text-gray-950 dark:text-white">{todayLabel}</h3>
           <div className="mt-5 space-y-3">
             {upcomingEvents.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-white/10 dark:bg-white/5">
-                Sem próximos compromissos na fila.
+                Sem proximos compromissos na fila.
               </div>
             ) : (
               upcomingEvents.map(ev => (
                 <button
                   key={ev.id}
                   onClick={() => handleEventClick({ event: { ...ev, start: new Date(ev.start), end: ev.end ? new Date(ev.end) : null, id: ev.id, title: ev.title, extendedProps: ev.extendedProps } })}
-                  className="flex w-full items-start gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 text-left transition hover:border-gray-200 hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                  className="flex w-full items-start gap-3 rounded-2xl bg-gray-50 p-3 text-left ring-1 ring-gray-200/50 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm dark:bg-white/5 dark:ring-white/10 dark:hover:bg-white/10"
                 >
                   <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: ev.extendedProps.catObj.cor_hex }} />
                   <span className="min-w-0">
@@ -431,13 +431,13 @@ export default function Calendario({ user }) {
         </aside>
       </section>
 
-      <div className="relative z-0 rounded-[28px] border border-gray-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-[#171a22] md:p-5">
+      <div className="relative z-0 rounded-[28px] bg-white p-3 shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10 md:p-5">
 
         {isLoading && (
           <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex items-center justify-center rounded-[28px] dark:bg-[#0f1117]/80">
             <div className="flex flex-col items-center gap-3">
               <div className="w-10 h-10 border-4 border-gray-200 border-t-uvv-yellow rounded-full animate-spin"></div>
-              <span className="text-gray-500 font-semibold tracking-wide">Carregando calendário...</span>
+              <span className="text-gray-500 font-semibold tracking-wide">Carregando calendario...</span>
             </div>
           </div>
         )}
@@ -450,10 +450,17 @@ export default function Calendario({ user }) {
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
           }}
+          buttonText={{
+            today: 'Hoje',
+            month: 'Mes',
+            week: 'Semana',
+            day: 'Dia',
+            list: 'Lista'
+          }}
           events={events}
           dateClick={handleDateClick}
           eventClick={handleEventClick}
-          height="640px"
+          height="660px"
           locale={ptBR}
           dayMaxEvents={3}
           moreLinkText={(n) => `+${n} eventos`}
@@ -483,7 +490,7 @@ export default function Calendario({ user }) {
         {/* Tooltip Premium Glassmorphism */}
         {tooltip.open && (
           <div
-            className="fixed z-[100] bg-[#111827]/95 backdrop-blur-xl text-white px-5 py-4 rounded-xl shadow-2xl pointer-events-none transform -translate-x-1/2 -translate-y-full min-w-56 border border-white/10"
+            className="pointer-events-none fixed z-[80] min-w-56 -translate-x-1/2 -translate-y-full transform rounded-xl bg-gray-950 px-5 py-4 text-white shadow-2xl ring-1 ring-white/10"
             style={{ left: tooltip.x, top: tooltip.y - 12, transition: 'opacity 0.2s ease, transform 0.2s ease' }}
           >
             <div className="flex flex-col gap-2">
@@ -500,38 +507,41 @@ export default function Calendario({ user }) {
 
         {/* Modal de Criação / Edição (Mantendo design limpo) */}
         {modalOpen && (
-          <div className="fixed inset-0 bg-[#0B1220]/80 backdrop-blur-md flex items-center justify-center z-[200]">
-            <div className="bg-[#111827] border border-white/10 shadow-2xl p-6 md:p-8 rounded-2xl w-full max-w-md animate-fade-in-up">
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-gray-950/35 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md animate-fade-in-up rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-gray-200/80 dark:bg-[#191d28] dark:ring-white/10 md:p-7">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-extrabold text-white">{editingId ? (canEdit ? 'Editar Evento' : 'Detalhes do Evento') : 'Novo Evento'}</h3>
+                <h3 className="text-xl font-semibold tracking-tight text-gray-950 dark:text-white">{editingId ? (canEdit ? 'Editar evento' : 'Detalhes do evento') : 'Novo evento'}</h3>
                 {editingId && canEdit && (
                   <div className="flex gap-2">
-                    <button onClick={handleDuplicate} className="text-sm px-3 py-1.5 bg-blue-500/10 text-blue-400 font-bold rounded-lg hover:bg-blue-500/20 transition-all">Duplicar</button>
-                    <button onClick={handleDelete} className="text-sm px-3 py-1.5 bg-red-500/10 text-red-400 font-bold rounded-lg hover:bg-red-500 hover:text-white transition-all">Excluir</button>
+                    <button onClick={handleDuplicate} title="Duplicar" className="rounded-lg bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-300"><Copy size={16} /></button>
+                    <button onClick={handleDelete} title="Excluir" className="rounded-lg bg-red-50 p-2 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-300"><Trash2 size={16} /></button>
                   </div>
                 )}
+                <button onClick={() => setModalOpen(false)} title="Fechar" className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-white/5">
+                  <X size={17} />
+                </button>
               </div>
 
               <div className="space-y-5">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Título</label>
-                  <input value={titulo} disabled={isFormDisabled} onChange={e => setTitulo(e.target.value)} type="text" className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow focus:border-transparent transition-all outline-none disabled:opacity-50" placeholder="Ex: Reunião Pedagógica" />
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Titulo</label>
+                  <input value={titulo} disabled={isFormDisabled} onChange={e => setTitulo(e.target.value)} type="text" className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow focus:border-transparent transition-all outline-none disabled:opacity-50" placeholder="Ex: Reuniao pedagogica" />
                 </div>
 
                 {!editingId && isSecretaria && (
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">COORDENADOR RESPONSÁVEL</label>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Coordenador responsavel</label>
                     <select
                       value={form.coordenador_id}
                       disabled={isFormDisabled}
                       required
                       onChange={e => handleCoordenadorChange(e.target.value)}
-                      className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50"
+                      className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50"
                     >
                       <option value="">Selecione o coordenador</option>
                       {coordenadores.map(c => (
                         <option key={c.id} value={c.id}>
-                          {c.nome} — {c.curso?.nome || 'Curso não vinculado'}
+                          {c.nome} - {c.curso?.nome || 'Curso nao vinculado'}
                         </option>
                       ))}
                     </select>
@@ -540,26 +550,26 @@ export default function Calendario({ user }) {
 
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Início</label>
-                    <input type="time" disabled={isFormDisabled} value={horaInicio} onChange={e => setHoraInicio(e.target.value)} className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none style-color-scheme-dark disabled:opacity-50" />
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Inicio</label>
+                    <input type="time" disabled={isFormDisabled} value={horaInicio} onChange={e => setHoraInicio(e.target.value)} className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50" />
                   </div>
                   <div className="flex-1">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Fim</label>
-                    <input type="time" disabled={isFormDisabled} value={horaFim} onChange={e => setHoraFim(e.target.value)} className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none style-color-scheme-dark disabled:opacity-50" />
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Fim</label>
+                    <input type="time" disabled={isFormDisabled} value={horaFim} onChange={e => setHoraFim(e.target.value)} className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50" />
                   </div>
                 </div>
 
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Curso</label>
-                    <select value={cursoId} disabled={isFormDisabled} onChange={e => setCursoId(e.target.value)} className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Curso</label>
+                    <select value={cursoId} disabled={isFormDisabled} onChange={e => setCursoId(e.target.value)} className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
                       <option value="">Geral</option>
                       {cursos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                     </select>
                   </div>
                   <div className="flex-1">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Categoria</label>
-                    <select value={categoriaId} disabled={isFormDisabled} onChange={e => setCategoriaId(e.target.value)} className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Categoria</label>
+                    <select value={categoriaId} disabled={isFormDisabled} onChange={e => setCategoriaId(e.target.value)} className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
                       <option value="">Nenhuma</option>
                       {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                     </select>
@@ -567,17 +577,17 @@ export default function Calendario({ user }) {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Repetição</label>
-                  <select value={repeticao} disabled={isFormDisabled} onChange={e => setRepeticao(e.target.value)} className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
-                    <option value="nenhuma">Nenhuma (Evento Único)</option>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Repeticao</label>
+                  <select value={repeticao} disabled={isFormDisabled} onChange={e => setRepeticao(e.target.value)} className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
+                    <option value="nenhuma">Nenhuma (evento unico)</option>
                     <option value="semanal">Semanal</option>
                     <option value="mensal">Mensal</option>
                   </select>
                 </div>
 
-                <div className="flex gap-4 mt-8 pt-6 border-t border-gray-800">
-                  <button onClick={() => setModalOpen(false)} className={`px-4 py-3 bg-gray-800 text-gray-300 font-bold rounded-xl hover:bg-gray-700 transition-all ${!isFormDisabled ? 'flex-1' : 'w-full'}`}>Cancelar</button>
-                  {!isFormDisabled && <button onClick={handleSave} className="flex-1 px-4 py-3 bg-uvv-yellow text-[#111827] font-black rounded-xl hover:bg-yellow-500 shadow-[0_0_15px_rgba(242,178,0,0.3)] transition-all transform hover:-translate-y-0.5">Salvar</button>}
+                <div className="mt-8 flex gap-3 pt-2">
+                  <button onClick={() => setModalOpen(false)} className={`rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-200 dark:bg-white/10 dark:text-white ${!isFormDisabled ? 'flex-1' : 'w-full'}`}>Cancelar</button>
+                  {!isFormDisabled && <button onClick={handleSave} className="flex-1 rounded-xl bg-gray-950 px-4 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-gray-800 dark:bg-white dark:text-gray-950">Salvar</button>}
                 </div>
               </div>
             </div>

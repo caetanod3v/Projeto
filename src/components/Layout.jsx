@@ -79,7 +79,7 @@ export default function Layout({ user, onLogout }) {
                if (pendentesArr.length > 0) {
                   notifsList.push({
                      id: 'pendentes_alert',
-                     titulo: `Acao necessaria: ha ${pendentesArr.length} compromisso(s) aguardando sua aprovacao.`,
+                     titulo: `Acao necessaria: ha ${pendentesArr.length} compromisso(s) aguardando aprovacao.`,
                      tempoStr: 'Pendente',
                      isLida: false,
                      eventoId: null,
@@ -136,7 +136,7 @@ export default function Layout({ user, onLogout }) {
                      titulo: `Lembrete: "${ev.titulo}" ocorre em aproximadamente ${Math.ceil(hrsDiff)} hora(s).`,
                      tempoStr: 'Em breve',
                      isLida: false,
-                     bgColor: 'bg-yellow-500',
+                     bgColor: 'bg-uvv-yellow',
                      eventoRaw: ev
                   });
                }
@@ -176,7 +176,7 @@ export default function Layout({ user, onLogout }) {
 
    const lerTodas = () => {
       setNotificacoes(prev => prev.map(n => ({ ...n, isLida: true })));
-      toast.success('Todas notificacoes marcadas como lidas!');
+      toast.success('Notificacoes marcadas como lidas.');
       setNotifOpen(false);
    };
 
@@ -195,21 +195,21 @@ export default function Layout({ user, onLogout }) {
    };
 
    const pageMeta = {
-      '/': { title: 'Agenda', kicker: 'Calendario institucional', icon: Calendar },
-      '/dashboard': { title: 'Meus Compromissos', kicker: 'Sua rotina organizada', icon: LayoutDashboard },
+      '/': { title: 'Calendario', kicker: 'Planejamento academico', icon: Calendar },
+      '/dashboard': { title: 'Compromissos', kicker: 'Rotina operacional', icon: LayoutDashboard },
       '/aprovacoes': {
          title: user?.role === 'secretaria' ? 'Aprovacoes' : 'Fila de aprovacao',
-         kicker: user?.role === 'secretaria' ? 'Retornos das solicitacoes' : 'Solicitacoes pendentes',
+         kicker: user?.role === 'secretaria' ? 'Retornos das solicitacoes' : 'Governanca de agenda',
          icon: CheckCircle2
       },
-      '/admin/usuarios': { title: 'Usuarios', kicker: 'Gestao administrativa', icon: Users }
+      '/admin/usuarios': { title: 'Usuarios', kicker: 'Controle institucional', icon: Users }
    };
    const currentPage = pageMeta[location.pathname] || pageMeta['/'];
    const CurrentIcon = currentPage.icon;
    const unreadNotifsCount = notificacoes.filter(n => !n.isLida).length;
 
    const navItems = [
-      { to: '/', label: 'Agenda', icon: Calendar },
+      { to: '/', label: 'Calendario', icon: Calendar },
       { to: '/dashboard', label: 'Compromissos', icon: LayoutDashboard },
       ...(user?.role === 'admin' || user?.role === 'coordenador'
          ? [{ to: '/aprovacoes', label: 'Aprovacoes', icon: AlertCircle, count: pendentesCount }]
@@ -223,17 +223,17 @@ export default function Layout({ user, onLogout }) {
    ];
 
    return (
-      <div className="flex h-screen overflow-hidden bg-[#f5f7fb] text-gray-900 dark:bg-[#0f1117] dark:text-gray-100">
+      <div className="flex h-screen overflow-hidden bg-[#f7f8fb] text-gray-900">
          {selectedNotif && (
-            <div className="fixed inset-0 bg-gray-950/45 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-fade-in">
-               <div className="bg-white dark:bg-[#171a22] border border-gray-200 dark:border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
-                  <button onClick={() => setSelectedNotif(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                     <X size={20} />
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-gray-950/35 p-4 backdrop-blur-sm animate-fade-in">
+               <div className="relative w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#191d28]">
+                  <button onClick={() => setSelectedNotif(null)} className="absolute right-4 top-4 rounded-lg p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-white/5">
+                     <X size={18} />
                   </button>
 
-                  <div className="flex items-center gap-3 mb-6">
-                     <div className={`w-2.5 h-2.5 rounded-full ${selectedNotif.bgColor}`} />
-                     <h3 className="text-lg font-semibold text-gray-950 dark:text-white">
+                  <div className="mb-6 flex items-center gap-3">
+                     <div className={`h-2.5 w-2.5 rounded-full ${selectedNotif.bgColor}`} />
+                     <h3 className="text-lg font-semibold tracking-tight text-gray-950 dark:text-white">
                         {selectedNotif.eventoRaw ? 'Detalhes do compromisso' : 'Aviso do sistema'}
                      </h3>
                   </div>
@@ -241,40 +241,40 @@ export default function Layout({ user, onLogout }) {
                   {selectedNotif.eventoRaw ? (
                      <div className="space-y-5">
                         <div>
-                           <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1">Titulo</p>
+                           <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">Titulo</p>
                            <p className="text-base font-semibold text-gray-950 dark:text-white">{selectedNotif.eventoRaw.titulo}</p>
                         </div>
-                        <div className="grid grid-cols-2 gap-3 bg-gray-50 dark:bg-white/5 p-3 rounded-xl border border-gray-100 dark:border-white/10">
+                        <div className="grid grid-cols-2 gap-3 rounded-xl bg-gray-50 p-3 dark:bg-white/5">
                            <div>
-                              <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1">Inicio</p>
-                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                              <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">Inicio</p>
+                              <p className="text-sm text-gray-600">
                                  {new Date(selectedNotif.eventoRaw.dt_inicio).toLocaleDateString('pt-BR')} as {new Date(selectedNotif.eventoRaw.dt_inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                               </p>
                            </div>
                            <div>
-                              <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1">Termino</p>
-                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                              <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">Termino</p>
+                              <p className="text-sm text-gray-600">
                                  {selectedNotif.eventoRaw.dt_fim
                                     ? `${new Date(selectedNotif.eventoRaw.dt_fim).toLocaleDateString('pt-BR')} as ${new Date(selectedNotif.eventoRaw.dt_fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
                                     : 'Nao estipulado'}
                               </p>
                            </div>
                         </div>
-                        <p className="text-sm text-red-700 bg-red-50 dark:bg-red-500/10 dark:text-red-200 p-3 rounded-xl border border-red-100 dark:border-red-500/20">{selectedNotif.titulo}</p>
-                        <div className="pt-4 flex gap-3 border-t border-gray-100 dark:border-white/10">
-                           <button onClick={() => setSelectedNotif(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/15 text-gray-800 dark:text-white font-semibold py-2.5 rounded-xl transition-colors">Fechar</button>
+                        <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-200">{selectedNotif.titulo}</p>
+                        <div className="flex gap-3 pt-2">
+                           <button onClick={() => setSelectedNotif(null)} className="flex-1 rounded-xl bg-gray-100 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-200 dark:bg-white/10 dark:text-white">Fechar</button>
                            {(user?.role === 'admin' || user?.role === 'coordenador') && (
-                              <button onClick={() => { setSelectedNotif(null); navigate('/', { state: { editEventId: selectedNotif.eventoId } }); }} className="flex-1 bg-uvv-yellow hover:bg-yellow-400 text-gray-950 font-bold py-2.5 rounded-xl transition-colors">Modificar</button>
+                              <button onClick={() => { setSelectedNotif(null); navigate('/', { state: { editEventId: selectedNotif.eventoId } }); }} className="flex-1 rounded-xl bg-gray-950 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-950">Modificar</button>
                            )}
                         </div>
                      </div>
                   ) : (
                      <div className="space-y-4">
-                        <p className="text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/10">{selectedNotif.titulo}</p>
+                        <p className="rounded-xl bg-gray-50 p-4 text-sm leading-relaxed text-gray-600 dark:bg-white/5 dark:text-gray-300">{selectedNotif.titulo}</p>
                         <button onClick={() => {
                            setSelectedNotif(null);
                            navigate(selectedNotif.id === 'pendentes_alert' ? '/aprovacoes' : '/dashboard');
-                        }} className="w-full bg-uvv-yellow hover:bg-yellow-400 text-gray-950 font-bold py-2.5 rounded-xl transition-colors">
+                        }} className="w-full rounded-xl bg-gray-950 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-950">
                            {selectedNotif.id === 'pendentes_alert' ? 'Ir para aprovacoes' : 'Ir para compromissos'}
                         </button>
                      </div>
@@ -284,21 +284,21 @@ export default function Layout({ user, onLogout }) {
          )}
 
          {isSidebarOpen && (
-            <div className="fixed inset-0 bg-gray-950/40 backdrop-blur-sm z-30 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
+            <div className="fixed inset-0 z-30 bg-gray-950/35 backdrop-blur-sm lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
          )}
 
-         <aside className={`fixed lg:relative z-40 h-full w-[244px] shrink-0 border-r border-gray-200 bg-white/95 backdrop-blur-xl shadow-xl shadow-gray-200/40 transition-transform duration-300 dark:border-white/10 dark:bg-[#13161d]/95 dark:shadow-black/20 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+         <aside className={`fixed z-40 h-full w-[232px] shrink-0 border-r border-gray-200 bg-white/90 backdrop-blur-xl transition-transform duration-300 dark:border-white/10 dark:bg-[#191d28]/90 lg:relative ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
             <div className="flex h-full flex-col">
-               <div className="px-5 py-5">
+               <div className="px-4 py-4">
                   <div className="flex items-center justify-between">
-                     <Link to="/" className="flex items-center gap-2">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-950 text-sm font-black text-uvv-yellow dark:bg-white dark:text-gray-950">UVV</div>
+                     <Link to="/" className="flex items-center gap-2.5">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-950 text-[13px] font-semibold text-white shadow-sm dark:bg-white dark:text-gray-950">M</div>
                         <div>
-                           <p className="text-sm font800 font-black leading-none tracking-tight text-gray-950 dark:text-white">Agenda</p>
-                           <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.24em] text-gray-400">Workspace</p>
+                           <p className="text-sm font-semibold leading-none tracking-tight text-gray-950 dark:text-white">Meridian</p>
+                           <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">Academic OS</p>
                         </div>
                      </Link>
-                     <button onClick={() => setSidebarOpen(false)} className="lg:hidden rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10">
+                     <button onClick={() => setSidebarOpen(false)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 lg:hidden">
                         <X size={18} />
                      </button>
                   </div>
@@ -307,7 +307,7 @@ export default function Layout({ user, onLogout }) {
                <div className="px-3">
                   <button
                      onClick={handleCreateGlobal}
-                     className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gray-950 px-3 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-100"
+                     className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gray-950 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800 dark:bg-white dark:text-gray-950"
                   >
                      <Plus size={16} />
                      Novo evento
@@ -321,16 +321,16 @@ export default function Layout({ user, onLogout }) {
                            <Link
                               key={item.to}
                               to={item.to}
-                              className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold transition ${isActive
-                                 ? 'bg-amber-50 text-gray-950 ring-1 ring-uvv-yellow/30 dark:bg-uvv-yellow/15 dark:text-white'
-                                 : 'text-gray-500 hover:bg-gray-50 hover:text-gray-950 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'}`}
+                              className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive
+                                 ? 'bg-white text-gray-950 shadow-sm ring-1 ring-gray-200 dark:bg-white/10 dark:text-white dark:ring-white/10'
+                                 : 'text-gray-500 hover:bg-white/70 hover:text-gray-950 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'}`}
                            >
                               <span className="flex items-center gap-3">
                                  <Icon size={17} className={isActive ? 'text-uvv-yellow' : 'text-gray-400'} />
                                  {item.label}
                               </span>
                               {item.count > 0 && (
-                                 <span className="rounded-full bg-uvv-yellow px-2 py-0.5 text-[10px] font-black text-gray-950">{item.count}</span>
+                                 <span className="rounded-full bg-uvv-yellow px-2 py-0.5 text-[10px] font-semibold text-white">{item.count}</span>
                               )}
                            </Link>
                         );
@@ -340,8 +340,8 @@ export default function Layout({ user, onLogout }) {
 
                <div className="mt-6 flex-1 overflow-y-auto px-3 pb-4 no-scrollbar">
                   {categorias.length > 0 && (
-                     <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-white/10 dark:bg-white/5">
-                        <div className="mb-2 flex items-center gap-2 px-1 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                     <div className="rounded-2xl bg-white/62 p-3 ring-1 ring-gray-200/70 dark:bg-white/5 dark:ring-white/10">
+                        <div className="mb-2 flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">
                            <Tag size={13} />
                            Categorias
                         </div>
@@ -352,7 +352,7 @@ export default function Layout({ user, onLogout }) {
                                  <button
                                     key={cat.id}
                                     onClick={() => toggleCategory(cat.id)}
-                                    className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs font-semibold transition ${isActive ? 'bg-white text-gray-950 shadow-sm dark:bg-white/10 dark:text-white' : 'text-gray-500 hover:bg-white/70 dark:text-gray-400 dark:hover:bg-white/5'}`}
+                                    className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs font-medium transition ${isActive ? 'bg-white text-gray-950 shadow-sm dark:bg-white/10 dark:text-white' : 'text-gray-500 hover:bg-white/70 dark:text-gray-400 dark:hover:bg-white/5'}`}
                                  >
                                     <span className="flex min-w-0 items-center gap-2">
                                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cat.cor_hex }} />
@@ -367,28 +367,28 @@ export default function Layout({ user, onLogout }) {
                   )}
 
                   <div className="mt-4 grid grid-cols-2 gap-2">
-                     <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-white/10 dark:bg-white/5">
-                        <p className="text-lg font-black text-gray-950 dark:text-white">{analytics.semanaCount}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Semana</p>
+                     <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-200/70 dark:bg-white/5 dark:ring-white/10">
+                        <p className="text-lg font-semibold tabular-nums text-gray-950 dark:text-white">{analytics.semanaCount}</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Semana</p>
                      </div>
-                     <div className="rounded-xl border border-red-100 bg-red-50 p-3 dark:border-red-500/20 dark:bg-red-500/10">
-                        <p className="text-lg font-black text-red-600 dark:text-red-300">{analytics.atrasadosCount}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-red-400">Atrasos</p>
+                     <div className="rounded-xl bg-red-50 p-3 ring-1 ring-red-100 dark:bg-red-500/10 dark:ring-red-500/20">
+                        <p className="text-lg font-semibold tabular-nums text-red-600 dark:text-red-300">{analytics.atrasadosCount}</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400">Atrasos</p>
                      </div>
                   </div>
                </div>
 
-               <div className="border-t border-gray-200 p-3 dark:border-white/10">
-                  <div className="mb-3 flex items-center gap-3 rounded-xl bg-gray-50 p-2 dark:bg-white/5">
-                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-uvv-yellow/20 text-sm font-black text-gray-950 dark:text-uvv-yellow">
+               <div className="p-3">
+                  <div className="mb-2 flex items-center gap-3 rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-200/70 dark:bg-white/5 dark:ring-white/10">
+                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-uvv-yellow/15 text-sm font-semibold text-uvv-yellow">
                         {user?.nome?.charAt(0) || 'U'}
                      </div>
                      <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-gray-950 dark:text-white">{user?.nome}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{user?.role}</p>
+                        <p className="truncate text-sm font-semibold text-gray-950 dark:text-white">{user?.nome}</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">{user?.role}</p>
                      </div>
                   </div>
-                  <button onClick={onLogout} className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10">
+                  <button onClick={onLogout} className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10">
                      <LogOut size={16} />
                      Sair
                   </button>
@@ -397,27 +397,27 @@ export default function Layout({ user, onLogout }) {
          </aside>
 
          <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-            <header className="z-20 flex h-[76px] shrink-0 items-center justify-between border-b border-gray-200 bg-[#f5f7fb]/85 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#0f1117]/85 md:px-8">
+            <header className="z-20 flex h-[72px] shrink-0 items-center justify-between border-b border-gray-200/70 bg-[#f7f8fb]/78 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#11141d]/78 md:px-8">
                <div className="flex min-w-0 items-center gap-3">
-                  <button onClick={() => setSidebarOpen(true)} className="rounded-xl border border-gray-200 bg-white p-2 text-gray-500 shadow-sm transition hover:text-gray-950 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 lg:hidden">
+                  <button onClick={() => setSidebarOpen(true)} className="rounded-xl bg-white p-2 text-gray-500 shadow-sm ring-1 ring-gray-200/70 transition hover:text-gray-950 dark:bg-white/5 dark:ring-white/10 lg:hidden">
                      <Menu size={20} />
                   </button>
-                  <div className="hidden h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 shadow-sm dark:border-white/10 dark:bg-white/5 md:flex">
+                  <div className="hidden h-10 w-10 items-center justify-center rounded-xl bg-white text-gray-500 shadow-sm ring-1 ring-gray-200/70 dark:bg-white/5 dark:ring-white/10 md:flex">
                      <CurrentIcon size={18} />
                   </div>
                   <div className="min-w-0">
-                     <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">{currentPage.kicker}</p>
+                     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400">{currentPage.kicker}</p>
                      <h1 className="truncate text-xl font-semibold tracking-tight text-gray-950 dark:text-white">{currentPage.title}</h1>
                   </div>
                   {currentCategory && (
-                     <span className="hidden rounded-full border border-uvv-yellow/40 bg-amber-50 px-2.5 py-1 text-xs font-bold text-gray-800 dark:bg-uvv-yellow/15 dark:text-uvv-yellow md:inline-flex">
+                     <span className="hidden rounded-full bg-uvv-yellow/10 px-2.5 py-1 text-xs font-semibold text-uvv-yellow md:inline-flex">
                         Filtrado
                      </span>
                   )}
                </div>
 
                <div className="flex items-center gap-2">
-                  <div className="hidden rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-500 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-gray-300 sm:flex">
+                  <div className="hidden rounded-xl bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm ring-1 ring-gray-200/70 dark:bg-white/5 dark:ring-white/10 sm:flex">
                      Hoje: <span className="ml-1 text-gray-950 dark:text-white">{analytics.hojeCount}</span>
                      {analytics.proxHrs && <span className="ml-2 text-uvv-yellow">prox. {analytics.proxHrs}</span>}
                   </div>
@@ -425,34 +425,34 @@ export default function Layout({ user, onLogout }) {
                   <div className="relative" ref={notifRef}>
                      <button
                         onClick={() => setNotifOpen(!isNotifOpen)}
-                        className="relative rounded-xl border border-gray-200 bg-white p-2.5 text-gray-500 shadow-sm transition hover:text-gray-950 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:text-white"
+                        className="relative rounded-xl bg-white p-2.5 text-gray-500 shadow-sm ring-1 ring-gray-200/70 transition hover:text-gray-950 dark:bg-white/5 dark:ring-white/10"
                      >
                         {unreadNotifsCount > 0 ? <BellRing size={20} className="text-uvv-yellow" /> : <Bell size={20} />}
                         {unreadNotifsCount > 0 && (
-                           <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-red-500 dark:border-[#111827]" />
+                           <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-red-500 dark:border-[#11141d]" />
                         )}
                      </button>
 
                      {isNotifOpen && (
-                        <div className="absolute right-0 top-full z-50 mt-3 flex max-h-[80vh] w-80 origin-top-right animate-fade-in-up flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#171a22]">
-                           <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-white/10">
-                              <h3 className="text-sm font-bold text-gray-950 dark:text-white">Notificacoes</h3>
-                              {unreadNotifsCount > 0 && <span className="rounded-full bg-uvv-yellow px-2 py-1 text-[10px] font-black text-gray-950">{unreadNotifsCount} novas</span>}
+                        <div className="absolute right-0 top-full z-50 mt-3 flex max-h-[80vh] w-80 origin-top-right animate-fade-in-up flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-gray-200/80 dark:bg-[#191d28] dark:ring-white/10">
+                           <div className="flex shrink-0 items-center justify-between px-5 py-4">
+                              <h3 className="text-sm font-semibold text-gray-950 dark:text-white">Notificacoes</h3>
+                              {unreadNotifsCount > 0 && <span className="rounded-full bg-uvv-yellow px-2 py-1 text-[10px] font-semibold text-white">{unreadNotifsCount} novas</span>}
                            </div>
 
                            <div className="min-h-[100px] flex-1 overflow-y-auto no-scrollbar">
                               {notificacoes.length === 0 ? (
                                  <div className="flex flex-col items-center justify-center p-8 text-gray-400">
-                                    <Bell size={30} className="mb-3 opacity-40" />
+                                    <Bell size={28} className="mb-3 opacity-40" />
                                     <p className="text-sm font-medium">Tudo em dia.</p>
                                  </div>
                               ) : (
                                  notificacoes.map(n => (
-                                    <button key={n.id} onClick={() => handleNotifClick(n)} className={`flex w-full items-start gap-3 border-b border-gray-100 px-5 py-4 text-left transition hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5 ${n.isLida ? 'opacity-50' : ''}`}>
+                                    <button key={n.id} onClick={() => handleNotifClick(n)} className={`flex w-full items-start gap-3 px-5 py-4 text-left transition hover:bg-gray-50 dark:hover:bg-white/5 ${n.isLida ? 'opacity-55' : ''}`}>
                                        <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${n.bgColor}`} />
                                        <span>
                                           <span className="block text-sm font-medium leading-snug text-gray-700 dark:text-gray-200">{n.titulo}</span>
-                                          <span className="mt-1.5 block text-[10px] font-bold uppercase tracking-widest text-gray-400">{n.tempoStr}</span>
+                                          <span className="mt-1.5 block text-[10px] font-semibold uppercase tracking-widest text-gray-400">{n.tempoStr}</span>
                                        </span>
                                     </button>
                                  ))
@@ -461,7 +461,7 @@ export default function Layout({ user, onLogout }) {
 
                            {notificacoes.length > 0 && (
                               <div className="shrink-0 border-t border-gray-100 p-3 text-center dark:border-white/10">
-                                 <button onClick={lerTodas} className="text-xs font-bold text-gray-500 transition hover:text-gray-950 dark:hover:text-white">Marcar todas como lidas</button>
+                                 <button onClick={lerTodas} className="text-xs font-semibold text-gray-500 transition hover:text-gray-950 dark:hover:text-white">Marcar todas como lidas</button>
                               </div>
                            )}
                         </div>

@@ -182,7 +182,7 @@ export default function Dashboard({ user }) {
       const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = 'relatorio_agenda_uvv.csv';
+      link.download = 'relatorio_meridian.csv';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -192,10 +192,10 @@ export default function Dashboard({ user }) {
    return (
       <div className="min-h-full animate-fade-in text-gray-900 dark:text-gray-100">
          <section className="mb-6 grid gap-4 lg:grid-cols-[1fr_320px]">
-            <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#171a22]">
+            <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10">
                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div>
-                     <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Rotina pessoal</p>
+                     <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Operacao</p>
                      <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">Meus compromissos</h1>
                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                         {stats.hojeCount > 0 ? `Você tem ${stats.hojeCount} compromisso(s) hoje.` : 'Nenhum compromisso pendente para hoje.'}
@@ -225,7 +225,7 @@ export default function Dashboard({ user }) {
                </div>
             </div>
 
-            <aside className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#171a22]">
+            <aside className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10">
                <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Próximo na agenda</p>
                {stats.proximoEvt ? (
                   <div className="mt-4 rounded-2xl border p-4" style={{ backgroundColor: hexToRgba(stats.proximoEvt.catObj.cor_hex, 0.08), borderColor: hexToRgba(stats.proximoEvt.catObj.cor_hex, 0.2) }}>
@@ -239,7 +239,7 @@ export default function Dashboard({ user }) {
             </aside>
          </section>
 
-         <section className="rounded-[28px] border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#171a22] md:p-5">
+         <section className="rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10 md:p-5">
             <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                   {chips.map(c => (
