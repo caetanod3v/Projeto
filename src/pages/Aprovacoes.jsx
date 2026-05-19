@@ -28,11 +28,10 @@ export default function Aprovacoes({ user }) {
    const fetchData = async () => {
       setIsLoading(true);
       try {
-         const [pendRes, curRes, catRes, usrRes] = await Promise.all([
+         const [pendRes, curRes, catRes] = await Promise.all([
             api.get('/compromissos/pendentes'),
             api.get('/cursos'),
             api.get('/categorias'),
-            api.get('/usuarios'),
          ]);
 
          const cursosMap = {};
@@ -40,9 +39,6 @@ export default function Aprovacoes({ user }) {
 
          const catMap = {};
          catRes.data.forEach(c => catMap[c.id] = { nome: c.nome, cor_hex: c.cor_hex });
-
-         const userMap = {};
-         usrRes.data.forEach(u => userMap[u.id] = u.nome);
 
          const formattedPendentes = pendRes.data.map(ev => {
             const inicio = new Date(ev.dt_inicio);
@@ -52,8 +48,10 @@ export default function Aprovacoes({ user }) {
                inicio, fim,
                durationStr: formatDuration(inicio, fim),
                catObj: catMap[ev.categoria_id] || { nome: 'Geral', cor_hex: '#374151' },
-               cursoStr: cursosMap[ev.curso_id] || 'Geral',
-               criadorStr: userMap[ev.usuario_id] || 'Secretaria'
+               cursoStr: ev.curso?.nome || cursosMap[ev.curso_id] || 'Geral',
+               criadorStr: ev.usuario?.nome || 'Secretaria',
+               coordenadorStr: ev.coordenador?.nome || 'Nao definido',
+               statusStr: ev.status || 'pendente'
             };
          }).sort((a, b) => a.inicio - b.inicio);
 
@@ -150,8 +148,11 @@ export default function Aprovacoes({ user }) {
                                  <div className="flex items-center gap-2"><Users size={16} className="text-uvv-yellow" /> {ev.cursoStr}</div>
                               </div>
 
-                              <div className="flex flex-col gap-1.5 text-xs text-gray-400 mb-8 bg-[#0B1220] px-4 py-3 rounded-xl border border-gray-800 w-max">
-                                 <div><span className="font-bold text-gray-500">Criado por:</span> {ev.criadorStr}</div>
+                              <div className="flex flex-col gap-1.5 text-xs text-gray-400 mb-8 bg-[#0B1220] px-4 py-3 rounded-xl border border-gray-800 w-full max-w-sm">
+                                 <div><span className="font-bold text-gray-500">Solicitante:</span> {ev.criadorStr}</div>
+                                 <div><span className="font-bold text-gray-500">Coordenador responsavel:</span> {ev.coordenadorStr}</div>
+                                 <div><span className="font-bold text-gray-500">Curso:</span> {ev.cursoStr}</div>
+                                 <div><span className="font-bold text-gray-500">Status:</span> {ev.statusStr}</div>
                                  <div><span className="font-bold text-gray-500">Data de Criação:</span> {format(new Date(ev.created_at || ev.inicio), 'dd/MM/yyyy HH:mm')}</div>
                               </div>
                            </div>

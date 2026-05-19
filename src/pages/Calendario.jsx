@@ -35,6 +35,7 @@ export default function Calendario({ user }) {
   const [events, setEvents] = useState([]);
   const [cursos, setCursos] = useState([]);
   const [categorias, setCategorias] = useState([]);
+  const [coordenadores, setCoordenadores] = useState([]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -50,6 +51,7 @@ export default function Calendario({ user }) {
   // Formulário
   const [titulo, setTitulo] = useState('');
   const [cursoId, setCursoId] = useState('');
+  const [form, setForm] = useState({ coordenador_id: '' });
   const [categoriaId, setCategoriaId] = useState('');
   const [horaInicio, setHoraInicio] = useState('12:00');
   const [horaFim, setHoraFim] = useState('13:00');
@@ -68,6 +70,7 @@ export default function Calendario({ user }) {
     setSelectedDate(dateStr);
     setTitulo('');
     setCursoId('');
+    setForm({ coordenador_id: '' });
     setCategoriaId('');
     setHoraInicio('12:00');
     setHoraFim('13:00');
@@ -102,6 +105,7 @@ export default function Calendario({ user }) {
         setHoraFim(format(endDateObj, 'HH:mm'));
 
         setCursoId(ev.extendedProps.curso_id || '');
+        setForm({ coordenador_id: ev.extendedProps.coordenador_id || '' });
         setCategoriaId(ev.extendedProps.categoria_id || '');
         setRepeticao(ev.extendedProps.repeticao || 'nenhuma');
         setModalOpen(true);
@@ -114,14 +118,16 @@ export default function Calendario({ user }) {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [eventsRes, curRes, catRes] = await Promise.all([
+      const [eventsRes, curRes, catRes, coordRes] = await Promise.all([
         api.get('/compromissos'),
         api.get('/cursos'),
         api.get('/categorias'),
+        api.get('/coordenadores'),
       ]);
 
       setCursos(curRes.data);
       setCategorias(catRes.data);
+      setCoordenadores(coordRes.data);
 
       const cursosMap = {};
       curRes.data.forEach(c => cursosMap[c.id] = c.nome);
@@ -157,6 +163,7 @@ export default function Calendario({ user }) {
           end: ev.dt_fim,
           extendedProps: {
             curso_id: ev.curso_id,
+            coordenador_id: ev.coordenador_id,
             cursoStr: cursosMap[ev.curso_id] || 'Geral',
             categoria_id: ev.categoria_id,
             repeticao: ev.repeticao,
@@ -208,13 +215,25 @@ export default function Calendario({ user }) {
     setHoraFim(format(end, 'HH:mm'));
 
     setCursoId(event.extendedProps.curso_id || '');
+    setForm({ coordenador_id: event.extendedProps.coordenador_id || '' });
     setCategoriaId(event.extendedProps.categoria_id || '');
     setRepeticao(event.extendedProps.repeticao || 'nenhuma');
     setModalOpen(true);
   };
 
+  const handleCoordenadorChange = (value) => {
+    setForm(prev => ({ ...prev, coordenador_id: value }));
+    const coordenador = coordenadores.find(c => String(c.id) === String(value));
+    if (coordenador?.curso_id) {
+      setCursoId(String(coordenador.curso_id));
+    }
+  };
+
   const handleSave = async () => {
     if (!titulo) return toast.error('Insira um título para o compromisso');
+    if (!editingId && user?.role === 'secretaria' && !form.coordenador_id) {
+      return toast.error('Selecione o coordenador responsável.');
+    }
 
     const toastId = toast.loading('Salvando compromisso...');
     const inicioISO = new Date(`${selectedDate}T${horaInicio}:00`).toISOString();
@@ -222,6 +241,7 @@ export default function Calendario({ user }) {
 
     const payload = {
       titulo, dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao,
+      coordenador_id: form.coordenador_id,
       usuario_role: user?.role
     };
 
@@ -251,6 +271,7 @@ export default function Calendario({ user }) {
       const fimISO = new Date(`${selectedDate}T${horaFim}:00`).toISOString();
       const payload = {
         titulo: titulo + ' (Cópia)', dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao,
+        coordenador_id: form.coordenador_id,
         usuario_role: user?.role
       };
       await api.post(`/compromissos`, payload);
@@ -323,6 +344,7 @@ export default function Calendario({ user }) {
 
   const canEdit = user?.role === 'admin' || user?.role === 'coordenador';
   const isFormDisabled = editingId ? !canEdit : false;
+  const isSecretaria = user?.role === 'secretaria';
 
   return (
     <div className="min-h-full animate-fade-in text-gray-100 font-sans p-4 md:p-8">
@@ -430,6 +452,26 @@ export default function Calendario({ user }) {
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Título</label>
                   <input value={titulo} disabled={isFormDisabled} onChange={e => setTitulo(e.target.value)} type="text" className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow focus:border-transparent transition-all outline-none disabled:opacity-50" placeholder="Ex: Reunião Pedagógica" />
                 </div>
+
+                {!editingId && isSecretaria && (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">COORDENADOR RESPONSÁVEL</label>
+                    <select
+                      value={form.coordenador_id}
+                      disabled={isFormDisabled}
+                      required
+                      onChange={e => handleCoordenadorChange(e.target.value)}
+                      className="w-full border border-gray-800 bg-[#0B1220] text-gray-100 p-3 rounded-xl shadow-inner focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50"
+                    >
+                      <option value="">Selecione o coordenador</option>
+                      {coordenadores.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.nome} — {c.curso?.nome || 'Curso não vinculado'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div className="flex gap-4">
                   <div className="flex-1">
