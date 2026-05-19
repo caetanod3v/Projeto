@@ -37,24 +37,24 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <main className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-[#f7f8fb] p-4">
+    <main className="auth-screen relative flex min-h-[100dvh] items-center justify-center overflow-hidden p-4">
       <ThemeToggle className="fixed right-5 top-5 z-20" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(91,110,225,0.12),transparent_32rem),radial-gradient(circle_at_90%_10%,rgba(141,108,246,0.08),transparent_30rem)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(91,110,225,0.08),transparent_32rem),radial-gradient(circle_at_90%_10%,rgba(141,108,246,0.06),transparent_30rem)]" />
 
-      <section className="relative grid w-full max-w-5xl overflow-hidden rounded-[24px] bg-white shadow-[0_24px_80px_rgba(35,42,62,0.10)] ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10 lg:grid-cols-[1fr_430px]">
+      <section className="auth-card relative grid w-full max-w-5xl overflow-hidden rounded-[24px] ring-1 ring-gray-200/70 dark:ring-white/10 lg:grid-cols-[1fr_430px]">
         <div className="hidden min-h-[620px] flex-col justify-between bg-[#151821] p-10 text-white lg:flex">
           <div>
             <div className="mb-14 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-semibold text-gray-950">M</div>
               <div>
                 <p className="text-sm font-semibold text-white">Meridian</p>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/45">Academic OS</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/68">Academic OS</p>
               </div>
             </div>
             <h1 className="max-w-xl text-4xl font-semibold tracking-[-0.03em] text-white">
               Planejamento academico com a clareza de um workspace moderno.
             </h1>
-            <p className="mt-5 max-w-md text-sm leading-6 text-white/62">
+            <p className="mt-5 max-w-md text-sm leading-6 text-white/74">
               Coordene agendas, aprovacoes e compromissos institucionais em uma operacao limpa, auditavel e facil de acompanhar.
             </p>
           </div>
@@ -62,7 +62,7 @@ export default function Login({ onLogin }) {
           <div className="grid grid-cols-3 gap-3">
             {['Cursos', 'Aprovacoes', 'Agenda'].map(item => (
               <div key={item} className="rounded-2xl bg-white/[0.06] p-4 ring-1 ring-white/10">
-                <p className="text-xs font-medium text-white/52">{item}</p>
+                <p className="text-xs font-medium text-white/68">{item}</p>
                 <div className="mt-8 h-1.5 rounded-full bg-white/15">
                   <div className="h-full w-2/3 rounded-full bg-white/70" />
                 </div>
@@ -78,20 +78,20 @@ export default function Login({ onLogin }) {
           </div>
 
           <div className="mb-8">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Acesso institucional</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">Entre no workspace</h2>
-            <p className="mt-2 text-sm text-gray-500">Use sua conta autorizada pela instituicao.</p>
+            <p className="auth-eyebrow text-[11px] font-semibold uppercase tracking-[0.22em]">Acesso institucional</p>
+            <h2 className="auth-title mt-2 text-2xl font-semibold tracking-tight">Entre no workspace</h2>
+            <p className="auth-muted mt-2 text-sm">Use sua conta autorizada pela instituicao.</p>
           </div>
 
           <form onSubmit={handleAuth} className="space-y-5">
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-600">E-mail institucional</label>
+              <label className="auth-label mb-2 block text-sm font-medium">E-mail institucional</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-950 outline-none transition focus:border-uvv-yellow focus:ring-4 focus:ring-uvv-yellow/10"
+                className="auth-input w-full rounded-xl border px-4 py-3 text-sm outline-none transition"
                 placeholder="nome@instituicao.edu"
                 disabled={loading}
               />
@@ -99,15 +99,15 @@ export default function Login({ onLogin }) {
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <label className="block text-sm font-medium text-gray-600">Senha</label>
-                <Link to="/forgot-password" className="text-xs font-medium text-uvv-yellow transition hover:text-gray-950">Esqueceu a senha?</Link>
+                <label className="auth-label block text-sm font-medium">Senha</label>
+                <Link to="/forgot-password" className="auth-link text-xs font-medium transition">Esqueceu a senha?</Link>
               </div>
               <input
                 type="password"
                 required
                 value={senha}
                 onChange={e => setSenha(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-950 outline-none transition focus:border-uvv-yellow focus:ring-4 focus:ring-uvv-yellow/10"
+                className="auth-input w-full rounded-xl border px-4 py-3 text-sm outline-none transition"
                 placeholder="********"
                 disabled={loading}
               />
@@ -122,10 +122,10 @@ export default function Login({ onLogin }) {
             </button>
           </form>
 
-          <div className="mt-8 border-t border-gray-100 pt-6 text-center dark:border-white/10">
-            <p className="text-sm text-gray-500">
+          <div className="auth-divider mt-8 border-t pt-6 text-center">
+            <p className="auth-muted text-sm">
               Nao tem uma conta?
-              <Link to="/register" className="ml-2 font-medium text-uvv-yellow transition hover:text-gray-950">
+              <Link to="/register" className="auth-link ml-2 font-medium transition">
                 Solicitar acesso
               </Link>
             </p>

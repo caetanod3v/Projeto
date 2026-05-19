@@ -28,16 +28,16 @@ export default function ForgotPassword() {
   };
 
   return (
-    <main className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-[#f7f8fb] p-4">
+    <main className="auth-screen relative flex min-h-[100dvh] items-center justify-center overflow-hidden p-4">
       <ThemeToggle className="fixed right-5 top-5 z-20" />
-      <section className="w-full max-w-md rounded-[24px] bg-white p-6 shadow-[0_24px_80px_rgba(35,42,62,0.10)] ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10 sm:p-9">
+      <section className="auth-card w-full max-w-md rounded-[24px] p-6 ring-1 ring-gray-200/70 dark:ring-white/10 sm:p-9">
         {sent ? (
           <div className="text-center">
             <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
               <Check size={28} />
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">E-mail enviado</h1>
-            <p className="mt-3 text-sm leading-6 text-gray-500">
+            <h1 className="auth-title text-2xl font-semibold tracking-tight">E-mail enviado</h1>
+            <p className="auth-muted mt-3 text-sm leading-6">
               Verifique sua caixa de entrada para redefinir a senha.
             </p>
             <Link to="/login" className="mt-7 inline-flex w-full items-center justify-center rounded-xl bg-gray-950 py-3 text-sm font-semibold text-white transition hover:bg-gray-800">
@@ -48,20 +48,20 @@ export default function ForgotPassword() {
           <>
             <div className="mb-8">
               <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-gray-950 text-sm font-semibold text-white">M</div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Recuperacao</p>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">Redefinir senha</h1>
-              <p className="mt-2 text-sm text-gray-500">Enviaremos as instrucoes para o e-mail cadastrado.</p>
+              <p className="auth-eyebrow text-[11px] font-semibold uppercase tracking-[0.22em]">Recuperacao</p>
+              <h1 className="auth-title mt-2 text-2xl font-semibold tracking-tight">Redefinir senha</h1>
+              <p className="auth-muted mt-2 text-sm">Enviaremos as instrucoes para o e-mail cadastrado.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-600">E-mail institucional</label>
+                <label className="auth-label mb-2 block text-sm font-medium">E-mail institucional</label>
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-950 outline-none transition"
+                  className="auth-input w-full rounded-xl border px-4 py-3 text-sm outline-none transition"
                   placeholder="nome@instituicao.edu"
                   disabled={loading}
                 />
@@ -75,7 +75,7 @@ export default function ForgotPassword() {
                 {loading ? <Loader2 className="animate-spin" size={18} /> : 'Enviar link'}
               </button>
 
-              <Link to="/login" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition hover:text-gray-950">
+              <Link to="/login" className="auth-link inline-flex items-center gap-2 text-sm font-medium transition">
                 <ArrowLeft size={14} /> Voltar
               </Link>
             </form>

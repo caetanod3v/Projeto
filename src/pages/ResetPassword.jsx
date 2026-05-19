@@ -15,10 +15,10 @@ export default function ResetPassword() {
 
   if (!token) {
     return (
-      <main className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#f7f8fb] p-4 text-center">
+      <main className="auth-screen flex min-h-[100dvh] flex-col items-center justify-center p-4 text-center">
         <ThemeToggle className="fixed right-5 top-5" />
-        <h2 className="text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">Link invalido</h2>
-        <p className="mt-2 max-w-sm text-sm text-gray-500">O link de recuperacao nao possui um token valido.</p>
+        <h2 className="auth-title text-2xl font-semibold tracking-tight">Link invalido</h2>
+        <p className="auth-muted mt-2 max-w-sm text-sm">O link de recuperacao nao possui um token valido.</p>
         <Link to="/login" className="mt-6 rounded-xl bg-gray-950 px-6 py-3 text-sm font-semibold text-white">Voltar para login</Link>
       </main>
     );
@@ -43,26 +43,26 @@ export default function ResetPassword() {
   };
 
   return (
-    <main className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-[#f7f8fb] p-4">
+    <main className="auth-screen relative flex min-h-[100dvh] items-center justify-center overflow-hidden p-4">
       <ThemeToggle className="fixed right-5 top-5 z-20" />
-      <section className="w-full max-w-md rounded-[24px] bg-white p-6 shadow-[0_24px_80px_rgba(35,42,62,0.10)] ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10 sm:p-9">
+      <section className="auth-card w-full max-w-md rounded-[24px] p-6 ring-1 ring-gray-200/70 dark:ring-white/10 sm:p-9">
         <div className="mb-8">
           <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-gray-950 text-sm font-semibold text-white">M</div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Seguranca</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">Criar nova senha</h1>
-          <p className="mt-2 text-sm text-gray-500">Defina uma senha para voltar ao workspace.</p>
+          <p className="auth-eyebrow text-[11px] font-semibold uppercase tracking-[0.22em]">Seguranca</p>
+          <h1 className="auth-title mt-2 text-2xl font-semibold tracking-tight">Criar nova senha</h1>
+          <p className="auth-muted mt-2 text-sm">Defina uma senha para voltar ao workspace.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-600">Nova senha</label>
+            <label className="auth-label mb-2 block text-sm font-medium">Nova senha</label>
             <input
               type="password"
               required
               minLength="6"
               value={novaSenha}
               onChange={e => setNovaSenha(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-950 outline-none transition"
+              className="auth-input w-full rounded-xl border px-4 py-3 text-sm outline-none transition"
               placeholder="********"
               disabled={loading}
             />
