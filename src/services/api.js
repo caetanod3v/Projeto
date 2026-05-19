@@ -9,27 +9,24 @@ api.interceptors.request.use((config) => {
     config.url = `/api${config.url.startsWith("/") ? config.url : `/${config.url}`}`;
   }
 
-  const userStr = localStorage.getItem("usuario_logado");
+  const token = localStorage.getItem("token");
 
-  if (userStr) {
-    try {
-      const data = JSON.parse(userStr);
-      if (data?.token) {
-        config.headers["Authorization"] = `Bearer ${data.token}`;
-      }
-    } catch (e) { }
+  if (token) {
+    config.headers["Authorization"] = `Bearer ${token}`;
   }
 
   return config;
 });
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Token expirado ou inválido
-      localStorage.removeItem("usuario_logado");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
       window.location.href = "/login";
     }
+
     return Promise.reject(error);
   }
 );
