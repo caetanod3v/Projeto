@@ -14,6 +14,7 @@ import {
    Menu,
    Plus,
    Tag,
+   UserCircle,
    Users,
    X
 } from 'lucide-react';
@@ -204,6 +205,7 @@ export default function Layout({ user, onLogout }) {
          kicker: user?.role === 'secretaria' ? 'Retornos das solicitacoes' : 'Governanca de agenda',
          icon: CheckCircle2
       },
+      '/perfil': { title: 'Perfil', kicker: 'Configuracoes da conta', icon: UserCircle },
       '/admin/usuarios': { title: 'Usuarios', kicker: 'Controle institucional', icon: Users }
    };
    const currentPage = pageMeta[location.pathname] || pageMeta['/'];
@@ -379,15 +381,19 @@ export default function Layout({ user, onLogout }) {
                </div>
 
                <div className="p-2.5">
-                  <div className="mb-1.5 flex items-center gap-2 rounded-lg p-1.5 hover:bg-white/60 dark:hover:bg-white/5">
+                  <Link to="/perfil" className="mb-1.5 flex items-center gap-2 rounded-lg p-1.5 transition hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uvv-yellow/20 dark:hover:bg-white/5 dark:focus-visible:ring-white/10">
                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-uvv-yellow/15 text-xs font-semibold text-uvv-yellow">
-                        {user?.nome?.charAt(0) || 'U'}
+                        {user?.avatar_url ? (
+                           <img src={user.avatar_url} alt="" className="h-full w-full rounded-lg object-cover" />
+                        ) : (
+                           user?.nome?.charAt(0) || 'U'
+                        )}
                      </div>
                      <div className="min-w-0">
                         <p className="truncate text-xs font-semibold text-gray-950 dark:text-white">{user?.nome}</p>
                         <p className="text-[9px] font-semibold uppercase tracking-widest text-gray-400">{user?.role}</p>
                      </div>
-                  </div>
+                  </Link>
                   <button onClick={onLogout} className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10">
                      <LogOut size={14} />
                      Sair

@@ -11,6 +11,7 @@ import ResetPassword from './pages/ResetPassword';
 import AdminUsers from './pages/AdminUsers';
 import Aprovacoes from './pages/Aprovacoes';
 import RetornosAprovacao from './pages/RetornosAprovacao';
+import Perfil from './pages/Perfil';
 import api from './services/api';
 
 function App() {
@@ -26,6 +27,11 @@ function App() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('usuario_logado');
+  };
+
+  const updateUser = (nextUser) => {
+    setUser(nextUser);
+    localStorage.setItem('user', JSON.stringify(nextUser));
   };
 
   useEffect(() => {
@@ -92,6 +98,7 @@ function App() {
           <Route path="dashboard" element={<Dashboard user={user} />} />
           <Route path="aprovacoes" element={user?.role === 'secretaria' ? <RetornosAprovacao user={user} /> : <Aprovacoes user={user} />} />
           <Route path="retornos-aprovacao" element={<Navigate to="/aprovacoes" replace />} />
+          <Route path="perfil" element={<Perfil user={user} onUserUpdate={updateUser} />} />
           <Route path="admin/usuarios" element={user?.role === 'admin' ? <AdminUsers /> : <Navigate to="/" replace />} />
         </Route>
       </Routes>
