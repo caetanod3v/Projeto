@@ -30,6 +30,7 @@ export default function Layout({ user, onLogout }) {
 
    const [isSidebarOpen, setSidebarOpen] = useState(false);
    const [isNotifOpen, setNotifOpen] = useState(false);
+   const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
    const [notificacoes, setNotificacoes] = useState([]);
    const [selectedNotif, setSelectedNotif] = useState(null);
    const notifRef = useRef(null);
@@ -291,6 +292,38 @@ export default function Layout({ user, onLogout }) {
             <div className="fixed inset-0 z-30 bg-gray-950/35 backdrop-blur-sm lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
          )}
 
+         {isLogoutModalOpen && (
+            <div className="fixed inset-0 z-[80] flex items-center justify-center bg-gray-950/35 p-4 backdrop-blur-sm animate-fade-in">
+               <div className="w-full max-w-sm rounded-[24px] bg-white p-5 shadow-2xl ring-1 ring-gray-200/70 animate-fade-in-up dark:bg-[#191d28] dark:ring-white/10">
+                  <div className="mb-5 flex items-start gap-3">
+                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300">
+                        <LogOut size={18} />
+                     </div>
+                     <div>
+                        <h3 className="text-base font-semibold tracking-tight text-gray-950 dark:text-white">Deseja realmente sair?</h3>
+                        <p className="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-300">Voce sera desconectado da sua conta.</p>
+                     </div>
+                  </div>
+                  <div className="flex gap-2">
+                     <button
+                        type="button"
+                        onClick={() => setLogoutModalOpen(false)}
+                        className="flex-1 rounded-xl bg-gray-100 px-4 py-2.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+                     >
+                        Cancelar
+                     </button>
+                     <button
+                        type="button"
+                        onClick={onLogout}
+                        className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-red-700 dark:bg-red-500/15 dark:text-red-100 dark:ring-1 dark:ring-red-400/20 dark:hover:bg-red-500/22"
+                     >
+                        Sair da conta
+                     </button>
+                  </div>
+               </div>
+            </div>
+         )}
+
          <aside className={`fixed z-40 h-full w-[196px] shrink-0 bg-white/80 backdrop-blur-xl transition-transform duration-300 dark:bg-[#191d28]/82 lg:relative ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
             <div className="flex h-full flex-col">
                <div className="px-4 pb-4 pt-7">
@@ -381,7 +414,7 @@ export default function Layout({ user, onLogout }) {
                </div>
 
                <div className="p-2.5">
-                  <Link to="/perfil" className="mb-1.5 flex items-center gap-2 rounded-lg p-1.5 transition hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uvv-yellow/20 dark:hover:bg-white/5 dark:focus-visible:ring-white/10">
+                  <Link to="/perfil" className="mb-3 flex items-center gap-2 rounded-lg p-1.5 transition hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uvv-yellow/20 dark:hover:bg-white/5 dark:focus-visible:ring-white/10">
                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-uvv-yellow/15 text-xs font-semibold text-uvv-yellow">
                         {user?.avatar_url ? (
                            <img src={user.avatar_url} alt="" className="h-full w-full rounded-lg object-cover" />
@@ -394,7 +427,7 @@ export default function Layout({ user, onLogout }) {
                         <p className="text-[9px] font-semibold uppercase tracking-widest text-gray-400">{user?.role}</p>
                      </div>
                   </Link>
-                  <button onClick={onLogout} className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10">
+                  <button onClick={() => setLogoutModalOpen(true)} className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10">
                      <LogOut size={14} />
                      Sair
                   </button>
