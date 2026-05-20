@@ -639,6 +639,55 @@ tbody tr:hover {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22) !important;
 }
 
+.fluxus-wordmark {
+  align-items: center;
+  color: #0a0f1a !important;
+  display: inline-flex;
+  font-family: "Geist", "Aptos", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  font-size: clamp(1.55rem, 2vw, 1.95rem);
+  font-weight: 850;
+  left: clamp(1.25rem, 4vw, 3rem);
+  letter-spacing: -0.075em;
+  line-height: 1;
+  position: fixed;
+  top: clamp(1.2rem, 3.6vw, 2.25rem);
+  z-index: 30;
+}
+
+.fluxus-wordmark-text {
+  display: block;
+  position: relative;
+}
+
+.fluxus-wordmark-flow {
+  border-radius: 999px;
+  border-top: 2px solid currentColor;
+  display: block;
+  height: 0.46em;
+  left: 1.95em;
+  opacity: 0.42;
+  position: absolute;
+  top: 0.48em;
+  transform: rotate(-8deg) skewX(-18deg);
+  width: 1.34em;
+}
+
+.fluxus-wordmark-flow::after {
+  background: currentColor;
+  border-radius: 999px;
+  content: "";
+  height: 0.12em;
+  opacity: 0.72;
+  position: absolute;
+  right: -0.16em;
+  top: -0.06em;
+  width: 0.12em;
+}
+
+:root[data-theme="dark"] .fluxus-wordmark {
+  color: #ffffff !important;
+}
+
 .auth-title {
   color: #0d1320 !important;
 }

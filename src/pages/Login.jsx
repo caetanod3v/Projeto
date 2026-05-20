@@ -4,6 +4,7 @@ import api from '../services/api';
 import { ArrowRight, CalendarCheck, CheckCircle2, Clock3, Loader2, Send, UserCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
+import FluxusWordmark from '../components/FluxusWordmark';
 
 const previewItems = [
   { icon: Send, label: 'Solicitacao enviada para Coordenacao', meta: 'Secretaria academica', tone: 'blue' },
@@ -45,16 +46,14 @@ export default function Login({ onLogin }) {
 
   return (
     <main className="auth-screen relative flex min-h-[100dvh] items-center justify-center overflow-hidden p-4">
+      <FluxusWordmark />
       <ThemeToggle className="fixed right-5 top-5 z-20" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(91,110,225,0.08),transparent_32rem),radial-gradient(circle_at_90%_10%,rgba(141,108,246,0.06),transparent_30rem)]" />
 
       <section className="auth-card relative grid w-full max-w-5xl overflow-hidden rounded-[24px] ring-1 ring-gray-200/70 dark:ring-white/10 lg:grid-cols-[1fr_430px]">
         <div className="hidden min-h-[620px] flex-col justify-between bg-[#151821] p-10 text-white lg:flex">
           <div>
-            <div className="mb-14">
-              <p className="text-sm font-semibold text-white">Fluxus</p>
-              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/58">Academic operations</p>
-            </div>
+            <div className="mb-14 h-8" aria-hidden="true" />
             <h1 className="max-w-xl text-4xl font-semibold tracking-[-0.03em] text-white">
               Planejamento academico com a clareza de um workspace moderno.
             </h1>
@@ -118,9 +117,7 @@ export default function Login({ onLogin }) {
         </div>
 
         <div className="p-6 sm:p-10">
-          <div className="mb-10 lg:hidden">
-            <p className="auth-brand">Fluxus</p>
-          </div>
+          <div className="mb-10 h-5 lg:hidden" aria-hidden="true" />
 
           <div className="mb-8">
             <p className="auth-eyebrow text-[11px] font-semibold uppercase tracking-[0.22em]">Acesso institucional</p>

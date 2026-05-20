@@ -4,6 +4,7 @@ import api from '../services/api';
 import { ArrowLeft, Check, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
+import FluxusWordmark from '../components/FluxusWordmark';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -29,6 +30,7 @@ export default function ForgotPassword() {
 
   return (
     <main className="auth-screen relative flex min-h-[100dvh] items-center justify-center overflow-hidden p-4">
+      <FluxusWordmark />
       <ThemeToggle className="fixed right-5 top-5 z-20" />
       <section className="auth-card w-full max-w-md rounded-[24px] p-6 ring-1 ring-gray-200/70 dark:ring-white/10 sm:p-9">
         {sent ? (
@@ -47,7 +49,7 @@ export default function ForgotPassword() {
         ) : (
           <>
             <div className="mb-8">
-              <p className="auth-brand mb-5">Fluxus</p>
+              <div className="mb-5 h-5" aria-hidden="true" />
               <p className="auth-eyebrow text-[11px] font-semibold uppercase tracking-[0.22em]">Recuperacao</p>
               <h1 className="auth-title mt-2 text-2xl font-semibold tracking-tight">Redefinir senha</h1>
               <p className="auth-muted mt-2 text-sm">Enviaremos as instrucoes para o e-mail cadastrado.</p>

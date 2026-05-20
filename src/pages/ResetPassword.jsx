@@ -4,6 +4,7 @@ import api from '../services/api';
 import { Loader2 } from 'lucide-react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
+import FluxusWordmark from '../components/FluxusWordmark';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -16,6 +17,7 @@ export default function ResetPassword() {
   if (!token) {
     return (
       <main className="auth-screen flex min-h-[100dvh] flex-col items-center justify-center p-4 text-center">
+        <FluxusWordmark />
         <ThemeToggle className="fixed right-5 top-5" />
         <h2 className="auth-title text-2xl font-semibold tracking-tight">Link invalido</h2>
         <p className="auth-muted mt-2 max-w-sm text-sm">O link de recuperacao nao possui um token valido.</p>
@@ -44,10 +46,11 @@ export default function ResetPassword() {
 
   return (
     <main className="auth-screen relative flex min-h-[100dvh] items-center justify-center overflow-hidden p-4">
+      <FluxusWordmark />
       <ThemeToggle className="fixed right-5 top-5 z-20" />
       <section className="auth-card w-full max-w-md rounded-[24px] p-6 ring-1 ring-gray-200/70 dark:ring-white/10 sm:p-9">
         <div className="mb-8">
-          <p className="auth-brand mb-5">Fluxus</p>
+          <div className="mb-5 h-5" aria-hidden="true" />
           <p className="auth-eyebrow text-[11px] font-semibold uppercase tracking-[0.22em]">Seguranca</p>
           <h1 className="auth-title mt-2 text-2xl font-semibold tracking-tight">Criar nova senha</h1>
           <p className="auth-muted mt-2 text-sm">Defina uma senha para voltar ao workspace.</p>
