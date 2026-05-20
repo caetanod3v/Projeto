@@ -65,7 +65,6 @@ export default function Calendario({ user }) {
 
   // Formulário
   const [titulo, setTitulo] = useState('');
-  const [cursoId, setCursoId] = useState('');
   const [form, setForm] = useState({ coordenador_id: '' });
   const [categoriaId, setCategoriaId] = useState('');
   const [horaInicio, setHoraInicio] = useState('12:00');
@@ -121,7 +120,6 @@ export default function Calendario({ user }) {
   const abrirModalCriacao = (dateStr) => {
     setSelectedDate(dateStr);
     setTitulo('');
-    setCursoId('');
     setForm({ coordenador_id: '' });
     setCategoriaId('');
     setHoraInicio('12:00');
@@ -156,7 +154,6 @@ export default function Calendario({ user }) {
         setHoraInicio(format(startDateObj, 'HH:mm'));
         setHoraFim(format(endDateObj, 'HH:mm'));
 
-        setCursoId(ev.extendedProps.curso_id || '');
         setForm({ coordenador_id: ev.extendedProps.coordenador_id || '' });
         setCategoriaId(ev.extendedProps.categoria_id || '');
         setRepeticao(ev.extendedProps.repeticao || 'nenhuma');
@@ -267,7 +264,6 @@ export default function Calendario({ user }) {
     setHoraInicio(format(start, 'HH:mm'));
     setHoraFim(format(end, 'HH:mm'));
 
-    setCursoId(event.extendedProps.curso_id || '');
     setForm({ coordenador_id: event.extendedProps.coordenador_id || '' });
     setCategoriaId(event.extendedProps.categoria_id || '');
     setRepeticao(event.extendedProps.repeticao || 'nenhuma');
@@ -276,10 +272,6 @@ export default function Calendario({ user }) {
 
   const handleCoordenadorChange = (value) => {
     setForm(prev => ({ ...prev, coordenador_id: value }));
-    const coordenador = coordenadores.find(c => String(c.id) === String(value));
-    if (coordenador?.curso_id) {
-      setCursoId(String(coordenador.curso_id));
-    }
   };
 
   const handleSave = async () => {
@@ -293,7 +285,7 @@ export default function Calendario({ user }) {
     const fimISO = new Date(`${selectedDate}T${horaFim}:00`).toISOString();
 
     const payload = {
-      titulo, dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao,
+      titulo, dt_inicio: inicioISO, dt_fim: fimISO, categoria_id: categoriaId, repeticao,
       coordenador_id: form.coordenador_id,
       usuario_role: user?.role
     };
@@ -323,7 +315,7 @@ export default function Calendario({ user }) {
       const inicioISO = new Date(`${selectedDate}T${horaInicio}:00`).toISOString();
       const fimISO = new Date(`${selectedDate}T${horaFim}:00`).toISOString();
       const payload = {
-        titulo: titulo + ' (Copia)', dt_inicio: inicioISO, dt_fim: fimISO, curso_id: cursoId, categoria_id: categoriaId, repeticao,
+        titulo: titulo + ' (Copia)', dt_inicio: inicioISO, dt_fim: fimISO, categoria_id: categoriaId, repeticao,
         coordenador_id: form.coordenador_id,
         usuario_role: user?.role
       };
@@ -768,21 +760,12 @@ export default function Calendario({ user }) {
                   </div>
                 </div>
 
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Curso</label>
-                    <select value={cursoId} disabled={isFormDisabled} onChange={e => setCursoId(e.target.value)} className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
-                      <option value="">Geral</option>
-                      {cursos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                    </select>
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Categoria</label>
-                    <select value={categoriaId} disabled={isFormDisabled} onChange={e => setCategoriaId(e.target.value)} className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
-                      <option value="">Nenhuma</option>
-                      {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Categoria</label>
+                  <select value={categoriaId} disabled={isFormDisabled} onChange={e => setCategoriaId(e.target.value)} className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
+                    <option value="">Nenhuma</option>
+                    {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                  </select>
                 </div>
 
                 <div>
