@@ -49,6 +49,22 @@ CREATE TABLE IF NOT EXISTS compromissos (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Tabela de Notificações persistentes
+CREATE TABLE IF NOT EXISTS notificacoes (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    titulo TEXT NOT NULL,
+    mensagem TEXT NOT NULL,
+    tipo VARCHAR(30) NOT NULL CHECK (tipo IN ('info', 'atraso', 'lembrete', 'aprovacao', 'calendar')),
+    lida BOOLEAN NOT NULL DEFAULT FALSE,
+    referencia_id INTEGER,
+    referencia_tipo VARCHAR(60),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS notificacoes_usuario_id_created_at_idx ON notificacoes(usuario_id, created_at);
+CREATE INDEX IF NOT EXISTS notificacoes_usuario_id_lida_idx ON notificacoes(usuario_id, lida);
+
 -- Tabela de Lembretes
 CREATE TABLE IF NOT EXISTS lembretes (
     id SERIAL PRIMARY KEY,

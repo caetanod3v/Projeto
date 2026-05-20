@@ -56,9 +56,27 @@ model Usuario {
   compromissos_criados     Compromisso[]  @relation("CriadorCompromisso")
   compromissos_aprovados   Compromisso[]  @relation("AprovadorCompromisso")
   compromissos_responsavel Compromisso[]  @relation("CoordenadorResponsavel")
+  notificacoes             Notificacao[]
   logs                     LogAuditoria[]
 
   @@map("usuarios")
+}
+
+model Notificacao {
+  id              Int      @id @default(autoincrement())
+  usuario_id      Int
+  usuario         Usuario  @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  titulo          String
+  mensagem        String
+  tipo            String
+  lida            Boolean  @default(false)
+  created_at      DateTime @default(now())
+  referencia_id   Int?
+  referencia_tipo String?
+
+  @@index([usuario_id, created_at])
+  @@index([usuario_id, lida])
+  @@map("notificacoes")
 }
 
 model LogAuditoria {
