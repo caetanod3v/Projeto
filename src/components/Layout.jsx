@@ -255,21 +255,26 @@ export default function Layout({ user, onLogout }) {
    const selectedActionLabel = selectedNotif?.tipo === 'aprovacao' ? 'Ir para aprovacoes' : 'Ir para compromissos';
 
    const renderNotificationItem = (n) => (
-      <div key={n.id} className={`group flex w-full items-start gap-2 px-5 py-4 transition hover:bg-gray-50 dark:hover:bg-white/5 ${n.isLida ? 'opacity-70' : 'bg-uvv-yellow/[0.035] dark:bg-white/[0.025]'}`}>
+      <div
+         key={n.id}
+         className={`group mx-3 mb-2 flex w-[calc(100%-1.5rem)] items-start gap-2 rounded-xl p-3 transition duration-200 ${n.isLida
+            ? 'bg-white/70 ring-1 ring-gray-200/55 hover:bg-white dark:bg-[#141824]/74 dark:ring-white/[0.055] dark:hover:bg-[#181d2a]'
+            : 'bg-slate-50 ring-1 ring-slate-200/75 shadow-[0_8px_22px_rgba(15,23,42,0.045)] hover:bg-white dark:bg-[#1c2231] dark:ring-white/[0.075] dark:shadow-none dark:hover:bg-[#202738]'}`}
+      >
          <button onClick={() => handleNotifClick(n)} className="flex min-w-0 flex-1 items-start gap-3 text-left">
-            <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${n.bgColor} ${n.isLida ? 'opacity-50' : 'shadow-[0_0_0_3px_rgba(245,158,11,0.10)]'}`} />
+            <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${n.bgColor} ${n.isLida ? 'opacity-45 dark:opacity-50' : 'shadow-[0_0_0_3px_rgba(91,110,225,0.12)] dark:shadow-[0_0_0_3px_rgba(148,163,184,0.10)]'}`} />
             <span className="min-w-0">
-               <span className={`block text-sm leading-snug ${n.isLida ? 'font-medium text-gray-500 dark:text-gray-300' : 'font-semibold text-gray-800 dark:text-gray-100'}`}>{n.titulo}</span>
+               <span className={`block text-sm leading-snug ${n.isLida ? 'font-medium text-gray-500 dark:text-slate-300' : 'font-semibold text-gray-900 dark:text-slate-50'}`}>{n.titulo}</span>
                {n.mensagem && n.mensagem !== n.titulo && (
-                  <span className="mt-1 block line-clamp-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">{n.mensagem}</span>
+                  <span className="mt-1 block line-clamp-2 text-xs leading-relaxed text-gray-500 dark:text-slate-400">{n.mensagem}</span>
                )}
-               <span className="mt-1.5 block text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">{n.tempoStr}</span>
+               <span className="mt-1.5 block text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">{n.tempoStr}</span>
             </span>
          </button>
          <button
             type="button"
             onClick={() => removerNotificacao(n.id)}
-            className="rounded-lg p-1.5 text-gray-300 opacity-0 transition hover:bg-gray-100 hover:text-gray-600 group-hover:opacity-100 dark:text-gray-500 dark:hover:bg-white/10 dark:hover:text-gray-200"
+            className="rounded-lg p-1.5 text-gray-300 opacity-0 transition hover:bg-gray-100 hover:text-gray-600 group-hover:opacity-100 dark:text-slate-500 dark:hover:bg-white/10 dark:hover:text-slate-200"
             aria-label="Remover notificacao"
          >
             <X size={13} />
@@ -528,13 +533,13 @@ export default function Layout({ user, onLogout }) {
                      </button>
 
                      {isNotifOpen && (
-                        <div className="absolute right-0 top-full z-50 mt-3 flex max-h-[80vh] w-80 origin-top-right animate-fade-in-up flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-gray-200/80 dark:bg-[#191d28] dark:ring-white/10">
-                           <div className="flex shrink-0 items-center justify-between px-5 py-4">
+                        <div className="absolute right-0 top-full z-50 mt-3 flex max-h-[80vh] w-80 origin-top-right animate-fade-in-up flex-col overflow-hidden rounded-2xl bg-[#f8fafc] shadow-2xl ring-1 ring-gray-200/80 dark:bg-[#101521] dark:ring-white/10">
+                           <div className="flex shrink-0 items-center justify-between border-b border-gray-200/60 px-5 py-4 dark:border-white/[0.06]">
                               <h3 className="text-sm font-semibold text-gray-950 dark:text-white">Notificacoes</h3>
-                              {unreadNotifsCount > 0 && <span className="rounded-full bg-uvv-yellow px-2 py-1 text-[10px] font-semibold text-white">{unreadNotifsCount} novas</span>}
+                              {unreadNotifsCount > 0 && <span className="rounded-full bg-slate-900 px-2 py-1 text-[10px] font-semibold text-white dark:bg-slate-100 dark:text-slate-950">{unreadNotifsCount} novas</span>}
                            </div>
 
-                           <div className="min-h-[100px] flex-1 overflow-y-auto no-scrollbar">
+                           <div className="thin-scrollbar min-h-[100px] flex-1 overflow-y-auto py-3">
                               {isNotifsLoading ? (
                                  <div className="flex flex-col items-center justify-center p-8 text-gray-400">
                                     <div className="mb-3 h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-uvv-yellow dark:border-white/10 dark:border-t-uvv-yellow" />
@@ -548,14 +553,14 @@ export default function Layout({ user, onLogout }) {
                               ) : (
                                  <div>
                                     {unreadNotifications.length > 0 && (
-                                       <div className="px-5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">
+                                       <div className="px-5 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-slate-500">
                                           Nao lidas
                                        </div>
                                     )}
                                     {unreadNotifications.map(renderNotificationItem)}
 
                                     {readNotifications.length > 0 && (
-                                       <div className="px-5 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">
+                                       <div className="px-5 pb-2 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-slate-500">
                                           Lidas
                                        </div>
                                     )}
@@ -565,8 +570,8 @@ export default function Layout({ user, onLogout }) {
                            </div>
 
                            {notificacoes.length > 0 && (
-                              <div className="shrink-0 border-t border-gray-100 p-3 text-center dark:border-white/10">
-                                 <button onClick={lerTodas} className="text-xs font-semibold text-gray-500 transition hover:text-gray-950 dark:hover:text-white">Marcar todas como lidas</button>
+                              <div className="shrink-0 border-t border-gray-200/60 bg-white/60 p-3 text-center dark:border-white/[0.06] dark:bg-[#0f1420]">
+                                 <button onClick={lerTodas} className="text-xs font-semibold text-gray-500 transition hover:text-gray-950 dark:text-slate-400 dark:hover:text-white">Marcar todas como lidas</button>
                               </div>
                            )}
                         </div>
