@@ -10,32 +10,33 @@
 @layer base {
   :root {
     color-scheme: light;
-    --app-bg: #f8fafc;
+    --app-bg: #f6f7fb;
     --app-bg-2: #eef2ff;
     --app-page-gradient:
-      radial-gradient(circle at 8% -12%, rgba(91, 110, 225, 0.10), transparent 31rem),
-      radial-gradient(circle at 100% 0%, rgba(141, 108, 246, 0.07), transparent 28rem),
-      linear-gradient(135deg, #ffffff 0%, #f7f8fc 45%, #eef2ff 100%);
-    --app-header-bg: rgba(255, 255, 255, 0.68);
-    --app-sidebar-bg: rgba(255, 255, 255, 0.82);
+      radial-gradient(circle at 8% -12%, rgba(99, 91, 255, 0.075), transparent 31rem),
+      radial-gradient(circle at 100% 0%, rgba(91, 110, 225, 0.055), transparent 28rem),
+      linear-gradient(135deg, #ffffff 0%, #f6f7fb 45%, #eef2ff 100%);
+    --app-header-bg: rgba(255, 255, 255, 0.82);
+    --app-sidebar-bg: rgba(255, 255, 255, 0.90);
     --app-surface: #ffffff;
     --app-surface-muted: #f8fafc;
-    --app-surface-soft: #fbfcff;
+    --app-surface-soft: #f4f6fa;
+    --app-calendar-cell: #f4f6fa;
     --app-text: #111520;
     --app-text-muted: #4f5868;
     --app-text-soft: #6f7888;
     --app-placeholder: #7d8696;
-    --app-border: #edf0f5;
+    --app-border: #e8edf5;
     --app-border-strong: rgba(23, 31, 48, 0.14);
     --app-accent: #5b6ee1;
     --app-accent-2: #8d6cf6;
     --app-accent-soft: #eef1ff;
-    --app-accent-muted: rgba(91, 110, 225, 0.12);
+    --app-accent-muted: rgba(99, 91, 255, 0.06);
     --app-success-soft: #edf8f1;
     --app-danger-soft: #fff0f0;
     --app-warning-soft: #fff7e8;
-    --app-shadow: 0 1px 2px rgba(20, 24, 36, 0.025), 0 16px 42px rgba(35, 42, 62, 0.060);
-    --app-shadow-soft: 0 1px 2px rgba(20, 24, 36, 0.022), 0 10px 26px rgba(35, 42, 62, 0.040);
+    --app-shadow: 0 1px 2px rgba(20, 24, 36, 0.025), 0 18px 46px rgba(35, 42, 62, 0.070);
+    --app-shadow-soft: 0 1px 2px rgba(20, 24, 36, 0.024), 0 12px 30px rgba(35, 42, 62, 0.050);
     --app-ease: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -447,7 +448,7 @@ tbody tr:hover {
 }
 
 .fc-daygrid-day-frame {
-  background: rgba(248, 250, 252, 0.82);
+  background: var(--app-calendar-cell, rgba(244, 246, 250, 0.92));
   min-height: 5.55rem;
   padding: 0.24rem;
   border-radius: 10px;
