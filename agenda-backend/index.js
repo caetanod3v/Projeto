@@ -23,7 +23,7 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json());
 
 // ── Middleware RBAC ────────────────────────────────────────────────────────────
 const authenticateToken = (req, res, next) => {
@@ -65,23 +65,9 @@ const usuarioPublicSelect = {
   email: true,
   role: true,
   status: true,
-  avatar_url: true,
-  created_at: true,
   curso_id: true,
   curso: { select: { id: true, nome: true } }
 };
-
-const toPublicUser = (user) => ({
-  id: user.id,
-  nome: user.nome,
-  email: user.email,
-  role: user.role,
-  status: user.status,
-  avatar_url: user.avatar_url,
-  created_at: user.created_at,
-  curso_id: user.curso_id,
-  curso: user.curso || null,
-});
 
 const parseOptionalInt = (value) => {
   if (value === undefined || value === null || value === '') return null;
@@ -395,165 +381,6 @@ const deleteGoogleCalendarEventSafe = async (compromisso) => {
   }
 };
 
-const NOTIFICATION_TYPES = new Set(['info', 'atraso', 'lembrete', 'aprovacao', 'calendar']);
-
-const toNotificationDto = (notificacao) => ({
-  id: notificacao.id,
-  usuario_id: notificacao.usuario_id,
-  titulo: notificacao.titulo,
-  mensagem: notificacao.mensagem,
-  tipo: notificacao.tipo,
-  lida: notificacao.lida,
-  created_at: notificacao.created_at,
-  referencia_id: notificacao.referencia_id,
-  referencia_tipo: notificacao.referencia_tipo,
-});
-
-const createNotificationSafe = async ({
-  usuario_id,
-  titulo,
-  mensagem,
-  tipo = 'info',
-  referencia_id = null,
-  referencia_tipo = null,
-}) => {
-  if (!usuario_id || !titulo) return null;
-
-  try {
-    return await prisma.notificacao.create({
-      data: {
-        usuario_id,
-        titulo,
-        mensagem: mensagem || titulo,
-        tipo: NOTIFICATION_TYPES.has(tipo) ? tipo : 'info',
-        referencia_id,
-        referencia_tipo,
-      },
-    });
-  } catch (err) {
-    console.error('Erro ao criar notificacao:', err.message);
-    return null;
-  }
-};
-
-const createNotificationsForUsersSafe = async (userIds, payload) => {
-  const uniqueUserIds = [...new Set(userIds.filter(Boolean).map(Number))];
-  await Promise.all(uniqueUserIds.map((usuario_id) => createNotificationSafe({ usuario_id, ...payload })));
-};
-
-const createNotificationOnceSafe = async (usuario_id, payload, since = null) => {
-  if (!usuario_id || !payload.referencia_tipo || !payload.referencia_id) {
-    return createNotificationSafe({ usuario_id, ...payload });
-  }
-
-  try {
-    const existing = await prisma.notificacao.findFirst({
-      where: {
-        usuario_id,
-        tipo: payload.tipo,
-        referencia_tipo: payload.referencia_tipo,
-        referencia_id: payload.referencia_id,
-        ...(since ? { created_at: { gte: since } } : {}),
-      },
-      select: { id: true },
-    });
-
-    if (existing) return null;
-    return await createNotificationSafe({ usuario_id, ...payload });
-  } catch (err) {
-    console.error('Erro ao criar notificacao unica:', err.message);
-    return null;
-  }
-};
-
-const getCompromissoNotificationUsers = (compromisso) => (
-  [compromisso?.usuario_id, compromisso?.coordenador_id].filter(Boolean)
-);
-
-const ensureAutomaticNotificationsForUser = async (user) => {
-  const now = new Date();
-  const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-  const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const startOfToday = new Date(now);
-  startOfToday.setHours(0, 0, 0, 0);
-  const endOfToday = new Date(now);
-  endOfToday.setHours(23, 59, 59, 999);
-
-  const userFilter = user.role === 'admin'
-    ? {}
-    : { OR: [{ usuario_id: user.id }, { coordenador_id: user.id }] };
-
-  const compromissos = await prisma.compromisso.findMany({
-    where: {
-      AND: [
-        { status: 'aprovado' },
-        userFilter,
-        {
-          OR: [
-            { dt_inicio: { gte: now, lte: next24h } },
-            { dt_inicio: { gte: last24h, lt: now } },
-          ],
-        },
-      ],
-    },
-    select: {
-      id: true,
-      titulo: true,
-      dt_inicio: true,
-    },
-  });
-
-  await Promise.all(compromissos.map((compromisso) => {
-    const inicio = new Date(compromisso.dt_inicio);
-    const isLate = inicio < now;
-    const tipo = isLate ? 'atraso' : 'lembrete';
-    const titulo = isLate ? 'Compromisso atrasado' : 'Compromisso proximo';
-    const mensagem = isLate
-      ? `"${compromisso.titulo}" ja deveria ter iniciado.`
-      : `"${compromisso.titulo}" ocorre nas proximas 24 horas.`;
-
-    return createNotificationOnceSafe(user.id, {
-      titulo,
-      mensagem,
-      tipo,
-      referencia_id: compromisso.id,
-      referencia_tipo: 'compromisso',
-    });
-  }));
-
-  const hojeCount = await prisma.compromisso.count({
-    where: {
-      AND: [
-        { status: 'aprovado' },
-        userFilter,
-        { dt_inicio: { gte: startOfToday, lte: endOfToday } },
-      ],
-    },
-  });
-
-  if (hojeCount > 0) {
-    const existingDaily = await prisma.notificacao.findFirst({
-      where: {
-        usuario_id: user.id,
-        tipo: 'info',
-        referencia_tipo: 'resumo_diario',
-        created_at: { gte: startOfToday },
-      },
-      select: { id: true },
-    });
-
-    if (!existingDaily) {
-      await createNotificationSafe({
-        usuario_id: user.id,
-        titulo: 'Resumo diario',
-        mensagem: `Voce tem ${hojeCount} compromisso(s) marcado(s) para hoje.`,
-        tipo: 'info',
-        referencia_tipo: 'resumo_diario',
-      });
-    }
-  }
-};
-
 // ── Autenticação ─────────────────────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
   const { nome, email, senha, role, curso_id } = req.body;
@@ -602,7 +429,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     await registrarLog(user.id, 'LOGIN', 'Sessão iniciada.');
 
-    res.json({ token, user: toPublicUser(user) });
+    res.json({ token, user: { id: user.id, nome: user.nome, email: user.email, role: user.role, status: user.status, curso_id: user.curso_id } });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Erro no servidor.' });
@@ -663,191 +490,17 @@ app.post('/api/auth/reset-password', async (req, res) => {
 
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
-    const user = await prisma.usuario.findUnique({
-      where: { id: req.user.id },
-      include: { curso: { select: { id: true, nome: true } } }
-    });
+    const user = await prisma.usuario.findUnique({ where: { id: req.user.id } });
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
     if (user.status !== 'ativo') return res.status(403).json({ error: 'Sua conta não está ativa.' });
 
-    res.json(toPublicUser(user));
+    res.json({ id: user.id, nome: user.nome, email: user.email, role: user.role, curso_id: user.curso_id, status: user.status });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Erro ao buscar dados do usuário.' });
   }
 });
 // ── Health Check ──────────────────────────────────────────────────────────────
-// Perfil
-app.get('/api/perfil', authenticateToken, async (req, res) => {
-  try {
-    const user = await prisma.usuario.findUnique({
-      where: { id: req.user.id },
-      include: { curso: { select: { id: true, nome: true } } }
-    });
-
-    if (!user) return res.status(404).json({ error: 'Usuario nao encontrado.' });
-    if (user.status !== 'ativo') return res.status(403).json({ error: 'Sua conta nao esta ativa.' });
-
-    res.json(toPublicUser(user));
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Erro ao buscar perfil.' });
-  }
-});
-
-app.patch('/api/perfil', authenticateToken, async (req, res) => {
-  const nome = req.body?.nome?.trim();
-
-  if (!nome || nome.length < 2) {
-    return res.status(400).json({ error: 'Informe um nome valido.' });
-  }
-
-  try {
-    const user = await prisma.usuario.update({
-      where: { id: req.user.id },
-      data: { nome },
-      include: { curso: { select: { id: true, nome: true } } }
-    });
-
-    await registrarLog(req.user.id, 'ATUALIZAR_PERFIL', 'Atualizou dados do perfil.');
-    res.json(toPublicUser(user));
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Erro ao atualizar perfil.' });
-  }
-});
-
-app.patch('/api/perfil/senha', authenticateToken, async (req, res) => {
-  const { senha_atual, nova_senha, confirmar_senha } = req.body || {};
-
-  if (!senha_atual || !nova_senha || !confirmar_senha) {
-    return res.status(400).json({ error: 'Preencha todos os campos de senha.' });
-  }
-
-  if (nova_senha !== confirmar_senha) {
-    return res.status(400).json({ error: 'A confirmacao da nova senha nao confere.' });
-  }
-
-  if (nova_senha.length < 6) {
-    return res.status(400).json({ error: 'A nova senha deve ter pelo menos 6 caracteres.' });
-  }
-
-  try {
-    const user = await prisma.usuario.findUnique({ where: { id: req.user.id } });
-    if (!user) return res.status(404).json({ error: 'Usuario nao encontrado.' });
-
-    const valid = await bcrypt.compare(senha_atual, user.senha);
-    if (!valid) return res.status(400).json({ error: 'Senha atual incorreta.' });
-
-    const hash = await bcrypt.hash(nova_senha, 10);
-    await prisma.usuario.update({
-      where: { id: req.user.id },
-      data: { senha: hash }
-    });
-
-    await registrarLog(req.user.id, 'ALTERAR_SENHA', 'Alterou a senha do perfil.');
-    res.json({ message: 'Senha alterada com sucesso.' });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Erro ao alterar senha.' });
-  }
-});
-
-app.patch('/api/perfil/avatar', authenticateToken, async (req, res) => {
-  const avatarUrl = req.body?.avatar_url || null;
-  const allowedImage = typeof avatarUrl === 'string'
-    && /^data:image\/(png|jpeg|jpg|webp);base64,[a-zA-Z0-9+/=]+$/.test(avatarUrl)
-    && avatarUrl.length <= 1500000;
-
-  if (avatarUrl && !allowedImage) {
-    return res.status(400).json({ error: 'Envie uma imagem PNG, JPG ou WebP com ate 1.5 MB.' });
-  }
-
-  try {
-    const user = await prisma.usuario.update({
-      where: { id: req.user.id },
-      data: { avatar_url: avatarUrl },
-      include: { curso: { select: { id: true, nome: true } } }
-    });
-
-    await registrarLog(req.user.id, 'ATUALIZAR_AVATAR', avatarUrl ? 'Atualizou foto de perfil.' : 'Removeu foto de perfil.');
-    res.json(toPublicUser(user));
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Erro ao atualizar foto de perfil.' });
-  }
-});
-
-// Notificacoes
-app.get('/api/notificacoes', authenticateToken, async (req, res) => {
-  try {
-    await ensureAutomaticNotificationsForUser(req.user);
-
-    const notificacoes = await prisma.notificacao.findMany({
-      where: { usuario_id: req.user.id },
-      orderBy: [
-        { lida: 'asc' },
-        { created_at: 'desc' },
-      ],
-      take: 80,
-    });
-
-    res.json(notificacoes.map(toNotificationDto));
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Erro ao buscar notificacoes.' });
-  }
-});
-
-app.patch('/api/notificacoes/lidas', authenticateToken, async (req, res) => {
-  try {
-    await prisma.notificacao.updateMany({
-      where: { usuario_id: req.user.id, lida: false },
-      data: { lida: true },
-    });
-
-    res.json({ success: true });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Erro ao marcar notificacoes como lidas.' });
-  }
-});
-
-app.patch('/api/notificacoes/:id/lida', authenticateToken, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (Number.isNaN(id)) return res.status(400).json({ error: 'Notificacao invalida.' });
-
-  try {
-    const notificacao = await prisma.notificacao.update({
-      where: { id, usuario_id: req.user.id },
-      data: { lida: true },
-    });
-
-    res.json(toNotificationDto(notificacao));
-  } catch (e) {
-    if (e.code === 'P2025') return res.status(404).json({ error: 'Notificacao nao encontrada.' });
-    console.error(e);
-    res.status(500).json({ error: 'Erro ao marcar notificacao como lida.' });
-  }
-});
-
-app.delete('/api/notificacoes/:id', authenticateToken, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (Number.isNaN(id)) return res.status(400).json({ error: 'Notificacao invalida.' });
-
-  try {
-    await prisma.notificacao.delete({
-      where: { id, usuario_id: req.user.id },
-    });
-
-    res.json({ success: true });
-  } catch (e) {
-    if (e.code === 'P2025') return res.status(404).json({ error: 'Notificacao nao encontrada.' });
-    console.error(e);
-    res.status(500).json({ error: 'Erro ao remover notificacao.' });
-  }
-});
-
 // Google Calendar OAuth / Sync
 app.get('/api/google-calendar/auth', authenticateToken, requireRole('coordenador'), async (req, res) => {
   if (!isGoogleConfigured()) {
@@ -969,14 +622,6 @@ app.post('/api/google-calendar/sync-event', authenticateToken, requireRole('coor
     }
 
     await registrarLog(req.user.id, 'GOOGLE_CALENDAR_SYNC_EVENT', `Sincronizou compromisso ${compromisso.id} no Google Calendar.`);
-    await createNotificationSafe({
-      usuario_id: req.user.id,
-      titulo: 'Evento sincronizado',
-      mensagem: `"${compromisso.titulo}" foi enviado para o Google Calendar.`,
-      tipo: 'calendar',
-      referencia_id: compromisso.id,
-      referencia_tipo: 'compromisso',
-    });
     res.json({ success: true, googleEventId: result.googleEventId });
   } catch (e) {
     console.error(e);
@@ -1160,7 +805,6 @@ app.get("/api/minhas-solicitacoes", authenticateToken, requireRole('secretaria')
       include: {
         curso: true,
         categoria: true,
-        usuario: { select: usuarioPublicSelect },
         coordenador: { select: usuarioPublicSelect }
       }
     });
@@ -1260,50 +904,11 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
       });
     }
 
-    await createNotificationSafe({
-      usuario_id: req.user.id,
-      titulo: isSecretaria ? 'Solicitacao enviada' : 'Compromisso criado',
-      mensagem: isSecretaria
-        ? `"${novoCompromisso.titulo}" foi enviado para coordenacao.`
-        : `"${novoCompromisso.titulo}" foi adicionado ao calendario.`,
-      tipo: isSecretaria ? 'aprovacao' : 'calendar',
-      referencia_id: novoCompromisso.id,
-      referencia_tipo: 'compromisso',
-    });
-
-    if (isSecretaria && novoCompromisso.coordenador_id) {
-      await createNotificationSafe({
-        usuario_id: novoCompromisso.coordenador_id,
-        titulo: 'Nova solicitacao de aprovacao',
-        mensagem: `"${novoCompromisso.titulo}" aguarda sua analise.`,
-        tipo: 'aprovacao',
-        referencia_id: novoCompromisso.id,
-        referencia_tipo: 'compromisso',
-      });
-    } else if (novoCompromisso.coordenador_id && novoCompromisso.coordenador_id !== req.user.id) {
-      await createNotificationSafe({
-        usuario_id: novoCompromisso.coordenador_id,
-        titulo: 'Novo compromisso na agenda',
-        mensagem: `"${novoCompromisso.titulo}" foi criado para sua agenda.`,
-        tipo: 'calendar',
-        referencia_id: novoCompromisso.id,
-        referencia_tipo: 'compromisso',
-      });
-    }
-
     let compromissoResponse = novoCompromisso;
     if (novoCompromisso.status === 'aprovado' && novoCompromisso.coordenador_id) {
       const googleResult = await syncCompromissoToGoogleCalendarSafe(novoCompromisso);
       if (googleResult?.googleEventId) {
         compromissoResponse = { ...novoCompromisso, google_event_id: googleResult.googleEventId };
-        await createNotificationSafe({
-          usuario_id: novoCompromisso.coordenador_id,
-          titulo: 'Evento sincronizado',
-          mensagem: `"${novoCompromisso.titulo}" foi enviado para o Google Calendar.`,
-          tipo: 'calendar',
-          referencia_id: novoCompromisso.id,
-          referencia_tipo: 'compromisso',
-        });
       }
     }
 
@@ -1340,26 +945,8 @@ app.put('/api/compromissos/:id', authenticateToken, async (req, res) => {
     });
 
     if (updated.google_event_id && updated.coordenador_id) {
-      const googleResult = await updateGoogleCalendarEventSafe(updated);
-      if (googleResult?.synced) {
-        await createNotificationSafe({
-          usuario_id: updated.coordenador_id,
-          titulo: 'Google Calendar atualizado',
-          mensagem: `"${updated.titulo}" foi atualizado no Google Calendar.`,
-          tipo: 'calendar',
-          referencia_id: updated.id,
-          referencia_tipo: 'compromisso',
-        });
-      }
+      await updateGoogleCalendarEventSafe(updated);
     }
-
-    await createNotificationsForUsersSafe(getCompromissoNotificationUsers(updated), {
-      titulo: 'Compromisso atualizado',
-      mensagem: `"${updated.titulo}" teve uma alteracao importante.`,
-      tipo: 'info',
-      referencia_id: updated.id,
-      referencia_tipo: 'compromisso',
-    });
 
     await registrarLog(req.user.id, 'EDITAR_COMPROMISSO', `Editou compromisso: ${updated.titulo}`);
     res.json(updated);
@@ -1409,23 +996,7 @@ app.patch('/api/compromissos/:id/aprovar', authenticateToken, requireRole('coord
     const googleResult = await syncCompromissoToGoogleCalendarSafe(updated);
     if (googleResult?.googleEventId) {
       compromissoResponse = { ...updated, google_event_id: googleResult.googleEventId };
-      await createNotificationSafe({
-        usuario_id: updated.coordenador_id,
-        titulo: 'Evento sincronizado',
-        mensagem: `"${updated.titulo}" foi enviado para o Google Calendar.`,
-        tipo: 'calendar',
-        referencia_id: updated.id,
-        referencia_tipo: 'compromisso',
-      });
     }
-
-    await createNotificationsForUsersSafe(getCompromissoNotificationUsers(updated), {
-      titulo: 'Compromisso aprovado',
-      mensagem: `"${updated.titulo}" foi aprovado e entrou na agenda.`,
-      tipo: 'aprovacao',
-      referencia_id: updated.id,
-      referencia_tipo: 'compromisso',
-    });
 
     res.json(compromissoResponse);
   } catch (e) {
@@ -1463,20 +1034,9 @@ app.patch('/api/compromissos/:id/recusar', authenticateToken, requireRole('coord
         motivo_recusa: motivo,
         mensagem_resposta: mensagem_resposta?.trim() || motivo,
         respondido_em: new Date(),
-      },
-      include: {
-        usuario: { select: usuarioPublicSelect },
-        coordenador: { select: usuarioPublicSelect }
       }
     });
     await registrarLog(req.user.id, 'RECUSAR_COMPROMISSO', `Recusou compromisso: ${updated.titulo}`);
-    await createNotificationsForUsersSafe(getCompromissoNotificationUsers(updated), {
-      titulo: 'Compromisso recusado',
-      mensagem: `"${updated.titulo}" foi recusado. Motivo: ${motivo}`,
-      tipo: 'aprovacao',
-      referencia_id: updated.id,
-      referencia_tipo: 'compromisso',
-    });
     res.json(updated);
   } catch (e) {
     console.error(e);
@@ -1505,13 +1065,6 @@ app.delete('/api/compromissos/:id', authenticateToken, async (req, res) => {
 
     await prisma.compromisso.delete({ where: { id } });
     await registrarLog(req.user.id, 'EXCLUIR_COMPROMISSO', `Excluiu compromisso id: ${id}`);
-    await createNotificationsForUsersSafe(getCompromissoNotificationUsers(comp), {
-      titulo: 'Compromisso removido',
-      mensagem: `"${comp.titulo}" foi removido da agenda.`,
-      tipo: 'info',
-      referencia_id: id,
-      referencia_tipo: 'compromisso',
-    });
     res.json({ success: true });
   } catch (e) {
     if (e.code === 'P2025') return res.status(404).json({ error: 'Compromisso não encontrado.' });
