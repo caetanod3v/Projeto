@@ -642,7 +642,7 @@ tbody tr:hover {
 .fluxus-wordmark {
   align-items: center;
   --fluxus-ink: #0a0f1a;
-  --fluxus-current: rgba(244, 247, 252, 0.94);
+  --fluxus-current: rgba(79, 99, 216, 0.64);
   color: var(--fluxus-ink) !important;
   display: inline-flex;
   font-family: "Geist", "Aptos", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
@@ -672,20 +672,59 @@ tbody tr:hover {
   top: 0.24em;
   width: 3.08em;
   z-index: 2;
+  animation: fluxus-current-rise 6.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
 .fluxus-wordmark-current path {
   fill: none;
   stroke: currentColor;
+  stroke-dasharray: 34 210;
+  stroke-dashoffset: 170;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 2.8;
+  stroke-width: 1.8;
+  animation: fluxus-current-flow 6.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
 :root[data-theme="dark"] .fluxus-wordmark {
   --fluxus-ink: #ffffff;
-  --fluxus-current: rgba(19, 23, 32, 0.96);
+  --fluxus-current: rgba(168, 181, 255, 0.78);
   color: #ffffff !important;
+}
+
+@keyframes fluxus-current-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(0.34em);
+  }
+  14% {
+    opacity: 0.72;
+    transform: translateY(0.13em);
+  }
+  48% {
+    opacity: 0.86;
+    transform: translateY(0);
+  }
+  72% {
+    opacity: 0.38;
+    transform: translateY(-0.08em);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-0.12em);
+  }
+}
+
+@keyframes fluxus-current-flow {
+  0% {
+    stroke-dashoffset: 182;
+  }
+  58% {
+    stroke-dashoffset: 18;
+  }
+  100% {
+    stroke-dashoffset: -92;
+  }
 }
 
 .auth-title {
