@@ -35,6 +35,10 @@
     --app-success-soft: #edf8f1;
     --app-danger-soft: #fff0f0;
     --app-warning-soft: #fff7e8;
+    --category-reunioes-color: #0d234a;
+    --category-reunioes-dot: #0d234a;
+    --category-reunioes-bg: rgba(13, 35, 74, 0.12);
+    --category-reunioes-border: rgba(13, 35, 74, 0.24);
     --app-shadow: 0 1px 2px rgba(20, 24, 36, 0.025), 0 18px 46px rgba(35, 42, 62, 0.070);
     --app-shadow-soft: 0 1px 2px rgba(20, 24, 36, 0.024), 0 12px 30px rgba(35, 42, 62, 0.050);
     --app-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -63,6 +67,10 @@
     --app-accent-2: #b395ff;
     --app-accent-soft: rgba(143, 160, 255, 0.13);
     --app-accent-muted: rgba(143, 160, 255, 0.12);
+    --category-reunioes-color: #bfdbfe;
+    --category-reunioes-dot: #60a5fa;
+    --category-reunioes-bg: rgba(96, 165, 250, 0.16);
+    --category-reunioes-border: rgba(147, 197, 253, 0.30);
     --app-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 16px 40px rgba(0, 0, 0, 0.22);
     --app-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.12), 0 10px 26px rgba(0, 0, 0, 0.16);
   }

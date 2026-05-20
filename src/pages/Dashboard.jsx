@@ -5,14 +5,7 @@ import { AlertTriangle, CalendarDays, CalendarX, CheckCircle2, Clock, Download, 
 import { differenceInDays, differenceInHours, format, formatDistanceToNow, isSameWeek, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import api from '../services/api';
-
-function hexToRgba(hex, alpha) {
-   if (!hex) return `rgba(55, 65, 81, ${alpha})`;
-   const r = parseInt(hex.slice(1, 3), 16);
-   const g = parseInt(hex.slice(3, 5), 16);
-   const b = parseInt(hex.slice(5, 7), 16);
-   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
+import { getCategoryChipStyle } from '../utils/categoryVisual';
 
 function formatDuration(start, end) {
    const hrs = Math.abs(differenceInHours(end, start));
@@ -229,7 +222,7 @@ export default function Dashboard({ user }) {
             <aside className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10">
                <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Próximo na agenda</p>
                {stats.proximoEvt ? (
-                  <div className="mt-4 rounded-2xl border p-4" style={{ backgroundColor: hexToRgba(stats.proximoEvt.catObj.cor_hex, 0.08), borderColor: hexToRgba(stats.proximoEvt.catObj.cor_hex, 0.2) }}>
+                  <div className="mt-4 rounded-2xl border p-4" style={getCategoryChipStyle(stats.proximoEvt.catObj, 0.08, 0.2)}>
                      <p className="text-base font-semibold text-gray-950 dark:text-white">{stats.proximoEvt.titulo}</p>
                      <p className="mt-2 text-sm font-medium text-gray-500 dark:text-gray-400">{stats.proximoEvt.relTime}</p>
                      <p className="mt-4 text-xs font-bold uppercase tracking-widest text-gray-400">{stats.proximoEvt.cursoStr}</p>
@@ -319,7 +312,7 @@ export default function Dashboard({ user }) {
 
                                     <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-end">
                                        <span
-                                          style={{ backgroundColor: hexToRgba(ev.catObj.cor_hex, 0.12), borderColor: hexToRgba(ev.catObj.cor_hex, 0.25), color: ev.catObj.cor_hex }}
+                                          style={getCategoryChipStyle(ev.catObj, 0.12, 0.25)}
                                           className="rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest"
                                        >
                                           {ev.catObj.nome}

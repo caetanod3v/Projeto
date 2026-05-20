@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import { AlertCircle, Calendar as CalendarIcon, CheckCircle2, Clock, MessageSquare, RefreshCw, UserCheck, XCircle } from 'lucide-react';
 import api from '../services/api';
+import { getCategoryChipStyle, isReunioesCategory } from '../utils/categoryVisual';
 
 const statusMeta = {
    pendente: {
@@ -134,7 +135,10 @@ export default function RetornosAprovacao({ user }) {
                            <div className="min-w-0">
                               <div className="mb-3 flex flex-wrap items-center gap-2">
                                  <h2 className="text-base font-semibold text-gray-950 dark:text-white">{item.titulo}</h2>
-                                 <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-bold text-gray-500 dark:border-white/10 dark:bg-white/5">
+                                 <span
+                                    className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-bold text-gray-500 dark:border-white/10 dark:bg-white/5"
+                                    style={isReunioesCategory(item.categoria) ? getCategoryChipStyle(item.categoria) : undefined}
+                                 >
                                     {item.categoria?.nome || 'Sem categoria'}
                                  </span>
                               </div>

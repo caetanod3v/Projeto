@@ -10,6 +10,7 @@ import api from '../services/api';
 import { format, isToday, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarDays, Clock, Copy, Plus, Trash2, X } from 'lucide-react';
+import { getCategoryChipStyle, getCategoryColor, getCategoryDotStyle } from '../utils/categoryVisual';
 
 // Helper de contraste
 function getContrastYIQ(hexcolor) {
@@ -20,15 +21,6 @@ function getContrastYIQ(hexcolor) {
   const b = parseInt(hexcolor.substr(4, 2), 16);
   const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
   return (yiq >= 128) ? '#111827' : '#ffffff';
-}
-
-// Conversor HEX para RGBA
-function hexToRgba(hex, alpha) {
-  if (!hex) return `rgba(55, 65, 81, ${alpha})`;
-  const r = parseInt(hex.slice(1, 3), 16),
-    g = parseInt(hex.slice(3, 5), 16),
-    b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function isSameLocalDay(dateA, dateB) {
@@ -349,7 +341,7 @@ export default function Calendario({ user }) {
     const now = new Date();
     const isUrgent = (start > now) && ((start - now) < 86400000);
 
-    let baseBg = hexToRgba(catObj.cor_hex, 0.095);
+    let baseBg = getCategoryChipStyle(catObj, 0.095, 0.18).backgroundColor;
     let borderStyle = `1px solid transparent`;
 
     if (isCompleted) {
@@ -367,12 +359,12 @@ export default function Calendario({ user }) {
         {/* Mobile Dot */}
         <div
           className="w-1.5 h-1.5 rounded-full shrink-0 md:hidden"
-          style={{ backgroundColor: isCompleted ? '#6b7280' : catObj.cor_hex }}
+          style={isCompleted ? { backgroundColor: '#6b7280' } : getCategoryDotStyle(catObj)}
         />
 
         {/* Desktop Content */}
         <div className="hidden md:flex items-center gap-2 flex-1 min-w-0 z-10">
-          <span className="whitespace-nowrap text-[9px] font-semibold tracking-wide opacity-90" style={{ color: isCompleted ? '#9ca3af' : catObj.cor_hex }}>
+          <span className="whitespace-nowrap text-[9px] font-semibold tracking-wide opacity-90" style={{ color: isCompleted ? '#9ca3af' : getCategoryColor(catObj) }}>
             {format(start, 'HH:mm')}
           </span>
           <span className={`truncate text-[10px] font-medium ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-800 group-hover:text-gray-950'}`}>
@@ -551,7 +543,7 @@ export default function Calendario({ user }) {
               title: info.event.title,
               timeStr: timeFormat,
               cursoStr: info.event.extendedProps.cursoStr,
-              catColor: info.event.extendedProps.catObj.cor_hex
+              catColor: getCategoryColor(info.event.extendedProps.catObj)
             });
             info.el.removeAttribute('title');
           }}
@@ -668,7 +660,7 @@ export default function Calendario({ user }) {
                     onClick={() => openEventFromPanel(ev)}
                     className="group flex w-full items-start gap-2.5 rounded-xl p-2.5 text-left transition duration-200 hover:-translate-y-[1px] hover:bg-gray-50 hover:shadow-[0_6px_18px_rgba(15,23,42,0.045)] dark:hover:bg-white/5 dark:hover:shadow-none"
                   >
-                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full ring-4 ring-gray-100 dark:ring-white/5" style={{ backgroundColor: ev.extendedProps.catObj.cor_hex }} />
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full ring-4 ring-gray-100 dark:ring-white/5" style={getCategoryDotStyle(ev.extendedProps.catObj)} />
                     <span className="min-w-0">
                       <span className="block truncate text-xs font-semibold text-gray-950 transition group-hover:text-gray-700 dark:text-white dark:group-hover:text-gray-100">{ev.title}</span>
                       <span className="mt-0.5 block truncate text-[11px] text-gray-500 dark:text-gray-400">

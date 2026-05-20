@@ -20,6 +20,7 @@ import {
 import api from '../services/api';
 import FluxusWordmark from './FluxusWordmark';
 import ThemeToggle from './ThemeToggle';
+import { getCategoryDotStyle } from '../utils/categoryVisual';
 
 const notificationToneByType = {
    atraso: 'bg-red-500',
@@ -473,7 +474,7 @@ export default function Layout({ user, onLogout }) {
                                        className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-[11px] font-semibold transition ${isActive ? 'bg-[#f7f8fc] text-gray-950 shadow-[0_1px_2px_rgba(20,24,36,0.06)] ring-1 ring-gray-200/80 dark:bg-white/10 dark:text-white dark:ring-0' : 'text-gray-600 hover:bg-[#f8fafc] hover:text-gray-950 hover:shadow-[0_1px_2px_rgba(20,24,36,0.04)] focus-visible:bg-white focus-visible:text-gray-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uvv-yellow/20 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white dark:hover:shadow-none dark:focus-visible:bg-white/5 dark:focus-visible:text-white dark:focus-visible:ring-white/10'}`}
                                     >
                                        <span className="flex min-w-0 items-center gap-2">
-                                          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cat.cor_hex }} />
+                                          <span className="h-2 w-2 shrink-0 rounded-full" style={getCategoryDotStyle(cat)} />
                                           <span className="truncate">{cat.nome}</span>
                                        </span>
                                        {isActive && <ChevronRight size={13} className="text-gray-400" />}
