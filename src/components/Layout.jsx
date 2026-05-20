@@ -291,11 +291,11 @@ export default function Layout({ user, onLogout }) {
          <aside className={`fixed z-40 h-full w-[196px] shrink-0 bg-white/80 backdrop-blur-xl transition-transform duration-300 dark:bg-[#191d28]/82 lg:relative ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
             <div className="flex h-full flex-col">
                <div className="px-4 pb-4 pt-7">
-                  <div className="flex items-center justify-between">
-                     <Link to="/" className="flex items-center">
+                  <div className="flex items-center justify-center">
+                     <Link to="/" className="flex items-center justify-center">
                         <FluxusWordmark className="fluxus-wordmark--sidebar" />
                      </Link>
-                     <button onClick={() => setSidebarOpen(false)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 lg:hidden">
+                     <button onClick={() => setSidebarOpen(false)} className="absolute right-3 rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 lg:hidden">
                         <X size={18} />
                      </button>
                   </div>
