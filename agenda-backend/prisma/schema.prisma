@@ -104,6 +104,7 @@ model Compromisso {
   aprovado_em       DateTime?
   respondido_em     DateTime?
   created_at        DateTime          @default(now())
+  google_event_id   String?
 
   curso_id Int?
   curso    Curso? @relation(fields: [curso_id], references: [id])

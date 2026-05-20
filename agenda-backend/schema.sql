@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS compromissos (
     motivo_recusa TEXT,
     mensagem_resposta TEXT,
     respondido_em TIMESTAMP,
+    google_event_id TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
