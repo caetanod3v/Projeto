@@ -752,6 +752,14 @@ tbody tr:hover {
   z-index: 1;
 }
 
+.fluxus-wordmark--sidebar {
+  font-size: 1.58rem;
+  left: auto;
+  position: static;
+  top: auto;
+  z-index: auto;
+}
+
 :root[data-theme="dark"] .fluxus-wordmark {
   --fluxus-ink: #ffffff;
   color: #ffffff !important;

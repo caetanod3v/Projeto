@@ -18,6 +18,7 @@ import {
    X
 } from 'lucide-react';
 import api from '../services/api';
+import FluxusWordmark from './FluxusWordmark';
 import ThemeToggle from './ThemeToggle';
 
 export default function Layout({ user, onLogout }) {
@@ -289,13 +290,10 @@ export default function Layout({ user, onLogout }) {
 
          <aside className={`fixed z-40 h-full w-[196px] shrink-0 bg-white/80 backdrop-blur-xl transition-transform duration-300 dark:bg-[#191d28]/82 lg:relative ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
             <div className="flex h-full flex-col">
-               <div className="px-3 py-3">
+               <div className="px-4 pb-4 pt-7">
                   <div className="flex items-center justify-between">
-                     <Link to="/" className="flex items-center gap-2">
-                        <div>
-                           <p className="text-sm font-semibold leading-none tracking-tight text-gray-950 dark:text-white">Fluxus</p>
-                           <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-gray-400">Academic operations</p>
-                        </div>
+                     <Link to="/" className="flex items-center">
+                        <FluxusWordmark className="fluxus-wordmark--sidebar" />
                      </Link>
                      <button onClick={() => setSidebarOpen(false)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 lg:hidden">
                         <X size={18} />
@@ -303,7 +301,7 @@ export default function Layout({ user, onLogout }) {
                   </div>
                </div>
 
-               <div className="px-2.5">
+               <div className="mt-3 px-2.5">
                   <button
                      onClick={handleCreateGlobal}
                      className="mb-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-2.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800 dark:bg-white dark:text-gray-950"
