@@ -258,17 +258,17 @@ export default function Layout({ user, onLogout }) {
       <div
          key={n.id}
          className={`group mx-3 mb-2 flex w-[calc(100%-1.5rem)] items-start gap-2 rounded-xl p-3 transition duration-200 ${n.isLida
-            ? 'bg-white ring-1 ring-gray-200/70 hover:bg-gray-50 dark:bg-[#141824]/80 dark:ring-white/[0.055] dark:hover:bg-[#181d2a]'
-            : 'bg-[#f7f9fc] ring-1 ring-slate-200/80 shadow-[0_8px_22px_rgba(15,23,42,0.045)] hover:bg-white dark:bg-[#1c2231] dark:ring-white/[0.075] dark:shadow-none dark:hover:bg-[#202738]'}`}
+            ? 'bg-white ring-1 ring-slate-200/80 hover:bg-slate-50 dark:bg-[#141824]/80 dark:ring-white/[0.055] dark:hover:bg-[#181d2a]'
+            : 'bg-[#f8fafc] ring-1 ring-slate-200/90 shadow-[0_8px_22px_rgba(15,23,42,0.045)] hover:bg-white hover:ring-slate-300/80 dark:bg-[#1c2231] dark:ring-white/[0.075] dark:shadow-none dark:hover:bg-[#202738]'}`}
       >
          <button onClick={() => handleNotifClick(n)} className="flex min-w-0 flex-1 items-start gap-3 text-left">
             <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${n.bgColor} ${n.isLida ? 'opacity-45 dark:opacity-50' : 'shadow-[0_0_0_3px_rgba(91,110,225,0.12)] dark:shadow-[0_0_0_3px_rgba(148,163,184,0.10)]'}`} />
             <span className="min-w-0">
-               <span className={`block text-sm leading-snug ${n.isLida ? 'font-medium text-gray-600 dark:text-slate-300' : 'font-semibold text-gray-950 dark:text-slate-50'}`}>{n.titulo}</span>
+               <span className={`block text-sm leading-snug ${n.isLida ? 'font-medium text-slate-700 dark:text-slate-300' : 'font-semibold text-slate-900 dark:text-slate-50'}`}>{n.titulo}</span>
                {n.mensagem && n.mensagem !== n.titulo && (
-                  <span className="mt-1 block line-clamp-2 text-xs leading-relaxed text-gray-600 dark:text-slate-400">{n.mensagem}</span>
+                  <span className="mt-1 block line-clamp-2 text-xs leading-relaxed text-slate-600 dark:text-slate-400">{n.mensagem}</span>
                )}
-               <span className="mt-1.5 block text-[10px] font-semibold uppercase tracking-widest text-gray-500 dark:text-slate-500">{n.tempoStr}</span>
+               <span className="mt-1.5 block text-[10px] font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-500">{n.tempoStr}</span>
             </span>
          </button>
          <button
