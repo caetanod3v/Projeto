@@ -17,7 +17,7 @@
       radial-gradient(circle at 100% 0%, rgba(91, 110, 225, 0.055), transparent 28rem),
       linear-gradient(135deg, #ffffff 0%, #f6f7fb 45%, #eef2ff 100%);
     --app-header-bg: rgba(255, 255, 255, 0.82);
-    --app-sidebar-bg: rgba(255, 255, 255, 0.90);
+    --app-sidebar-bg: rgba(255, 255, 255, 0.96);
     --app-surface: #ffffff;
     --app-surface-muted: #f8fafc;
     --app-surface-soft: #f4f6fa;
@@ -378,7 +378,7 @@ a:not(:disabled):active {
 aside {
   background: var(--app-sidebar-bg) !important;
   border-color: var(--app-border) !important;
-  box-shadow: inset -1px 0 0 var(--app-border), 12px 0 34px rgba(35, 42, 62, 0.035) !important;
+  box-shadow: inset -1px 0 0 rgba(23, 31, 48, 0.095), 14px 0 38px rgba(35, 42, 62, 0.055) !important;
 }
 
 :root[data-theme="dark"] aside {

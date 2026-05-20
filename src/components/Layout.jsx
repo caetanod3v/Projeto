@@ -320,11 +320,11 @@ export default function Layout({ user, onLogout }) {
                               key={item.to}
                               to={item.to}
                               className={`group flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium transition ${isActive
-                                 ? 'bg-white text-gray-950 shadow-sm dark:bg-white/10 dark:text-white'
-                                 : 'text-gray-500 hover:bg-white/60 hover:text-gray-950 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'}`}
+                                 ? 'bg-white text-gray-950 shadow-sm ring-1 ring-gray-200/65 dark:bg-white/10 dark:text-white dark:ring-0'
+                                 : 'text-gray-600 hover:bg-white/85 hover:text-gray-950 hover:shadow-sm focus-visible:bg-white focus-visible:text-gray-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uvv-yellow/20 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white dark:hover:shadow-none dark:focus-visible:bg-white/5 dark:focus-visible:text-white dark:focus-visible:ring-white/10'}`}
                            >
                               <span className="flex items-center gap-2.5">
-                                 <Icon size={15} className={isActive ? 'text-uvv-yellow' : 'text-gray-400'} />
+                                 <Icon size={15} className={isActive ? 'text-uvv-yellow' : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-white'} />
                                  {item.label}
                               </span>
                               {item.count > 0 && (
@@ -343,10 +343,10 @@ export default function Layout({ user, onLogout }) {
                            type="button"
                            onClick={() => setCategoriesOpen(open => !open)}
                            aria-expanded={isCategoriesOpen}
-                           className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-400 transition hover:bg-white/60 hover:text-gray-600 dark:hover:bg-white/5 dark:hover:text-gray-200"
+                           className="group flex w-full items-center justify-between rounded-lg px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500 transition hover:bg-white/85 hover:text-gray-700 hover:shadow-sm focus-visible:bg-white focus-visible:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uvv-yellow/20 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-200 dark:hover:shadow-none dark:focus-visible:bg-white/5 dark:focus-visible:text-gray-200 dark:focus-visible:ring-white/10"
                         >
                            <span className="flex items-center gap-2">
-                              <Tag size={12} />
+                              <Tag size={12} className="text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200" />
                               Categorias
                            </span>
                            <ChevronRight size={13} className={`transition-transform duration-200 ${isCategoriesOpen ? 'rotate-90 text-gray-500 dark:text-gray-200' : ''}`} />
@@ -360,7 +360,7 @@ export default function Layout({ user, onLogout }) {
                                     <button
                                        key={cat.id}
                                        onClick={() => toggleCategory(cat.id)}
-                                       className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-[11px] font-medium transition ${isActive ? 'bg-white text-gray-950 shadow-sm dark:bg-white/10 dark:text-white' : 'text-gray-500 hover:bg-white/60 dark:text-gray-400 dark:hover:bg-white/5'}`}
+                                       className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-[11px] font-medium transition ${isActive ? 'bg-white text-gray-950 shadow-sm ring-1 ring-gray-200/60 dark:bg-white/10 dark:text-white dark:ring-0' : 'text-gray-600 hover:bg-white/85 hover:text-gray-950 hover:shadow-sm focus-visible:bg-white focus-visible:text-gray-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uvv-yellow/20 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white dark:hover:shadow-none dark:focus-visible:bg-white/5 dark:focus-visible:text-white dark:focus-visible:ring-white/10'}`}
                                     >
                                        <span className="flex min-w-0 items-center gap-2">
                                           <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cat.cor_hex }} />
