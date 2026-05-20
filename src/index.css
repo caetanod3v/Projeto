@@ -642,7 +642,7 @@ tbody tr:hover {
 .fluxus-wordmark {
   align-items: center;
   --fluxus-ink: #0a0f1a;
-  --fluxus-current: rgba(79, 99, 216, 0.78);
+  --fluxus-current: rgba(55, 70, 186, 0.94);
   color: var(--fluxus-ink) !important;
   display: inline-flex;
   font-family: "Geist", "Aptos", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
@@ -664,7 +664,7 @@ tbody tr:hover {
 
 .fluxus-wordmark-current {
   color: var(--fluxus-current);
-  filter: drop-shadow(0 0 2px rgba(79, 99, 216, 0.16));
+  filter: drop-shadow(0 0 3px rgba(55, 70, 186, 0.26));
   height: 0.74em;
   left: -0.02em;
   overflow: visible;
@@ -689,12 +689,12 @@ tbody tr:hover {
 
 :root[data-theme="dark"] .fluxus-wordmark {
   --fluxus-ink: #ffffff;
-  --fluxus-current: rgba(185, 196, 255, 0.88);
+  --fluxus-current: rgba(214, 221, 255, 0.96);
   color: #ffffff !important;
 }
 
 :root[data-theme="dark"] .fluxus-wordmark-current {
-  filter: drop-shadow(0 0 2px rgba(185, 196, 255, 0.20));
+  filter: drop-shadow(0 0 3px rgba(185, 196, 255, 0.34));
 }
 
 @keyframes fluxus-current-rise {
