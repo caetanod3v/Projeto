@@ -534,8 +534,8 @@ export default function Layout({ user, onLogout }) {
 
                      {isNotifOpen && (
                         <div className="absolute right-0 top-full z-50 mt-3 flex max-h-[80vh] w-80 origin-top-right animate-fade-in-up flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-gray-200/80 dark:bg-[#101521] dark:ring-white/10">
-                           <div className="flex shrink-0 items-center justify-between border-b border-gray-200/70 bg-white px-5 py-4 dark:border-white/[0.06] dark:bg-[#101521]">
-                              <h3 className="text-sm font-semibold text-gray-950 dark:text-white">Notificacoes</h3>
+                           <div className="flex shrink-0 items-center justify-between border-b border-slate-300/75 bg-white px-5 py-4 dark:border-white/[0.06] dark:bg-[#101521]">
+                              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Notificacoes</h3>
                               {unreadNotifsCount > 0 && (
                                  <span className="rounded-full bg-[#eef2ff] px-2.5 py-1 text-[10px] font-bold text-[#3730a3] shadow-[0_1px_2px_rgba(67,56,202,0.10)] ring-1 ring-[#c7d2fe] dark:bg-[#232b3f] dark:text-slate-50 dark:shadow-none dark:ring-white/10">
                                     {unreadNotifsCount} novas
@@ -557,14 +557,14 @@ export default function Layout({ user, onLogout }) {
                               ) : (
                                  <div>
                                     {unreadNotifications.length > 0 && (
-                                       <div className="px-5 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500 dark:text-slate-500">
+                                       <div className="px-5 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-500">
                                           Nao lidas
                                        </div>
                                     )}
                                     {unreadNotifications.map(renderNotificationItem)}
 
                                     {readNotifications.length > 0 && (
-                                       <div className="px-5 pb-2 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500 dark:text-slate-500">
+                                       <div className="px-5 pb-2 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-500">
                                           Lidas
                                        </div>
                                     )}
@@ -574,7 +574,7 @@ export default function Layout({ user, onLogout }) {
                            </div>
 
                            {notificacoes.length > 0 && (
-                              <div className="shrink-0 border-t border-gray-200/70 bg-white p-3 text-center dark:border-white/[0.06] dark:bg-[#0f1420]">
+                              <div className="shrink-0 border-t border-slate-300/70 bg-white p-3 text-center dark:border-white/[0.06] dark:bg-[#0f1420]">
                                  <button onClick={lerTodas} className="text-xs font-semibold text-gray-600 transition hover:text-gray-950 dark:text-slate-400 dark:hover:text-white">Marcar todas como lidas</button>
                               </div>
                            )}
