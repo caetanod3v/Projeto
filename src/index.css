@@ -673,7 +673,7 @@ tbody tr:hover {
   top: 0.18em;
   width: 3.28em;
   z-index: 2;
-  animation: fluxus-current-rise 8.2s linear infinite;
+  opacity: 0.92;
 }
 
 .fluxus-wordmark-current path {
@@ -695,33 +695,6 @@ tbody tr:hover {
 
 :root[data-theme="dark"] .fluxus-wordmark-current {
   filter: drop-shadow(0 0 3px rgba(130, 146, 255, 0.26));
-}
-
-@keyframes fluxus-current-rise {
-  0% {
-    opacity: 0;
-    transform: translateY(0.42em);
-  }
-  10% {
-    opacity: 0.86;
-    transform: translateY(0.18em);
-  }
-  24% {
-    opacity: 0.92;
-    transform: translateY(0);
-  }
-  78% {
-    opacity: 0.92;
-    transform: translateY(-0.12em);
-  }
-  92% {
-    opacity: 0.82;
-    transform: translateY(-0.18em);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-0.2em);
-  }
 }
 
 @keyframes fluxus-current-flow {
