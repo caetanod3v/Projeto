@@ -268,6 +268,73 @@ main,
   background-color: var(--app-accent-soft) !important;
 }
 
+:root:not([data-theme="dark"]) [class~="bg-emerald-50"] {
+  background-color: #dcfce7 !important;
+}
+
+:root:not([data-theme="dark"]) [class~="hover:bg-emerald-50"]:hover,
+:root:not([data-theme="dark"]) [class~="hover:bg-emerald-100"]:hover {
+  background-color: #bbf7d0 !important;
+}
+
+:root:not([data-theme="dark"]) [class~="text-emerald-700"],
+:root:not([data-theme="dark"]) [class~="text-emerald-700/70"] {
+  color: #15803d !important;
+}
+
+:root:not([data-theme="dark"]) [class~="text-emerald-600"],
+:root:not([data-theme="dark"]) [class~="text-emerald-500"] {
+  color: #16a34a !important;
+}
+
+:root:not([data-theme="dark"]) [class~="border-emerald-200"],
+:root:not([data-theme="dark"]) [class~="border-emerald-100"] {
+  border-color: #bbf7d0 !important;
+}
+
+:root:not([data-theme="dark"]) [class~="bg-red-50"] {
+  background-color: #fee2e2 !important;
+}
+
+:root:not([data-theme="dark"]) [class~="hover:bg-red-50"]:hover,
+:root:not([data-theme="dark"]) [class~="hover:bg-red-100"]:hover {
+  background-color: #fecaca !important;
+}
+
+:root:not([data-theme="dark"]) [class~="bg-red-500"],
+:root:not([data-theme="dark"]) [class~="hover:bg-red-500"]:hover {
+  background-color: #dc2626 !important;
+}
+
+:root:not([data-theme="dark"]) [class~="hover:bg-red-600"]:hover {
+  background-color: #b91c1c !important;
+}
+
+:root:not([data-theme="dark"]) [class~="text-red-700"],
+:root:not([data-theme="dark"]) [class~="text-red-700/70"] {
+  color: #b91c1c !important;
+}
+
+:root:not([data-theme="dark"]) [class~="text-red-600"],
+:root:not([data-theme="dark"]) [class~="text-red-500"],
+:root:not([data-theme="dark"]) [class~="text-red-400"] {
+  color: #dc2626 !important;
+}
+
+:root:not([data-theme="dark"]) [class~="border-red-200"],
+:root:not([data-theme="dark"]) [class~="border-red-100"] {
+  border-color: #fecaca !important;
+}
+
+:root:not([data-theme="dark"]) [class~="text-red-500"]:active,
+:root:not([data-theme="dark"]) [class~="text-red-600"]:active,
+:root:not([data-theme="dark"]) [class~="text-red-700"]:active,
+:root:not([data-theme="dark"]) [class~="text-emerald-500"]:active,
+:root:not([data-theme="dark"]) [class~="text-emerald-600"]:active,
+:root:not([data-theme="dark"]) [class~="text-emerald-700"]:active {
+  filter: saturate(1.08) brightness(0.94);
+}
+
 [class*="rounded-[28px]"],
 [class*="rounded-3xl"] {
   border-radius: 18px !important;
