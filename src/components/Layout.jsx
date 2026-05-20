@@ -8,7 +8,6 @@ import {
    Calendar,
    CheckCircle2,
    ChevronRight,
-   Clock,
    LayoutDashboard,
    LogOut,
    Menu,
@@ -22,6 +21,41 @@ import api from '../services/api';
 import FluxusWordmark from './FluxusWordmark';
 import ThemeToggle from './ThemeToggle';
 
+const notificationToneByType = {
+   atraso: 'bg-red-500',
+   lembrete: 'bg-uvv-yellow',
+   aprovacao: 'bg-emerald-500',
+   calendar: 'bg-blue-500',
+   info: 'bg-uvv-yellow'
+};
+
+const formatNotificationTime = (createdAt) => {
+   if (!createdAt) return 'Agora';
+
+   const created = new Date(createdAt);
+   const diffMs = Date.now() - created.getTime();
+   const diffMinutes = Math.max(0, Math.floor(diffMs / 60000));
+
+   if (diffMinutes < 1) return 'Agora';
+   if (diffMinutes < 60) return `${diffMinutes}min`;
+
+   const diffHours = Math.floor(diffMinutes / 60);
+   if (diffHours < 24) return `${diffHours}h`;
+
+   const diffDays = Math.floor(diffHours / 24);
+   if (diffDays < 7) return `${diffDays}d`;
+
+   return created.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+};
+
+const normalizeNotification = (notification) => ({
+   ...notification,
+   isLida: Boolean(notification.lida ?? notification.isLida),
+   tempoStr: notification.tempoStr || formatNotificationTime(notification.created_at),
+   bgColor: notification.bgColor || notificationToneByType[notification.tipo] || notificationToneByType.info,
+   eventoId: notification.referencia_tipo === 'compromisso' ? notification.referencia_id : null
+});
+
 export default function Layout({ user, onLogout }) {
    const location = useLocation();
    const navigate = useNavigate();
@@ -32,6 +66,7 @@ export default function Layout({ user, onLogout }) {
    const [isNotifOpen, setNotifOpen] = useState(false);
    const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
    const [notificacoes, setNotificacoes] = useState([]);
+   const [isNotifsLoading, setNotifsLoading] = useState(false);
    const [selectedNotif, setSelectedNotif] = useState(null);
    const notifRef = useRef(null);
 
@@ -61,10 +96,12 @@ export default function Layout({ user, onLogout }) {
 
    useEffect(() => {
       const fetchData = async () => {
+         setNotifsLoading(true);
          try {
             const requests = [
                api.get('/compromissos'),
                api.get('/categorias'),
+               api.get('/notificacoes'),
             ];
 
             if (user?.role === 'coordenador' || user?.role === 'admin') {
@@ -74,25 +111,17 @@ export default function Layout({ user, onLogout }) {
             const responses = await Promise.all(requests);
             const evtRes = responses[0];
             const catRes = responses[1];
-            const notifsList = [];
+            const notifRes = responses[2];
 
-            if (responses[2]) {
-               const pendentesArr = responses[2].data;
+            if (responses[3]) {
+               const pendentesArr = responses[3].data;
                setPendentesCount(pendentesArr.length);
-
-               if (pendentesArr.length > 0) {
-                  notifsList.push({
-                     id: 'pendentes_alert',
-                     titulo: `Acao necessaria: ha ${pendentesArr.length} compromisso(s) aguardando aprovacao.`,
-                     tempoStr: 'Pendente',
-                     isLida: false,
-                     eventoId: null,
-                     bgColor: 'bg-uvv-yellow'
-                  });
-               }
+            } else {
+               setPendentesCount(0);
             }
 
             setCategorias(catRes.data);
+            setNotificacoes(notifRes.data.map(normalizeNotification));
 
             const now = new Date();
             const eventos = evtRes.data;
@@ -122,40 +151,7 @@ export default function Layout({ user, onLogout }) {
                      nextEvt = { start: inicio, title: ev.titulo };
                   }
                }
-
-               if (inicio < now && !isCompleted && (now - inicio) < 86400000) {
-                  notifsList.push({
-                     id: `evt_${ev.id}`,
-                     eventoId: ev.id,
-                     titulo: `Em atraso: "${ev.titulo}" ja deveria ter iniciado.`,
-                     tempoStr: 'Atrasado',
-                     isLida: false,
-                     bgColor: 'bg-red-500',
-                     eventoRaw: ev
-                  });
-               } else if (hrsDiff > 0 && hrsDiff <= 24 && !isCompleted) {
-                  notifsList.push({
-                     id: `evt_${ev.id}`,
-                     eventoId: ev.id,
-                     titulo: `Lembrete: "${ev.titulo}" ocorre em aproximadamente ${Math.ceil(hrsDiff)} hora(s).`,
-                     tempoStr: 'Em breve',
-                     isLida: false,
-                     bgColor: 'bg-uvv-yellow',
-                     eventoRaw: ev
-                  });
-               }
             });
-
-            if (hojeCount > 0) {
-               notifsList.unshift({
-                  id: 'resumo_hoje',
-                  titulo: `Resumo diario: voce tem ${hojeCount} compromisso(s) marcado(s) para hoje.`,
-                  tempoStr: 'Agora',
-                  isLida: false,
-                  eventoId: null,
-                  bgColor: 'bg-uvv-yellow'
-               });
-            }
 
             let proxHrs = null;
             if (nextEvt) {
@@ -163,25 +159,51 @@ export default function Layout({ user, onLogout }) {
                proxHrs = hrs > 1 ? `${Math.floor(hrs)}h` : 'menos de 1h';
             }
 
-            setNotificacoes(notifsList);
             setAnalytics({ hojeCount, proxHrs, semanaCount, atrasadosCount });
          } catch (err) {
             console.error(err);
+         } finally {
+            setNotifsLoading(false);
          }
       };
       fetchData();
-   }, [user?.role]);
+   }, [user?.id, user?.role]);
 
-   const handleNotifClick = (notif) => {
-      setNotificacoes(prev => prev.map(n => n.id === notif.id ? { ...n, isLida: true } : n));
+   const handleNotifClick = async (notif) => {
+      if (!notif.isLida) {
+         setNotificacoes(prev => prev.map(n => n.id === notif.id ? { ...n, isLida: true, lida: true } : n));
+         try {
+            await api.patch(`/notificacoes/${notif.id}/lida`);
+         } catch (err) {
+            console.error(err);
+            toast.error('Nao foi possivel marcar a notificacao como lida.');
+         }
+      }
+
       setNotifOpen(false);
-      setSelectedNotif(notif);
+      setSelectedNotif({ ...notif, isLida: true, lida: true });
    };
 
-   const lerTodas = () => {
-      setNotificacoes(prev => prev.map(n => ({ ...n, isLida: true })));
-      toast.success('Notificacoes marcadas como lidas.');
-      setNotifOpen(false);
+   const lerTodas = async () => {
+      try {
+         await api.patch('/notificacoes/lidas');
+         setNotificacoes(prev => prev.map(n => ({ ...n, isLida: true, lida: true })));
+         toast.success('Notificacoes marcadas como lidas.');
+         setNotifOpen(false);
+      } catch (err) {
+         console.error(err);
+         toast.error('Nao foi possivel atualizar as notificacoes.');
+      }
+   };
+
+   const removerNotificacao = async (id) => {
+      setNotificacoes(prev => prev.filter(n => n.id !== id));
+      try {
+         await api.delete(`/notificacoes/${id}`);
+      } catch (err) {
+         console.error(err);
+         toast.error('Nao foi possivel remover a notificacao.');
+      }
    };
 
    const handleCreateGlobal = () => {
@@ -226,6 +248,34 @@ export default function Layout({ user, onLogout }) {
          ? [{ to: '/admin/usuarios', label: 'Usuarios', icon: Users }]
          : [])
    ];
+
+   const unreadNotifications = notificacoes.filter(n => !n.isLida);
+   const readNotifications = notificacoes.filter(n => n.isLida);
+   const selectedActionPath = selectedNotif?.tipo === 'aprovacao' ? '/aprovacoes' : '/dashboard';
+   const selectedActionLabel = selectedNotif?.tipo === 'aprovacao' ? 'Ir para aprovacoes' : 'Ir para compromissos';
+
+   const renderNotificationItem = (n) => (
+      <div key={n.id} className={`group flex w-full items-start gap-2 px-5 py-4 transition hover:bg-gray-50 dark:hover:bg-white/5 ${n.isLida ? 'opacity-70' : 'bg-uvv-yellow/[0.035] dark:bg-white/[0.025]'}`}>
+         <button onClick={() => handleNotifClick(n)} className="flex min-w-0 flex-1 items-start gap-3 text-left">
+            <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${n.bgColor} ${n.isLida ? 'opacity-50' : 'shadow-[0_0_0_3px_rgba(245,158,11,0.10)]'}`} />
+            <span className="min-w-0">
+               <span className={`block text-sm leading-snug ${n.isLida ? 'font-medium text-gray-500 dark:text-gray-300' : 'font-semibold text-gray-800 dark:text-gray-100'}`}>{n.titulo}</span>
+               {n.mensagem && n.mensagem !== n.titulo && (
+                  <span className="mt-1 block line-clamp-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">{n.mensagem}</span>
+               )}
+               <span className="mt-1.5 block text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">{n.tempoStr}</span>
+            </span>
+         </button>
+         <button
+            type="button"
+            onClick={() => removerNotificacao(n.id)}
+            className="rounded-lg p-1.5 text-gray-300 opacity-0 transition hover:bg-gray-100 hover:text-gray-600 group-hover:opacity-100 dark:text-gray-500 dark:hover:bg-white/10 dark:hover:text-gray-200"
+            aria-label="Remover notificacao"
+         >
+            <X size={13} />
+         </button>
+      </div>
+   );
 
    return (
       <div className="flex h-screen overflow-hidden bg-[#f7f8fb] text-gray-900">
@@ -275,12 +325,17 @@ export default function Layout({ user, onLogout }) {
                      </div>
                   ) : (
                      <div className="space-y-4">
-                        <p className="rounded-xl bg-gray-50 p-4 text-sm leading-relaxed text-gray-600 dark:bg-white/5 dark:text-gray-300">{selectedNotif.titulo}</p>
+                        <div className="rounded-xl bg-gray-50 p-4 dark:bg-white/5">
+                           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{selectedNotif.titulo}</p>
+                           {selectedNotif.mensagem && selectedNotif.mensagem !== selectedNotif.titulo && (
+                              <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">{selectedNotif.mensagem}</p>
+                           )}
+                        </div>
                         <button onClick={() => {
                            setSelectedNotif(null);
-                           navigate(selectedNotif.id === 'pendentes_alert' ? '/aprovacoes' : '/dashboard');
+                           navigate(selectedActionPath);
                         }} className="w-full rounded-xl bg-gray-950 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800">
-                           {selectedNotif.id === 'pendentes_alert' ? 'Ir para aprovacoes' : 'Ir para compromissos'}
+                           {selectedActionLabel}
                         </button>
                      </div>
                   )}
@@ -480,21 +535,32 @@ export default function Layout({ user, onLogout }) {
                            </div>
 
                            <div className="min-h-[100px] flex-1 overflow-y-auto no-scrollbar">
-                              {notificacoes.length === 0 ? (
+                              {isNotifsLoading ? (
+                                 <div className="flex flex-col items-center justify-center p-8 text-gray-400">
+                                    <div className="mb-3 h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-uvv-yellow dark:border-white/10 dark:border-t-uvv-yellow" />
+                                    <p className="text-sm font-medium">Carregando notificacoes...</p>
+                                 </div>
+                              ) : notificacoes.length === 0 ? (
                                  <div className="flex flex-col items-center justify-center p-8 text-gray-400">
                                     <Bell size={28} className="mb-3 opacity-40" />
                                     <p className="text-sm font-medium">Tudo em dia.</p>
                                  </div>
                               ) : (
-                                 notificacoes.map(n => (
-                                    <button key={n.id} onClick={() => handleNotifClick(n)} className={`flex w-full items-start gap-3 px-5 py-4 text-left transition hover:bg-gray-50 dark:hover:bg-white/5 ${n.isLida ? 'opacity-55' : ''}`}>
-                                       <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${n.bgColor}`} />
-                                       <span>
-                                          <span className="block text-sm font-medium leading-snug text-gray-700 dark:text-gray-200">{n.titulo}</span>
-                                          <span className="mt-1.5 block text-[10px] font-semibold uppercase tracking-widest text-gray-400">{n.tempoStr}</span>
-                                       </span>
-                                    </button>
-                                 ))
+                                 <div>
+                                    {unreadNotifications.length > 0 && (
+                                       <div className="px-5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">
+                                          Nao lidas
+                                       </div>
+                                    )}
+                                    {unreadNotifications.map(renderNotificationItem)}
+
+                                    {readNotifications.length > 0 && (
+                                       <div className="px-5 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">
+                                          Lidas
+                                       </div>
+                                    )}
+                                    {readNotifications.map(renderNotificationItem)}
+                                 </div>
                               )}
                            </div>
 
