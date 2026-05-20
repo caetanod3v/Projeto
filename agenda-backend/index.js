@@ -529,11 +529,21 @@ const createNotificationOnceSafe = async (usuario_id, payload, since = null) => 
   }
 };
 
-const getCompromissoNotificationUsers = (compromisso) => (
-  [compromisso?.usuario_id, compromisso?.coordenador_id].filter(Boolean)
+const getCompromissoCoordinatorNotificationUserId = (compromisso) => (
+  compromisso?.coordenador_id || (compromisso?.usuario?.role === 'coordenador' ? compromisso.usuario_id : null)
 );
 
+const getCompromissoApprovalResponseUsers = (compromisso) => {
+  const recipients = [getCompromissoCoordinatorNotificationUserId(compromisso)];
+  if (compromisso?.usuario?.role === 'secretaria') {
+    recipients.push(compromisso.usuario_id);
+  }
+  return recipients;
+};
+
 const ensureAutomaticNotificationsForUser = async (user) => {
+  if (user.role !== 'coordenador') return;
+
   const now = new Date();
   const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
   const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -542,15 +552,11 @@ const ensureAutomaticNotificationsForUser = async (user) => {
   const endOfToday = new Date(now);
   endOfToday.setHours(23, 59, 59, 999);
 
-  const userFilter = user.role === 'admin'
-    ? {}
-    : { OR: [{ usuario_id: user.id }, { coordenador_id: user.id }] };
-
   const compromissos = await prisma.compromisso.findMany({
     where: {
       AND: [
         { status: 'aprovado' },
-        userFilter,
+        { OR: [{ coordenador_id: user.id }, { usuario_id: user.id }] },
         {
           OR: [
             { dt_inicio: { gte: now, lte: next24h } },
@@ -581,7 +587,7 @@ const ensureAutomaticNotificationsForUser = async (user) => {
     where: {
       AND: [
         { status: 'aprovado' },
-        userFilter,
+        { OR: [{ coordenador_id: user.id }, { usuario_id: user.id }] },
         { dt_inicio: { gte: startOfToday, lte: endOfToday } },
       ],
     },
@@ -608,6 +614,67 @@ const ensureAutomaticNotificationsForUser = async (user) => {
       });
     }
   }
+};
+
+const canViewNotification = (user, notificacao, compromissoById = new Map()) => {
+  if (!user || notificacao.usuario_id !== user.id) return false;
+
+  if (notificacao.referencia_tipo !== 'compromisso' || !notificacao.referencia_id) {
+    return user.role === 'coordenador' || user.role === 'admin';
+  }
+
+  const compromisso = compromissoById.get(notificacao.referencia_id);
+  if (!compromisso) return true;
+
+  const coordinatorId = getCompromissoCoordinatorNotificationUserId(compromisso);
+
+  if (user.role === 'coordenador') {
+    return coordinatorId === user.id || compromisso.usuario_id === user.id;
+  }
+
+  if (user.role === 'secretaria') {
+    const isApprovalResponse = notificacao.tipo === 'aprovacao'
+      && /aprovad|recusad/i.test(notificacao.titulo || '');
+    return isApprovalResponse && compromisso.usuario_id === user.id;
+  }
+
+  if (user.role === 'admin') {
+    return true;
+  }
+
+  return compromisso.usuario_id === user.id;
+};
+
+const fetchVisibleNotificationsForUser = async (user, take = 80) => {
+  const notificacoes = await prisma.notificacao.findMany({
+    where: { usuario_id: user.id },
+    orderBy: [
+      { lida: 'asc' },
+      { created_at: 'desc' },
+    ],
+    take: Math.max(take * 3, 200),
+  });
+
+  const compromissoIds = [
+    ...new Set(notificacoes
+      .filter((notificacao) => notificacao.referencia_tipo === 'compromisso' && notificacao.referencia_id)
+      .map((notificacao) => notificacao.referencia_id)),
+  ];
+
+  if (compromissoIds.length === 0) {
+    return notificacoes.filter((notificacao) => canViewNotification(user, notificacao)).slice(0, take);
+  }
+
+  const compromissos = await prisma.compromisso.findMany({
+    where: { id: { in: compromissoIds } },
+    include: {
+      usuario: { select: usuarioPublicSelect },
+      coordenador: { select: usuarioPublicSelect },
+    },
+  });
+  const compromissoById = new Map(compromissos.map((compromisso) => [compromisso.id, compromisso]));
+
+  return notificacoes.filter((notificacao) => canViewNotification(user, notificacao, compromissoById)).slice(0, take);
 };
 
 app.post('/api/auth/register', async (req, res) => {
@@ -841,14 +908,7 @@ app.get('/api/notificacoes', authenticateToken, async (req, res) => {
   try {
     await ensureAutomaticNotificationsForUser({ ...req.user, id: usuarioId });
 
-    const notificacoes = await prisma.notificacao.findMany({
-      where: { usuario_id: usuarioId },
-      orderBy: [
-        { lida: 'asc' },
-        { created_at: 'desc' },
-      ],
-      take: 80,
-    });
+    const notificacoes = await fetchVisibleNotificationsForUser({ ...req.user, id: usuarioId });
 
     res.json(notificacoes.map(toNotificationDto));
   } catch (e) {
@@ -867,14 +927,7 @@ app.patch('/api/notificacoes/lidas', authenticateToken, async (req, res) => {
       data: { lida: true },
     });
 
-    const notificacoes = await prisma.notificacao.findMany({
-      where: { usuario_id: usuarioId },
-      orderBy: [
-        { lida: 'asc' },
-        { created_at: 'desc' },
-      ],
-      take: 80,
-    });
+    const notificacoes = await fetchVisibleNotificationsForUser({ ...req.user, id: usuarioId });
 
     res.json({ success: true, updated: result.count, notificacoes: notificacoes.map(toNotificationDto) });
   } catch (e) {
@@ -899,14 +952,7 @@ app.patch('/api/notificacoes/:id/lida', authenticateToken, async (req, res) => {
     if (result.count === 0) return res.status(404).json({ error: 'Notificacao nao encontrada.' });
 
     const notificacao = await prisma.notificacao.findUnique({ where: { id } });
-    const notificacoes = await prisma.notificacao.findMany({
-      where: { usuario_id: usuarioId },
-      orderBy: [
-        { lida: 'asc' },
-        { created_at: 'desc' },
-      ],
-      take: 80,
-    });
+    const notificacoes = await fetchVisibleNotificationsForUser({ ...req.user, id: usuarioId });
 
     res.json({ success: true, notificacao: toNotificationDto(notificacao), notificacoes: notificacoes.map(toNotificationDto) });
   } catch (e) {
@@ -989,6 +1035,13 @@ app.get('/api/google-calendar/callback', async (req, res) => {
     });
 
     await registrarLog(user.id, 'GOOGLE_CALENDAR_CONNECT', 'Conectou Google Calendar.');
+    await createNotificationSafe({
+      usuario_id: user.id,
+      titulo: 'Google Calendar conectado',
+      mensagem: 'Sua conta Google Calendar foi conectada ao Fluxus.',
+      tipo: 'calendar',
+      referencia_tipo: 'google_calendar',
+    });
     return redirectWithStatus('connected');
   } catch (err) {
     console.error('Erro no callback do Google Calendar:', err.message);
@@ -1027,6 +1080,13 @@ app.delete('/api/google-calendar/disconnect', authenticateToken, requireRole('co
     });
 
     await registrarLog(req.user.id, 'GOOGLE_CALENDAR_DISCONNECT', 'Desconectou Google Calendar.');
+    await createNotificationSafe({
+      usuario_id: req.user.id,
+      titulo: 'Google Calendar desconectado',
+      mensagem: 'Sua conta Google Calendar foi desconectada do Fluxus.',
+      tipo: 'calendar',
+      referencia_tipo: 'google_calendar',
+    });
     res.json({ connected: false });
   } catch (e) {
     console.error(e);
@@ -1359,17 +1419,6 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
       });
     }
 
-    await createNotificationSafe({
-      usuario_id: usuarioId,
-      titulo: isSecretaria ? 'Solicitacao enviada' : 'Compromisso criado',
-      mensagem: isSecretaria
-        ? `"${novoCompromisso.titulo}" foi enviado para coordenacao.`
-        : `"${novoCompromisso.titulo}" foi adicionado ao calendario.`,
-      tipo: isSecretaria ? 'aprovacao' : 'calendar',
-      referencia_id: novoCompromisso.id,
-      referencia_tipo: 'compromisso',
-    });
-
     if (isSecretaria && novoCompromisso.coordenador_id) {
       await createNotificationSafe({
         usuario_id: novoCompromisso.coordenador_id,
@@ -1379,11 +1428,13 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
         referencia_id: novoCompromisso.id,
         referencia_tipo: 'compromisso',
       });
-    } else if (novoCompromisso.coordenador_id && novoCompromisso.coordenador_id !== usuarioId) {
+    } else if (novoCompromisso.coordenador_id) {
       await createNotificationSafe({
         usuario_id: novoCompromisso.coordenador_id,
-        titulo: 'Novo compromisso na agenda',
-        mensagem: `"${novoCompromisso.titulo}" foi criado para sua agenda.`,
+        titulo: userRole === 'coordenador' ? 'Compromisso criado' : 'Novo compromisso na agenda',
+        mensagem: userRole === 'coordenador'
+          ? `"${novoCompromisso.titulo}" foi adicionado ao seu calendario.`
+          : `"${novoCompromisso.titulo}" foi criado para sua agenda.`,
         tipo: 'calendar',
         referencia_id: novoCompromisso.id,
         referencia_tipo: 'compromisso',
@@ -1458,7 +1509,7 @@ app.put('/api/compromissos/:id', authenticateToken, async (req, res) => {
       }
     }
 
-    await createNotificationsForUsersSafe(getCompromissoNotificationUsers(updated), {
+    await createNotificationsForUsersSafe([getCompromissoCoordinatorNotificationUserId(updated)], {
       titulo: 'Compromisso atualizado',
       mensagem: `"${updated.titulo}" teve uma alteracao importante.`,
       tipo: 'info',
@@ -1525,7 +1576,7 @@ app.patch('/api/compromissos/:id/aprovar', authenticateToken, requireRole('coord
       });
     }
 
-    await createNotificationsForUsersSafe(getCompromissoNotificationUsers(updated), {
+    await createNotificationsForUsersSafe(getCompromissoApprovalResponseUsers(updated), {
       titulo: 'Compromisso aprovado',
       mensagem: `"${updated.titulo}" foi aprovado e entrou na agenda.`,
       tipo: 'aprovacao',
@@ -1576,7 +1627,7 @@ app.patch('/api/compromissos/:id/recusar', authenticateToken, requireRole('coord
       }
     });
     await registrarLog(req.user.id, 'RECUSAR_COMPROMISSO', `Recusou compromisso: ${updated.titulo}`);
-    await createNotificationsForUsersSafe(getCompromissoNotificationUsers(updated), {
+    await createNotificationsForUsersSafe(getCompromissoApprovalResponseUsers(updated), {
       titulo: 'Compromisso recusado',
       mensagem: `"${updated.titulo}" foi recusado. Motivo: ${motivo}`,
       tipo: 'aprovacao',
@@ -1599,6 +1650,7 @@ app.delete('/api/compromissos/:id', authenticateToken, async (req, res) => {
       include: {
         curso: true,
         categoria: true,
+        usuario: { select: usuarioPublicSelect },
         coordenador: { select: usuarioPublicSelect }
       }
     });
@@ -1614,7 +1666,7 @@ app.delete('/api/compromissos/:id', authenticateToken, async (req, res) => {
 
     await prisma.compromisso.delete({ where: { id } });
     await registrarLog(req.user.id, 'EXCLUIR_COMPROMISSO', `Excluiu compromisso id: ${id}`);
-    await createNotificationsForUsersSafe(getCompromissoNotificationUsers(comp), {
+    await createNotificationsForUsersSafe([getCompromissoCoordinatorNotificationUserId(comp)], {
       titulo: 'Compromisso removido',
       mensagem: `"${comp.titulo}" foi removido da agenda.`,
       tipo: 'info',
