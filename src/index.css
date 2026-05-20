@@ -688,6 +688,15 @@ tbody tr:hover {
   color: #ffffff !important;
 }
 
+:root[data-theme="dark"] [class~="bg-gray-950"][class*="dark:bg-white"] {
+  background-color: #eef2ff !important;
+  color: #121622 !important;
+}
+
+:root[data-theme="dark"] [class~="bg-gray-950"][class*="dark:bg-white"] * {
+  color: #121622 !important;
+}
+
 .hover\:bg-gray-800:hover {
   background-color: #252a38 !important;
   color: #ffffff !important;

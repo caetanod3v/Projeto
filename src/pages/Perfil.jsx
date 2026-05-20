@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { Camera, Check, ChevronRight, KeyRound, Loader2, Mail, Minus, Move, Plus, Shield, Trash2, UserRound, X } from 'lucide-react';
+import { Camera, Check, ChevronRight, KeyRound, Loader2, Mail, Move, Shield, Trash2, UserRound, X, ZoomIn, ZoomOut } from 'lucide-react';
 import api from '../services/api';
 
 const roleLabels = {
@@ -38,21 +38,27 @@ const cropAvatar = (source, zoom, crop) => new Promise((resolve, reject) => {
     const baseScale = Math.max(previewSize / image.width, previewSize / image.height) * zoom;
     const width = image.width * baseScale;
     const height = image.height * baseScale;
-    const x = (previewSize - width) / 2;
-    const y = (previewSize - height) / 2;
+    const imageX = (previewSize - width) / 2;
+    const imageY = (previewSize - height) / 2;
     const cropX = (crop.x / 100) * previewSize;
     const cropY = (crop.y / 100) * previewSize;
     const cropSize = (crop.size / 100) * previewSize;
-    const outputScale = size / cropSize;
+    const sourceSize = cropSize / baseScale;
+    const sourceX = clamp((cropX - imageX) / baseScale, 0, image.width - sourceSize);
+    const sourceY = clamp((cropY - imageY) / baseScale, 0, image.height - sourceSize);
 
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(0, 0, size, size);
     ctx.drawImage(
       image,
-      (x - cropX) * outputScale,
-      (y - cropY) * outputScale,
-      width * outputScale,
-      height * outputScale
+      sourceX,
+      sourceY,
+      sourceSize,
+      sourceSize,
+      0,
+      0,
+      size,
+      size
     );
     resolve(canvas.toDataURL('image/jpeg', 0.9));
   };
@@ -438,9 +444,25 @@ export default function Perfil({ user, onUserUpdate }) {
                         className="h-full w-full object-cover"
                         style={{ transform: `scale(${avatarZoom})`, transformOrigin: 'center' }}
                       />
-                      <div className="absolute inset-0 bg-gray-950/45" />
+                      {[
+                        { left: 0, top: 0, width: 100, height: avatarCrop.y },
+                        { left: 0, top: avatarCrop.y + avatarCrop.size, width: 100, height: 100 - avatarCrop.y - avatarCrop.size },
+                        { left: 0, top: avatarCrop.y, width: avatarCrop.x, height: avatarCrop.size },
+                        { left: avatarCrop.x + avatarCrop.size, top: avatarCrop.y, width: 100 - avatarCrop.x - avatarCrop.size, height: avatarCrop.size },
+                      ].map((mask, index) => (
+                        <div
+                          key={index}
+                          className="absolute bg-gray-950/45"
+                          style={{
+                            left: `${mask.left}%`,
+                            top: `${mask.top}%`,
+                            width: `${mask.width}%`,
+                            height: `${mask.height}%`,
+                          }}
+                        />
+                      ))}
                       <div
-                        className="absolute cursor-move overflow-hidden rounded-2xl ring-2 ring-white shadow-[0_0_0_999px_rgba(3,7,18,0.44)]"
+                        className="absolute cursor-move rounded-2xl ring-2 ring-white shadow-[0_0_0_999px_rgba(3,7,18,0.44)]"
                         style={{
                           left: `${avatarCrop.x}%`,
                           top: `${avatarCrop.y}%`,
@@ -449,20 +471,6 @@ export default function Perfil({ user, onUserUpdate }) {
                         }}
                         onPointerDown={(event) => startCropInteraction(event, 'move')}
                       >
-                        <img
-                          src={avatarSource}
-                          alt=""
-                          draggable="false"
-                          className="absolute object-cover"
-                          style={{
-                            width: `${10000 / avatarCrop.size}%`,
-                            height: `${10000 / avatarCrop.size}%`,
-                            left: `${-(avatarCrop.x * 100) / avatarCrop.size}%`,
-                            top: `${-(avatarCrop.y * 100) / avatarCrop.size}%`,
-                            transform: `scale(${avatarZoom})`,
-                            transformOrigin: `${50 + (avatarCrop.x + avatarCrop.size / 2 - 50) * (100 / avatarCrop.size)}% ${50 + (avatarCrop.y + avatarCrop.size / 2 - 50) * (100 / avatarCrop.size)}%`,
-                          }}
-                        />
                         <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3">
                           {Array.from({ length: 9 }).map((_, index) => (
                             <span key={index} className="border border-white/20" />
@@ -514,7 +522,7 @@ export default function Perfil({ user, onUserUpdate }) {
                       className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-gray-700 shadow-sm ring-1 ring-gray-200/70 transition hover:bg-gray-50 disabled:opacity-45 dark:bg-white/10 dark:text-gray-100 dark:ring-white/10 dark:hover:bg-white/15"
                       aria-label="Reduzir zoom"
                     >
-                      <Minus size={16} />
+                      <ZoomOut size={16} />
                     </button>
                     <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
                       <div className="h-full rounded-full bg-uvv-yellow transition-all" style={{ width: `${((avatarZoom - 1) / 1.4) * 100}%` }} />
@@ -526,7 +534,7 @@ export default function Perfil({ user, onUserUpdate }) {
                       className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-gray-700 shadow-sm ring-1 ring-gray-200/70 transition hover:bg-gray-50 disabled:opacity-45 dark:bg-white/10 dark:text-gray-100 dark:ring-white/10 dark:hover:bg-white/15"
                       aria-label="Aumentar zoom"
                     >
-                      <Plus size={16} />
+                      <ZoomIn size={16} />
                     </button>
                   </div>
                 </div>
