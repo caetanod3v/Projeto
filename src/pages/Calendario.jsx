@@ -446,7 +446,7 @@ export default function Calendario({ user }) {
               <button
                 key={view}
                 onClick={() => changeCalendarView(view)}
-                className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${calendarView === view ? 'bg-gray-950 text-white dark:bg-white dark:text-gray-950' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-950 dark:hover:bg-white/10'}`}
+                className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${calendarView === view ? 'bg-gray-950 text-white' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-950 dark:hover:bg-white/10'}`}
               >
                 {label}
               </button>
@@ -459,7 +459,7 @@ export default function Calendario({ user }) {
                 const d = new Date();
                 abrirModalCriacao(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
               }}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gray-950 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800 dark:bg-white dark:text-gray-950"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gray-950 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800"
             >
               <Plus size={14} />
               Novo evento
@@ -558,7 +558,7 @@ export default function Calendario({ user }) {
                 type="button"
                 disabled={googleCalendar.loading || googleCalendar.busy || !googleCalendar.configured}
                 onClick={googleCalendar.connected ? handleGoogleCalendarDisconnect : handleGoogleCalendarConnect}
-                className={`mt-4 inline-flex w-full items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${googleCalendar.connected ? 'bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10' : 'bg-gray-950 text-white hover:-translate-y-0.5 hover:bg-gray-800 dark:bg-white dark:text-gray-950'}`}
+                className={`mt-4 inline-flex w-full items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${googleCalendar.connected ? 'bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10' : 'bg-gray-950 text-white hover:-translate-y-0.5 hover:bg-gray-800'}`}
               >
                 {googleCalendar.configured
                   ? googleCalendar.busy
@@ -641,7 +641,7 @@ export default function Calendario({ user }) {
                         else params.set('categoria', cat.id);
                         navigate(`${location.pathname}?${params.toString()}`);
                       }}
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition ${active ? 'bg-gray-950 text-white dark:bg-white dark:text-gray-950' : 'bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10'}`}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition ${active ? 'bg-gray-950 text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10'}`}
                     >
                       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: cat.cor_hex }} />
                       {cat.nome}
@@ -754,7 +754,7 @@ export default function Calendario({ user }) {
 
                 <div className="mt-8 flex gap-3 pt-2">
                   <button onClick={() => setModalOpen(false)} className={`rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-200 dark:bg-white/10 dark:text-white ${!isFormDisabled ? 'flex-1' : 'w-full'}`}>Cancelar</button>
-                  {!isFormDisabled && <button onClick={handleSave} className="flex-1 rounded-xl bg-gray-950 px-4 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-gray-800 dark:bg-white dark:text-gray-950">Salvar</button>}
+                  {!isFormDisabled && <button onClick={handleSave} className="flex-1 rounded-xl bg-gray-950 px-4 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-gray-800">Salvar</button>}
                 </div>
               </div>
             </div>

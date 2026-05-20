@@ -300,7 +300,7 @@ export default function Perfil({ user, onUserUpdate }) {
           <button
             type="button"
             onClick={openAvatarModal}
-            className="inline-flex w-fit items-center gap-2 rounded-xl bg-gray-950 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800 dark:bg-white dark:text-gray-950"
+            className="inline-flex w-fit items-center gap-2 rounded-xl bg-gray-950 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800"
           >
             <Camera size={15} />
             Editar foto
@@ -351,7 +351,7 @@ export default function Perfil({ user, onUserUpdate }) {
           <button
             type="submit"
             disabled={savingProfile}
-            className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800 disabled:opacity-60 dark:bg-white dark:text-gray-950"
+            className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800 disabled:opacity-60"
           >
             {savingProfile ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
             Salvar perfil
@@ -410,7 +410,7 @@ export default function Perfil({ user, onUserUpdate }) {
                 <button type="button" onClick={closePasswordModal} className="flex-1 rounded-xl bg-gray-100 px-4 py-2.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/15">
                   Cancelar
                 </button>
-                <button type="submit" disabled={savingPassword} className="flex-1 rounded-xl bg-gray-950 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-60 dark:bg-white dark:text-gray-950">
+                <button type="submit" disabled={savingPassword} className="flex-1 rounded-xl bg-gray-950 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-60">
                   {savingPassword ? <Loader2 size={15} className="mx-auto animate-spin" /> : 'Salvar'}
                 </button>
               </div>
@@ -497,7 +497,7 @@ export default function Perfil({ user, onUserUpdate }) {
               <div className="space-y-4">
                 <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleAvatarFile} />
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-800 dark:bg-white dark:text-gray-950">
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-800">
                     <Camera size={15} />
                     Trocar foto
                   </button>
@@ -543,7 +543,7 @@ export default function Perfil({ user, onUserUpdate }) {
                   <button type="button" onClick={() => setAvatarModalOpen(false)} className="flex-1 rounded-xl bg-gray-100 px-4 py-2.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/15">
                     Cancelar
                   </button>
-                  <button type="button" onClick={handleSaveAvatar} disabled={!avatarSource || savingAvatar} className="flex-1 rounded-xl bg-gray-950 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-60 dark:bg-white dark:text-gray-950">
+                  <button type="button" onClick={handleSaveAvatar} disabled={!avatarSource || savingAvatar} className="flex-1 rounded-xl bg-gray-950 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-60">
                     {savingAvatar ? <Loader2 size={15} className="mx-auto animate-spin" /> : 'Salvar foto'}
                   </button>
                 </div>

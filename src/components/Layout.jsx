@@ -268,7 +268,7 @@ export default function Layout({ user, onLogout }) {
                         <div className="flex gap-3 pt-2">
                            <button onClick={() => setSelectedNotif(null)} className="flex-1 rounded-xl bg-gray-100 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-200 dark:bg-white/10 dark:text-white">Fechar</button>
                            {(user?.role === 'admin' || user?.role === 'coordenador') && (
-                              <button onClick={() => { setSelectedNotif(null); navigate('/', { state: { editEventId: selectedNotif.eventoId } }); }} className="flex-1 rounded-xl bg-gray-950 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-950">Modificar</button>
+                              <button onClick={() => { setSelectedNotif(null); navigate('/', { state: { editEventId: selectedNotif.eventoId } }); }} className="flex-1 rounded-xl bg-gray-950 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800">Modificar</button>
                            )}
                         </div>
                      </div>
@@ -278,7 +278,7 @@ export default function Layout({ user, onLogout }) {
                         <button onClick={() => {
                            setSelectedNotif(null);
                            navigate(selectedNotif.id === 'pendentes_alert' ? '/aprovacoes' : '/dashboard');
-                        }} className="w-full rounded-xl bg-gray-950 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-950">
+                        }} className="w-full rounded-xl bg-gray-950 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800">
                            {selectedNotif.id === 'pendentes_alert' ? 'Ir para aprovacoes' : 'Ir para compromissos'}
                         </button>
                      </div>
@@ -307,7 +307,7 @@ export default function Layout({ user, onLogout }) {
                <div className="mt-3 px-2.5">
                   <button
                      onClick={handleCreateGlobal}
-                     className="mb-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-2.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800 dark:bg-white dark:text-gray-950"
+                     className="mb-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-2.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800"
                   >
                      <Plus size={14} />
                      Novo evento

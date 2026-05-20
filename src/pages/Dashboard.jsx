@@ -247,7 +247,7 @@ export default function Dashboard({ user }) {
                         key={c}
                         onClick={() => setFilterChip(c)}
                         className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${filterChip === c
-                           ? 'bg-gray-950 text-white dark:bg-white dark:text-gray-950'
+                           ? 'bg-gray-950 text-white'
                            : 'border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-950 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10'}`}
                      >
                         {c}

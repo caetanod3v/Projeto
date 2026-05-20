@@ -688,13 +688,19 @@ tbody tr:hover {
   color: #ffffff !important;
 }
 
-:root[data-theme="dark"] [class~="bg-gray-950"][class*="dark:bg-white"] {
-  background-color: #eef2ff !important;
-  color: #121622 !important;
+:root[data-theme="dark"] [class~="bg-gray-950"] {
+  background-color: #161b22 !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  color: #f8fafc !important;
 }
 
-:root[data-theme="dark"] [class~="bg-gray-950"][class*="dark:bg-white"] * {
-  color: #121622 !important;
+:root[data-theme="dark"] [class~="bg-gray-950"] * {
+  color: #f8fafc !important;
+}
+
+:root[data-theme="dark"] [class~="hover:bg-gray-800"]:hover {
+  background-color: #202738 !important;
+  color: #ffffff !important;
 }
 
 .hover\:bg-gray-800:hover {
