@@ -1174,7 +1174,13 @@ app.get("/api/compromissos", authenticateToken, async (req, res) => {
   try {
     const compromissos = await prisma.compromisso.findMany({
       where: { status: 'aprovado' },
-      orderBy: { dt_inicio: 'asc' }
+      orderBy: { dt_inicio: 'asc' },
+      include: {
+        curso: true,
+        categoria: true,
+        usuario: { select: usuarioPublicSelect },
+        coordenador: { select: usuarioPublicSelect }
+      }
     });
     res.json(compromissos);
   } catch (e) {
