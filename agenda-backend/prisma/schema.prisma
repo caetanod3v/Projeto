@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  coordenador
+  secretaria
+  admin
+}
+
+enum Repeticao {
+  nenhuma
+  semanal
+  mensal
+}
+
+enum StatusCompromisso {
+  pendente
+  aprovado
+  recusado
+}
+
+enum StatusUsuario {
+  pendente
+  ativo
+  bloqueado
+}
+
+model Usuario {
+  id         Int           @id @default(autoincrement())
+  nome       String
+  email      String        @unique
+  senha      String
+  role       Role
+  status     StatusUsuario @default(pendente)
+  created_at DateTime      @default(now())
+
+  curso_id Int?
+  curso    Curso? @relation(fields: [curso_id], references: [id])
+
+  reset_token         String?
+  reset_token_expires DateTime?
+
+  google_access_token       String?
+  google_refresh_token      String?
+  google_token_expiry       DateTime?
+  google_calendar_connected Boolean   @default(false)
+
+  compromissos_criados     Compromisso[]  @relation("CriadorCompromisso")
+  compromissos_aprovados   Compromisso[]  @relation("AprovadorCompromisso")
+  compromissos_responsavel Compromisso[]  @relation("CoordenadorResponsavel")
+  logs                     LogAuditoria[]
+
+  @@map("usuarios")
+}
+
+model LogAuditoria {
+  id         Int      @id @default(autoincrement())
+  usuario_id Int?
+  usuario    Usuario? @relation(fields: [usuario_id], references: [id])
+  acao       String
+  detalhes   String?
+  created_at DateTime @default(now())
+
+  @@map("logs_auditoria")
+}
+
+model Curso {
+  id           Int           @id @default(autoincrement())
+  nome         String
+  created_at   DateTime      @default(now())
+  compromissos Compromisso[]
+  usuarios     Usuario[]
+
+  @@map("cursos")
+}
+
+model Categoria {
+  id           Int           @id @default(autoincrement())
+  nome         String
+  cor_hex      String
+  created_at   DateTime      @default(now())
+  compromissos Compromisso[]
+
+  @@map("categorias")
+}
+
+model Compromisso {
+  id                Int               @id @default(autoincrement())
+  titulo            String
+  descricao         String?
+  dt_inicio         DateTime
+  dt_fim            DateTime
+  repeticao         Repeticao         @default(nenhuma)
+  status            StatusCompromisso @default(pendente)
+  motivo_recusa     String?
+  mensagem_resposta String?
+  aprovado_em       DateTime?
+  respondido_em     DateTime?
+  created_at        DateTime          @default(now())
+
+  curso_id Int?
+  curso    Curso? @relation(fields: [curso_id], references: [id])
+
+  categoria_id Int?
+  categoria    Categoria? @relation(fields: [categoria_id], references: [id])
+
+  usuario_id Int?
+  usuario    Usuario? @relation("CriadorCompromisso", fields: [usuario_id], references: [id])
+
+  coordenador_id Int?
+  coordenador    Usuario? @relation("CoordenadorResponsavel", fields: [coordenador_id], references: [id])
+
+  aprovado_por Int?
+  aprovador    Usuario? @relation("AprovadorCompromisso", fields: [aprovado_por], references: [id])
+
+  @@map("compromissos")
+}
