@@ -169,14 +169,26 @@ export default function Layout({ user, onLogout }) {
       fetchData();
    }, [user?.id, user?.role]);
 
+   const applyNotificationResponse = (payload) => {
+      if (Array.isArray(payload?.notificacoes)) {
+         setNotificacoes(payload.notificacoes.map(normalizeNotification));
+         return true;
+      }
+      return false;
+   };
+
    const handleNotifClick = async (notif) => {
       if (!notif.isLida) {
-         setNotificacoes(prev => prev.map(n => n.id === notif.id ? { ...n, isLida: true, lida: true } : n));
          try {
-            await api.patch(`/notificacoes/${notif.id}/lida`);
+            const res = await api.patch(`/notificacoes/${notif.id}/lida`);
+            const applied = applyNotificationResponse(res.data);
+            if (!applied) {
+               setNotificacoes(prev => prev.map(n => n.id === notif.id ? { ...n, isLida: true, lida: true } : n));
+            }
          } catch (err) {
             console.error(err);
             toast.error('Nao foi possivel marcar a notificacao como lida.');
+            return;
          }
       }
 
@@ -186,10 +198,12 @@ export default function Layout({ user, onLogout }) {
 
    const lerTodas = async () => {
       try {
-         await api.patch('/notificacoes/lidas');
-         setNotificacoes(prev => prev.map(n => ({ ...n, isLida: true, lida: true })));
+         const res = await api.patch('/notificacoes/lidas');
+         const applied = applyNotificationResponse(res.data);
+         if (!applied) {
+            setNotificacoes(prev => prev.map(n => ({ ...n, isLida: true, lida: true })));
+         }
          toast.success('Notificacoes marcadas como lidas.');
-         setNotifOpen(false);
       } catch (err) {
          console.error(err);
          toast.error('Nao foi possivel atualizar as notificacoes.');
@@ -250,7 +264,6 @@ export default function Layout({ user, onLogout }) {
    ];
 
    const unreadNotifications = notificacoes.filter(n => !n.isLida);
-   const readNotifications = notificacoes.filter(n => n.isLida);
    const selectedActionPath = selectedNotif?.tipo === 'aprovacao' ? '/aprovacoes' : '/dashboard';
    const selectedActionLabel = selectedNotif?.tipo === 'aprovacao' ? 'Ir para aprovacoes' : 'Ir para compromissos';
 
@@ -549,31 +562,22 @@ export default function Layout({ user, onLogout }) {
                                     <div className="mb-3 h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-uvv-yellow dark:border-white/10 dark:border-t-uvv-yellow" />
                                     <p className="text-sm font-medium">Carregando notificacoes...</p>
                                  </div>
-                              ) : notificacoes.length === 0 ? (
+                              ) : unreadNotifications.length === 0 ? (
                                  <div className="flex flex-col items-center justify-center p-8 text-gray-400">
                                     <Bell size={28} className="mb-3 opacity-40" />
                                     <p className="text-sm font-medium">Tudo em dia.</p>
                                  </div>
                               ) : (
                                  <div>
-                                    {unreadNotifications.length > 0 && (
-                                       <div className="px-5 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-500">
-                                          Nao lidas
-                                       </div>
-                                    )}
+                                    <div className="px-5 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-500">
+                                       Nao lidas
+                                    </div>
                                     {unreadNotifications.map(renderNotificationItem)}
-
-                                    {readNotifications.length > 0 && (
-                                       <div className="px-5 pb-2 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-500">
-                                          Lidas
-                                       </div>
-                                    )}
-                                    {readNotifications.map(renderNotificationItem)}
                                  </div>
                               )}
                            </div>
 
-                           {notificacoes.length > 0 && (
+                           {unreadNotifications.length > 0 && (
                               <div className="shrink-0 border-t border-slate-300/70 bg-white p-3 text-center dark:border-white/[0.06] dark:bg-[#0f1420]">
                                  <button onClick={lerTodas} className="text-xs font-semibold text-gray-600 transition hover:text-gray-950 dark:text-slate-400 dark:hover:text-white">Marcar todas como lidas</button>
                               </div>
