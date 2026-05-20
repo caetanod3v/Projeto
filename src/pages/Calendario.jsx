@@ -47,6 +47,12 @@ export default function Calendario({ user }) {
 
   // Resumo Inteligente Stats
   const [stats, setStats] = useState({ hoje: 0, proxHrs: null });
+  const [googleCalendar, setGoogleCalendar] = useState({
+    connected: false,
+    configured: true,
+    loading: user?.role === 'coordenador',
+    busy: false,
+  });
 
   // Tooltip
   const [tooltip, setTooltip] = useState({ open: false, x: 0, y: 0, title: '', timeStr: '', cursoStr: '', catColor: '' });
@@ -65,9 +71,46 @@ export default function Calendario({ user }) {
   const [searchParams] = useSearchParams();
   const categoriaFilter = searchParams.get('categoria');
 
+  const fetchGoogleCalendarStatus = async () => {
+    if (user?.role !== 'coordenador') return;
+
+    try {
+      const res = await api.get('/google-calendar/status');
+      setGoogleCalendar(prev => ({
+        ...prev,
+        connected: Boolean(res.data.connected),
+        configured: res.data.configured !== false,
+        loading: false,
+      }));
+    } catch (err) {
+      setGoogleCalendar(prev => ({ ...prev, loading: false, configured: false }));
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, [categoriaFilter]);
+
+  useEffect(() => {
+    fetchGoogleCalendarStatus();
+  }, [user?.role]);
+
+  useEffect(() => {
+    const googleCalendarResult = searchParams.get('googleCalendar');
+    if (!googleCalendarResult) return;
+
+    if (googleCalendarResult === 'connected') {
+      toast.success('Google Calendar conectado.');
+      fetchGoogleCalendarStatus();
+    } else {
+      toast.error('Nao foi possivel conectar o Google Calendar.');
+    }
+
+    const params = new URLSearchParams(searchParams);
+    params.delete('googleCalendar');
+    const query = params.toString();
+    navigate(`${location.pathname}${query ? `?${query}` : ''}`, { replace: true });
+  }, [searchParams, location.pathname, navigate]);
 
   const abrirModalCriacao = (dateStr) => {
     setSelectedDate(dateStr);
@@ -359,6 +402,29 @@ export default function Calendario({ user }) {
     setCalendarView(view);
   };
 
+  const handleGoogleCalendarConnect = async () => {
+    setGoogleCalendar(prev => ({ ...prev, busy: true }));
+    try {
+      const res = await api.get('/google-calendar/auth');
+      window.location.href = res.data.authUrl;
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Nao foi possivel iniciar conexao com Google Calendar.');
+      setGoogleCalendar(prev => ({ ...prev, busy: false }));
+    }
+  };
+
+  const handleGoogleCalendarDisconnect = async () => {
+    setGoogleCalendar(prev => ({ ...prev, busy: true }));
+    try {
+      await api.delete('/google-calendar/disconnect');
+      setGoogleCalendar(prev => ({ ...prev, connected: false, busy: false }));
+      toast.success('Google Calendar desconectado.');
+    } catch (err) {
+      toast.error('Nao foi possivel desconectar o Google Calendar.');
+      setGoogleCalendar(prev => ({ ...prev, busy: false }));
+    }
+  };
+
   return (
     <div className="min-h-full animate-fade-in text-gray-900 dark:text-gray-100">
       <section className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -470,6 +536,41 @@ export default function Calendario({ user }) {
         </div>
 
         <aside className="grid content-start gap-3">
+          {user?.role === 'coordenador' && (
+            <div className="rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-gray-200/50 dark:bg-[#191d28] dark:ring-white/10">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold text-gray-950 dark:text-white">Google Calendar</p>
+                  <p className="mt-1 text-[11px] leading-5 text-gray-500">
+                    {googleCalendar.loading
+                      ? 'Verificando conexao...'
+                      : googleCalendar.connected
+                        ? 'Conectado para envio automatico.'
+                        : 'Envie compromissos aprovados para seu calendario.'}
+                  </p>
+                </div>
+                <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${googleCalendar.connected ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-gray-50 text-gray-500 dark:bg-white/5 dark:text-gray-300'}`}>
+                  {googleCalendar.connected ? 'Conectado' : 'Desconectado'}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                disabled={googleCalendar.loading || googleCalendar.busy || !googleCalendar.configured}
+                onClick={googleCalendar.connected ? handleGoogleCalendarDisconnect : handleGoogleCalendarConnect}
+                className={`mt-4 inline-flex w-full items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${googleCalendar.connected ? 'bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10' : 'bg-gray-950 text-white hover:-translate-y-0.5 hover:bg-gray-800 dark:bg-white dark:text-gray-950'}`}
+              >
+                {googleCalendar.configured
+                  ? googleCalendar.busy
+                    ? 'Aguarde...'
+                    : googleCalendar.connected
+                      ? 'Desconectar'
+                      : 'Conectar Google Calendar'
+                  : 'Configurar credenciais Google'}
+              </button>
+            </div>
+          )}
+
           <div className="rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-gray-200/50 dark:bg-[#191d28] dark:ring-white/10">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">Hoje</p>
             <h3 className="mt-1 text-sm font-semibold capitalize text-gray-950 dark:text-white">{todayLabel}</h3>
