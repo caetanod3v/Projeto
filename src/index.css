@@ -54,11 +54,11 @@
     --app-surface-muted: #202432;
     --app-surface-soft: #141821;
     --app-text: #f7f9fc;
-    --app-text-muted: #c3cad6;
-    --app-text-soft: #9ea8b8;
-    --app-placeholder: #aab3c1;
-    --app-border: rgba(255, 255, 255, 0.08);
-    --app-border-strong: rgba(255, 255, 255, 0.14);
+    --app-text-muted: #d0d6e2;
+    --app-text-soft: #b4becd;
+    --app-placeholder: #bac4d2;
+    --app-border: rgba(255, 255, 255, 0.10);
+    --app-border-strong: rgba(255, 255, 255, 0.18);
     --app-accent: #8fa0ff;
     --app-accent-2: #b395ff;
     --app-accent-soft: rgba(143, 160, 255, 0.13);

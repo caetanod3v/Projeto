@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { Camera, Check, ChevronRight, KeyRound, Loader2, Mail, Shield, SlidersHorizontal, Trash2, UserRound, X } from 'lucide-react';
+import { Camera, Check, ChevronRight, KeyRound, Loader2, Mail, Minus, Move, Plus, Shield, Trash2, UserRound, X } from 'lucide-react';
 import api from '../services/api';
 
 const roleLabels = {
@@ -24,25 +24,36 @@ const formatDate = (value) => {
   }).format(new Date(value));
 };
 
-const cropAvatar = (source, zoom, offset) => new Promise((resolve, reject) => {
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const cropAvatar = (source, zoom, crop) => new Promise((resolve, reject) => {
   const image = new Image();
   image.onload = () => {
     const size = 512;
+    const previewSize = 1000;
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext('2d');
-    const baseScale = Math.max(size / image.width, size / image.height) * zoom;
+    const baseScale = Math.max(previewSize / image.width, previewSize / image.height) * zoom;
     const width = image.width * baseScale;
     const height = image.height * baseScale;
-    const overflowX = Math.max(0, width - size);
-    const overflowY = Math.max(0, height - size);
-    const x = -overflowX / 2 + (offset.x / 100) * (overflowX / 2);
-    const y = -overflowY / 2 + (offset.y / 100) * (overflowY / 2);
+    const x = (previewSize - width) / 2;
+    const y = (previewSize - height) / 2;
+    const cropX = (crop.x / 100) * previewSize;
+    const cropY = (crop.y / 100) * previewSize;
+    const cropSize = (crop.size / 100) * previewSize;
+    const outputScale = size / cropSize;
 
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(0, 0, size, size);
-    ctx.drawImage(image, x, y, width, height);
+    ctx.drawImage(
+      image,
+      (x - cropX) * outputScale,
+      (y - cropY) * outputScale,
+      width * outputScale,
+      height * outputScale
+    );
     resolve(canvas.toDataURL('image/jpeg', 0.9));
   };
   image.onerror = reject;
@@ -51,6 +62,8 @@ const cropAvatar = (source, zoom, offset) => new Promise((resolve, reject) => {
 
 export default function Perfil({ user, onUserUpdate }) {
   const fileInputRef = useRef(null);
+  const cropAreaRef = useRef(null);
+  const cropDragRef = useRef(null);
   const [profile, setProfile] = useState(user);
   const [name, setName] = useState(user?.nome || '');
   const [loading, setLoading] = useState(true);
@@ -60,8 +73,8 @@ export default function Perfil({ user, onUserUpdate }) {
   const [isAvatarModalOpen, setAvatarModalOpen] = useState(false);
   const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
   const [avatarSource, setAvatarSource] = useState(user?.avatar_url || '');
-  const [avatarZoom, setAvatarZoom] = useState(1.08);
-  const [avatarOffset, setAvatarOffset] = useState({ x: 0, y: 0 });
+  const [avatarZoom, setAvatarZoom] = useState(1);
+  const [avatarCrop, setAvatarCrop] = useState({ x: 15, y: 15, size: 70 });
   const [passwordForm, setPasswordForm] = useState(emptyPasswordForm);
 
   useEffect(() => {
@@ -90,10 +103,44 @@ export default function Perfil({ user, onUserUpdate }) {
 
   const openAvatarModal = () => {
     setAvatarSource(profile?.avatar_url || '');
-    setAvatarZoom(1.08);
-    setAvatarOffset({ x: 0, y: 0 });
+    setAvatarZoom(1);
+    setAvatarCrop({ x: 15, y: 15, size: 70 });
     setAvatarModalOpen(true);
   };
+
+  useEffect(() => {
+    const handlePointerMove = (event) => {
+      const drag = cropDragRef.current;
+      if (!drag) return;
+
+      const dx = ((event.clientX - drag.startX) / drag.rect.width) * 100;
+      const dy = ((event.clientY - drag.startY) / drag.rect.height) * 100;
+
+      setAvatarCrop(() => {
+        if (drag.mode === 'move') {
+          return {
+            ...drag.crop,
+            x: clamp(drag.crop.x + dx, 0, 100 - drag.crop.size),
+            y: clamp(drag.crop.y + dy, 0, 100 - drag.crop.size),
+          };
+        }
+
+        const nextSize = clamp(drag.crop.size + Math.max(dx, dy), 28, 100 - Math.max(drag.crop.x, drag.crop.y));
+        return { ...drag.crop, size: nextSize };
+      });
+    };
+
+    const handlePointerUp = () => {
+      cropDragRef.current = null;
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, []);
 
   const handleProfileSubmit = async (event) => {
     event.preventDefault();
@@ -127,8 +174,8 @@ export default function Perfil({ user, onUserUpdate }) {
     const reader = new FileReader();
     reader.onload = () => {
       setAvatarSource(reader.result);
-      setAvatarZoom(1.08);
-      setAvatarOffset({ x: 0, y: 0 });
+      setAvatarZoom(1);
+      setAvatarCrop({ x: 15, y: 15, size: 70 });
       setAvatarModalOpen(true);
     };
     reader.readAsDataURL(file);
@@ -138,7 +185,7 @@ export default function Perfil({ user, onUserUpdate }) {
     if (!avatarSource) return;
     setSavingAvatar(true);
     try {
-      const croppedAvatar = await cropAvatar(avatarSource, avatarZoom, avatarOffset);
+      const croppedAvatar = await cropAvatar(avatarSource, avatarZoom, avatarCrop);
       const res = await api.patch('/perfil/avatar', { avatar_url: croppedAvatar });
       syncProfile(res.data);
       setAvatarModalOpen(false);
@@ -188,6 +235,23 @@ export default function Perfil({ user, onUserUpdate }) {
   const closePasswordModal = () => {
     setPasswordModalOpen(false);
     setPasswordForm(emptyPasswordForm);
+  };
+
+  const startCropInteraction = (event, mode) => {
+    if (!avatarSource || !cropAreaRef.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    cropDragRef.current = {
+      mode,
+      startX: event.clientX,
+      startY: event.clientY,
+      crop: avatarCrop,
+      rect: cropAreaRef.current.getBoundingClientRect(),
+    };
+  };
+
+  const nudgeZoom = (direction) => {
+    setAvatarZoom((current) => clamp(Number((current + direction * 0.12).toFixed(2)), 1, 2.4));
   };
 
   if (loading) {
@@ -362,19 +426,58 @@ export default function Perfil({ user, onUserUpdate }) {
               </button>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-[260px_1fr]">
+            <div className="grid gap-5 md:grid-cols-[300px_1fr]">
               <div className="flex justify-center">
-                <div className="relative h-60 w-60 overflow-hidden rounded-[32px] bg-gray-100 ring-1 ring-gray-200/80 dark:bg-white/5 dark:ring-white/10">
+                <div ref={cropAreaRef} className="relative h-[280px] w-[280px] select-none overflow-hidden rounded-[32px] bg-gray-100 ring-1 ring-gray-200/80 dark:bg-[#202432] dark:ring-white/10">
                   {avatarSource ? (
-                    <img
-                      src={avatarSource}
-                      alt=""
-                      className="h-full w-full object-cover"
-                      style={{
-                        transform: `translate(${avatarOffset.x}%, ${avatarOffset.y}%) scale(${avatarZoom})`,
-                        transformOrigin: 'center',
-                      }}
-                    />
+                    <>
+                      <img
+                        src={avatarSource}
+                        alt=""
+                        draggable="false"
+                        className="h-full w-full object-cover"
+                        style={{ transform: `scale(${avatarZoom})`, transformOrigin: 'center' }}
+                      />
+                      <div className="absolute inset-0 bg-gray-950/45" />
+                      <div
+                        className="absolute cursor-move overflow-hidden rounded-2xl ring-2 ring-white shadow-[0_0_0_999px_rgba(3,7,18,0.44)]"
+                        style={{
+                          left: `${avatarCrop.x}%`,
+                          top: `${avatarCrop.y}%`,
+                          width: `${avatarCrop.size}%`,
+                          height: `${avatarCrop.size}%`,
+                        }}
+                        onPointerDown={(event) => startCropInteraction(event, 'move')}
+                      >
+                        <img
+                          src={avatarSource}
+                          alt=""
+                          draggable="false"
+                          className="absolute object-cover"
+                          style={{
+                            width: `${10000 / avatarCrop.size}%`,
+                            height: `${10000 / avatarCrop.size}%`,
+                            left: `${-(avatarCrop.x * 100) / avatarCrop.size}%`,
+                            top: `${-(avatarCrop.y * 100) / avatarCrop.size}%`,
+                            transform: `scale(${avatarZoom})`,
+                            transformOrigin: `${50 + (avatarCrop.x + avatarCrop.size / 2 - 50) * (100 / avatarCrop.size)}% ${50 + (avatarCrop.y + avatarCrop.size / 2 - 50) * (100 / avatarCrop.size)}%`,
+                          }}
+                        />
+                        <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3">
+                          {Array.from({ length: 9 }).map((_, index) => (
+                            <span key={index} className="border border-white/20" />
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          aria-label="Redimensionar recorte"
+                          onPointerDown={(event) => startCropInteraction(event, 'resize')}
+                          className="absolute bottom-1.5 right-1.5 flex h-8 w-8 cursor-nwse-resize items-center justify-center rounded-full bg-white text-gray-950 shadow-lg transition hover:scale-105"
+                        >
+                          <Move size={14} />
+                        </button>
+                      </div>
+                    </>
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-uvv-yellow/12 text-5xl font-semibold text-uvv-yellow">
                       {initial}
@@ -398,24 +501,33 @@ export default function Perfil({ user, onUserUpdate }) {
                   )}
                 </div>
 
-                <div className="rounded-2xl bg-gray-50/80 p-4 dark:bg-white/5">
-                  <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
-                    <SlidersHorizontal size={15} />
-                    Editar foto
+                <div className="rounded-2xl bg-gray-50/80 p-4 dark:bg-[#202432]">
+                  <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-100">
+                    <Move size={15} />
+                    Arraste e redimensione a area de recorte
                   </p>
-                  <div className="space-y-3">
-                    <label className="block">
-                      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-400">Zoom</span>
-                      <input type="range" min="1" max="2.4" step="0.01" value={avatarZoom} disabled={!avatarSource} onChange={(event) => setAvatarZoom(Number(event.target.value))} className="w-full accent-uvv-yellow" />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-400">Recorte horizontal</span>
-                      <input type="range" min="-100" max="100" step="1" value={avatarOffset.x} disabled={!avatarSource} onChange={(event) => setAvatarOffset(prev => ({ ...prev, x: Number(event.target.value) }))} className="w-full accent-uvv-yellow" />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-400">Recorte vertical</span>
-                      <input type="range" min="-100" max="100" step="1" value={avatarOffset.y} disabled={!avatarSource} onChange={(event) => setAvatarOffset(prev => ({ ...prev, y: Number(event.target.value) }))} className="w-full accent-uvv-yellow" />
-                    </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={!avatarSource}
+                      onClick={() => nudgeZoom(-1)}
+                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-gray-700 shadow-sm ring-1 ring-gray-200/70 transition hover:bg-gray-50 disabled:opacity-45 dark:bg-white/10 dark:text-gray-100 dark:ring-white/10 dark:hover:bg-white/15"
+                      aria-label="Reduzir zoom"
+                    >
+                      <Minus size={16} />
+                    </button>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
+                      <div className="h-full rounded-full bg-uvv-yellow transition-all" style={{ width: `${((avatarZoom - 1) / 1.4) * 100}%` }} />
+                    </div>
+                    <button
+                      type="button"
+                      disabled={!avatarSource}
+                      onClick={() => nudgeZoom(1)}
+                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-gray-700 shadow-sm ring-1 ring-gray-200/70 transition hover:bg-gray-50 disabled:opacity-45 dark:bg-white/10 dark:text-gray-100 dark:ring-white/10 dark:hover:bg-white/15"
+                      aria-label="Aumentar zoom"
+                    >
+                      <Plus size={16} />
+                    </button>
                   </div>
                 </div>
 
