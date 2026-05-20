@@ -10,17 +10,23 @@
 @layer base {
   :root {
     color-scheme: light;
-    --app-bg: #f6f7fb;
-    --app-bg-2: #e9edf5;
+    --app-bg: #f8fafc;
+    --app-bg-2: #eef2ff;
+    --app-page-gradient:
+      radial-gradient(circle at 8% -12%, rgba(91, 110, 225, 0.10), transparent 31rem),
+      radial-gradient(circle at 100% 0%, rgba(141, 108, 246, 0.07), transparent 28rem),
+      linear-gradient(135deg, #ffffff 0%, #f7f8fc 45%, #eef2ff 100%);
+    --app-header-bg: rgba(255, 255, 255, 0.68);
+    --app-sidebar-bg: rgba(255, 255, 255, 0.82);
     --app-surface: #ffffff;
-    --app-surface-muted: #eef2f7;
-    --app-surface-soft: #f9fafc;
+    --app-surface-muted: #f8fafc;
+    --app-surface-soft: #fbfcff;
     --app-text: #111520;
     --app-text-muted: #4f5868;
     --app-text-soft: #6f7888;
     --app-placeholder: #7d8696;
-    --app-border: rgba(17, 21, 32, 0.09);
-    --app-border-strong: rgba(17, 21, 32, 0.16);
+    --app-border: #edf0f5;
+    --app-border-strong: rgba(23, 31, 48, 0.14);
     --app-accent: #5b6ee1;
     --app-accent-2: #8d6cf6;
     --app-accent-soft: #eef1ff;
@@ -28,55 +34,55 @@
     --app-success-soft: #edf8f1;
     --app-danger-soft: #fff0f0;
     --app-warning-soft: #fff7e8;
-    --app-shadow: 0 1px 2px rgba(20, 24, 36, 0.025), 0 14px 36px rgba(35, 42, 62, 0.055);
-    --app-shadow-soft: 0 1px 2px rgba(20, 24, 36, 0.025), 0 8px 22px rgba(35, 42, 62, 0.035);
+    --app-shadow: 0 1px 2px rgba(20, 24, 36, 0.025), 0 16px 42px rgba(35, 42, 62, 0.060);
+    --app-shadow-soft: 0 1px 2px rgba(20, 24, 36, 0.022), 0 10px 26px rgba(35, 42, 62, 0.040);
     --app-ease: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --app-bg: #131720;
-    --app-bg-2: #181d28;
-    --app-surface: #232936;
-    --app-surface-muted: #2e3544;
-    --app-surface-soft: #1b202b;
+    --app-bg: #0f1117;
+    --app-bg-2: #141821;
+    --app-page-gradient:
+      radial-gradient(circle at top left, rgba(99, 91, 255, 0.10), transparent 30rem),
+      radial-gradient(circle at 96% 0%, rgba(179, 149, 255, 0.055), transparent 28rem),
+      linear-gradient(135deg, #121621 0%, #0f1117 46%, #10131b 100%);
+    --app-header-bg: rgba(15, 17, 23, 0.70);
+    --app-sidebar-bg: rgba(23, 26, 35, 0.82);
+    --app-surface: #171a23;
+    --app-surface-muted: #202432;
+    --app-surface-soft: #141821;
     --app-text: #f7f9fc;
     --app-text-muted: #c3cad6;
     --app-text-soft: #9ea8b8;
     --app-placeholder: #aab3c1;
-    --app-border: rgba(255, 255, 255, 0.11);
-    --app-border-strong: rgba(255, 255, 255, 0.18);
+    --app-border: rgba(255, 255, 255, 0.08);
+    --app-border-strong: rgba(255, 255, 255, 0.14);
     --app-accent: #8fa0ff;
     --app-accent-2: #b395ff;
     --app-accent-soft: rgba(143, 160, 255, 0.13);
     --app-accent-muted: rgba(143, 160, 255, 0.12);
-    --app-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 14px 36px rgba(0, 0, 0, 0.16);
-    --app-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.10), 0 8px 22px rgba(0, 0, 0, 0.12);
+    --app-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 16px 40px rgba(0, 0, 0, 0.22);
+    --app-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.12), 0 10px 26px rgba(0, 0, 0, 0.16);
   }
 
   html {
     font-family: "Geist", "Aptos", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
-    background: var(--app-bg);
+    background: var(--app-page-gradient);
     scroll-behavior: smooth;
   }
 
   body {
     min-height: 100vh;
     margin: 0;
-    background:
-      radial-gradient(circle at 14% -12%, rgba(91, 110, 225, 0.10), transparent 29rem),
-      radial-gradient(circle at 96% 0%, rgba(141, 108, 246, 0.07), transparent 26rem),
-      linear-gradient(180deg, #fbfcff 0%, var(--app-bg) 24%, var(--app-bg) 100%);
+    background: var(--app-page-gradient);
     color: var(--app-text);
     -webkit-font-smoothing: antialiased;
     text-rendering: geometricPrecision;
   }
 
   :root[data-theme="dark"] body {
-    background:
-      radial-gradient(circle at 14% -12%, rgba(143, 160, 255, 0.12), transparent 30rem),
-      radial-gradient(circle at 96% 0%, rgba(179, 149, 255, 0.08), transparent 28rem),
-      linear-gradient(180deg, #171c27 0%, var(--app-bg) 40%, var(--app-bg) 100%);
+    background: var(--app-page-gradient);
   }
 
   #root {
@@ -147,7 +153,11 @@ body,
 #root,
 main,
 [class*="bg-[#f5f7fb]"],
-.bg-gray-950,
+[class*="bg-[#f7f8fb]"] {
+  background: var(--app-page-gradient) !important;
+  color: var(--app-text) !important;
+}
+
 [class*="bg-[#0B1220]"],
 [class*="bg-[#0F172A]"] {
   background-color: var(--app-bg) !important;
@@ -157,7 +167,9 @@ main,
 [class*="bg-gray-900"],
 [class*="bg-gray-800"],
 [class*="bg-[#111827]"],
+[class*="bg-[#11141d]"],
 [class*="bg-[#171a22]"],
+[class*="bg-[#191d28]"],
 [class*="bg-[#1f2937]"] {
   background-color: var(--app-surface) !important;
 }
@@ -296,12 +308,23 @@ a:not(:disabled):active {
 }
 
 aside {
-  background: rgba(255, 255, 255, 0.94) !important;
+  background: var(--app-sidebar-bg) !important;
   border-color: var(--app-border) !important;
+  box-shadow: inset -1px 0 0 var(--app-border), 12px 0 34px rgba(35, 42, 62, 0.035) !important;
 }
 
 :root[data-theme="dark"] aside {
-  background: rgba(31, 36, 49, 0.94) !important;
+  background: var(--app-sidebar-bg) !important;
+  box-shadow: inset -1px 0 0 var(--app-border), 12px 0 34px rgba(0, 0, 0, 0.18) !important;
+}
+
+main > header {
+  background: var(--app-header-bg) !important;
+  box-shadow: inset 0 -1px 0 var(--app-border), 0 10px 34px rgba(35, 42, 62, 0.035) !important;
+}
+
+:root[data-theme="dark"] main > header {
+  box-shadow: inset 0 -1px 0 var(--app-border), 0 10px 34px rgba(0, 0, 0, 0.18) !important;
 }
 
 table {
@@ -424,7 +447,7 @@ tbody tr:hover {
 }
 
 .fc-daygrid-day-frame {
-  background: rgba(241, 244, 249, 0.86);
+  background: rgba(248, 250, 252, 0.82);
   min-height: 5.55rem;
   padding: 0.24rem;
   border-radius: 10px;
@@ -433,8 +456,8 @@ tbody tr:hover {
 }
 
 .fc-daygrid-day-frame:hover {
-  background-color: rgba(255, 255, 255, 0.92) !important;
-  box-shadow: inset 0 0 0 1px rgba(91, 110, 225, 0.07), 0 4px 14px rgba(35, 42, 62, 0.04);
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: inset 0 0 0 1px rgba(91, 110, 225, 0.06), 0 5px 16px rgba(35, 42, 62, 0.045);
 }
 
 :root[data-theme="dark"] .fc-daygrid-day-frame:hover {
@@ -442,7 +465,7 @@ tbody tr:hover {
 }
 
 :root[data-theme="dark"] .fc-daygrid-day-frame {
-  background: rgba(255, 255, 255, 0.055);
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .fc-daygrid-day-top {
