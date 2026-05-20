@@ -674,6 +674,7 @@ tbody tr:hover {
   width: 3.28em;
   z-index: 2;
   opacity: 0.92;
+  animation: fluxus-current-flow 8.2s linear infinite;
 }
 
 .fluxus-wordmark-current path {
@@ -684,7 +685,6 @@ tbody tr:hover {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2.05;
-  animation: fluxus-current-flow 8.2s linear infinite;
 }
 
 :root[data-theme="dark"] .fluxus-wordmark {
@@ -699,10 +699,10 @@ tbody tr:hover {
 
 @keyframes fluxus-current-flow {
   0% {
-    stroke-dashoffset: 228;
+    transform: translateX(-120%);
   }
   100% {
-    stroke-dashoffset: -104;
+    transform: translateX(120%);
   }
 }
 
