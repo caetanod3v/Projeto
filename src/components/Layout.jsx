@@ -34,6 +34,7 @@ export default function Layout({ user, onLogout }) {
    const notifRef = useRef(null);
 
    const [categorias, setCategorias] = useState([]);
+   const [isCategoriesOpen, setCategoriesOpen] = useState(false);
    const [pendentesCount, setPendentesCount] = useState(0);
    const [analytics, setAnalytics] = useState({
       hojeCount: 0,
@@ -338,41 +339,41 @@ export default function Layout({ user, onLogout }) {
                <div className="mt-4 flex-1 overflow-y-auto px-2.5 pb-3 no-scrollbar">
                   {categorias.length > 0 && (
                      <div className="p-1">
-                        <div className="mb-2 flex items-center gap-2 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-400">
-                           <Tag size={12} />
-                           Categorias
-                        </div>
-                        <div className="space-y-1">
-                           {categorias.map(cat => {
-                              const isActive = currentCategory === String(cat.id);
-                              return (
-                                 <button
-                                    key={cat.id}
-                                    onClick={() => toggleCategory(cat.id)}
-                                    className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-[11px] font-medium transition ${isActive ? 'bg-white text-gray-950 shadow-sm dark:bg-white/10 dark:text-white' : 'text-gray-500 hover:bg-white/60 dark:text-gray-400 dark:hover:bg-white/5'}`}
-                                 >
-                                    <span className="flex min-w-0 items-center gap-2">
-                                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cat.cor_hex }} />
-                                       <span className="truncate">{cat.nome}</span>
-                                    </span>
-                                    {isActive && <ChevronRight size={13} className="text-gray-400" />}
-                                 </button>
-                              );
-                           })}
-                        </div>
+                        <button
+                           type="button"
+                           onClick={() => setCategoriesOpen(open => !open)}
+                           aria-expanded={isCategoriesOpen}
+                           className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-400 transition hover:bg-white/60 hover:text-gray-600 dark:hover:bg-white/5 dark:hover:text-gray-200"
+                        >
+                           <span className="flex items-center gap-2">
+                              <Tag size={12} />
+                              Categorias
+                           </span>
+                           <ChevronRight size={13} className={`transition-transform duration-200 ${isCategoriesOpen ? 'rotate-90 text-gray-500 dark:text-gray-200' : ''}`} />
+                        </button>
+
+                        {isCategoriesOpen && (
+                           <div className="mt-1 space-y-1">
+                              {categorias.map(cat => {
+                                 const isActive = currentCategory === String(cat.id);
+                                 return (
+                                    <button
+                                       key={cat.id}
+                                       onClick={() => toggleCategory(cat.id)}
+                                       className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-[11px] font-medium transition ${isActive ? 'bg-white text-gray-950 shadow-sm dark:bg-white/10 dark:text-white' : 'text-gray-500 hover:bg-white/60 dark:text-gray-400 dark:hover:bg-white/5'}`}
+                                    >
+                                       <span className="flex min-w-0 items-center gap-2">
+                                          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cat.cor_hex }} />
+                                          <span className="truncate">{cat.nome}</span>
+                                       </span>
+                                       {isActive && <ChevronRight size={13} className="text-gray-400" />}
+                                    </button>
+                                 );
+                              })}
+                           </div>
+                        )}
                      </div>
                   )}
-
-                  <div className="mt-4 grid grid-cols-2 gap-2 px-1">
-                     <div>
-                        <p className="text-base font-semibold tabular-nums text-gray-950 dark:text-white">{analytics.semanaCount}</p>
-                        <p className="text-[9px] font-semibold uppercase tracking-wider text-gray-400">Semana</p>
-                     </div>
-                     <div>
-                        <p className="text-base font-semibold tabular-nums text-red-600 dark:text-red-300">{analytics.atrasadosCount}</p>
-                        <p className="text-[9px] font-semibold uppercase tracking-wider text-red-400">Atrasos</p>
-                     </div>
-                  </div>
                </div>
 
                <div className="p-2.5">
