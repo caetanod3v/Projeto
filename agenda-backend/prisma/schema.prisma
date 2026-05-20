@@ -39,6 +39,7 @@ model Usuario {
   senha      String
   role       Role
   status     StatusUsuario @default(pendente)
+  avatar_url String?
   created_at DateTime      @default(now())
 
   curso_id Int?
