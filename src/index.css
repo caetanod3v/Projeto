@@ -642,6 +642,7 @@ tbody tr:hover {
 .fluxus-wordmark {
   align-items: center;
   --fluxus-ink: #0a0f1a;
+  --fluxus-current: rgba(244, 247, 252, 0.94);
   color: var(--fluxus-ink) !important;
   display: inline-flex;
   font-family: "Geist", "Aptos", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
@@ -656,54 +657,34 @@ tbody tr:hover {
 }
 
 .fluxus-wordmark-text {
-  align-items: center;
-  display: inline-flex;
+  display: block;
   position: relative;
+  z-index: 1;
 }
 
-.fluxus-wordmark-x {
-  display: inline-block;
-  height: 0.84em;
-  margin: 0 0.015em 0 0.045em;
-  position: relative;
-  transform: translateY(0.015em);
-  width: 0.58em;
-}
-
-.fluxus-x-arm {
-  background: var(--fluxus-ink);
-  border-radius: 999px;
-  height: 0.12em;
-  left: 0.03em;
+.fluxus-wordmark-current {
+  color: var(--fluxus-current);
+  height: 0.64em;
+  left: 0.05em;
+  overflow: visible;
+  pointer-events: none;
   position: absolute;
-  top: 0.36em;
-  transform-origin: 50% 50%;
-  width: 0.52em;
+  top: 0.24em;
+  width: 3.08em;
+  z-index: 2;
 }
 
-.fluxus-x-arm-a {
-  transform: rotate(43deg);
-}
-
-.fluxus-x-arm-b {
-  transform: rotate(-43deg);
-}
-
-.fluxus-x-loop {
-  border: 0.065em solid var(--fluxus-ink);
-  border-left-color: transparent;
-  border-radius: 999px;
-  height: 0.32em;
-  left: 0.105em;
-  opacity: 0.82;
-  position: absolute;
-  top: 0.265em;
-  transform: rotate(-10deg);
-  width: 0.36em;
+.fluxus-wordmark-current path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.8;
 }
 
 :root[data-theme="dark"] .fluxus-wordmark {
   --fluxus-ink: #ffffff;
+  --fluxus-current: rgba(19, 23, 32, 0.96);
   color: #ffffff !important;
 }
 
