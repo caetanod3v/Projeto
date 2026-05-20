@@ -23,7 +23,7 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 
 // ── Middleware RBAC ────────────────────────────────────────────────────────────
 const authenticateToken = (req, res, next) => {
@@ -65,9 +65,23 @@ const usuarioPublicSelect = {
   email: true,
   role: true,
   status: true,
+  avatar_url: true,
+  created_at: true,
   curso_id: true,
   curso: { select: { id: true, nome: true } }
 };
+
+const toPublicUser = (user) => ({
+  id: user.id,
+  nome: user.nome,
+  email: user.email,
+  role: user.role,
+  status: user.status,
+  avatar_url: user.avatar_url,
+  created_at: user.created_at,
+  curso_id: user.curso_id,
+  curso: user.curso || null,
+});
 
 const parseOptionalInt = (value) => {
   if (value === undefined || value === null || value === '') return null;
@@ -429,7 +443,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     await registrarLog(user.id, 'LOGIN', 'Sessão iniciada.');
 
-    res.json({ token, user: { id: user.id, nome: user.nome, email: user.email, role: user.role, status: user.status, curso_id: user.curso_id } });
+    res.json({ token, user: toPublicUser(user) });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Erro no servidor.' });
@@ -490,17 +504,121 @@ app.post('/api/auth/reset-password', async (req, res) => {
 
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
-    const user = await prisma.usuario.findUnique({ where: { id: req.user.id } });
+    const user = await prisma.usuario.findUnique({
+      where: { id: req.user.id },
+      include: { curso: { select: { id: true, nome: true } } }
+    });
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
     if (user.status !== 'ativo') return res.status(403).json({ error: 'Sua conta não está ativa.' });
 
-    res.json({ id: user.id, nome: user.nome, email: user.email, role: user.role, curso_id: user.curso_id, status: user.status });
+    res.json(toPublicUser(user));
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Erro ao buscar dados do usuário.' });
   }
 });
 // ── Health Check ──────────────────────────────────────────────────────────────
+// Perfil
+app.get('/api/perfil', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.usuario.findUnique({
+      where: { id: req.user.id },
+      include: { curso: { select: { id: true, nome: true } } }
+    });
+
+    if (!user) return res.status(404).json({ error: 'Usuario nao encontrado.' });
+    if (user.status !== 'ativo') return res.status(403).json({ error: 'Sua conta nao esta ativa.' });
+
+    res.json(toPublicUser(user));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Erro ao buscar perfil.' });
+  }
+});
+
+app.patch('/api/perfil', authenticateToken, async (req, res) => {
+  const nome = req.body?.nome?.trim();
+
+  if (!nome || nome.length < 2) {
+    return res.status(400).json({ error: 'Informe um nome valido.' });
+  }
+
+  try {
+    const user = await prisma.usuario.update({
+      where: { id: req.user.id },
+      data: { nome },
+      include: { curso: { select: { id: true, nome: true } } }
+    });
+
+    await registrarLog(req.user.id, 'ATUALIZAR_PERFIL', 'Atualizou dados do perfil.');
+    res.json(toPublicUser(user));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Erro ao atualizar perfil.' });
+  }
+});
+
+app.patch('/api/perfil/senha', authenticateToken, async (req, res) => {
+  const { senha_atual, nova_senha, confirmar_senha } = req.body || {};
+
+  if (!senha_atual || !nova_senha || !confirmar_senha) {
+    return res.status(400).json({ error: 'Preencha todos os campos de senha.' });
+  }
+
+  if (nova_senha !== confirmar_senha) {
+    return res.status(400).json({ error: 'A confirmacao da nova senha nao confere.' });
+  }
+
+  if (nova_senha.length < 6) {
+    return res.status(400).json({ error: 'A nova senha deve ter pelo menos 6 caracteres.' });
+  }
+
+  try {
+    const user = await prisma.usuario.findUnique({ where: { id: req.user.id } });
+    if (!user) return res.status(404).json({ error: 'Usuario nao encontrado.' });
+
+    const valid = await bcrypt.compare(senha_atual, user.senha);
+    if (!valid) return res.status(400).json({ error: 'Senha atual incorreta.' });
+
+    const hash = await bcrypt.hash(nova_senha, 10);
+    await prisma.usuario.update({
+      where: { id: req.user.id },
+      data: { senha: hash }
+    });
+
+    await registrarLog(req.user.id, 'ALTERAR_SENHA', 'Alterou a senha do perfil.');
+    res.json({ message: 'Senha alterada com sucesso.' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Erro ao alterar senha.' });
+  }
+});
+
+app.patch('/api/perfil/avatar', authenticateToken, async (req, res) => {
+  const avatarUrl = req.body?.avatar_url || null;
+  const allowedImage = typeof avatarUrl === 'string'
+    && /^data:image\/(png|jpeg|jpg|webp);base64,[a-zA-Z0-9+/=]+$/.test(avatarUrl)
+    && avatarUrl.length <= 1500000;
+
+  if (avatarUrl && !allowedImage) {
+    return res.status(400).json({ error: 'Envie uma imagem PNG, JPG ou WebP com ate 1.5 MB.' });
+  }
+
+  try {
+    const user = await prisma.usuario.update({
+      where: { id: req.user.id },
+      data: { avatar_url: avatarUrl },
+      include: { curso: { select: { id: true, nome: true } } }
+    });
+
+    await registrarLog(req.user.id, 'ATUALIZAR_AVATAR', avatarUrl ? 'Atualizou foto de perfil.' : 'Removeu foto de perfil.');
+    res.json(toPublicUser(user));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Erro ao atualizar foto de perfil.' });
+  }
+});
+
 // Google Calendar OAuth / Sync
 app.get('/api/google-calendar/auth', authenticateToken, requireRole('coordenador'), async (req, res) => {
   if (!isGoogleConfigured()) {
