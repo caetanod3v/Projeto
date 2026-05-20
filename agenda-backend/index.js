@@ -1231,6 +1231,9 @@ app.get("/api/minhas-solicitacoes", authenticateToken, requireRole('secretaria')
 app.post('/api/compromissos', authenticateToken, async (req, res) => {
   const { titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao, coordenador_id } = req.body;
 
+  const usuarioId = getAuthenticatedUserId(req);
+  if (!usuarioId) return res.status(401).json({ error: 'Usuario autenticado invalido.' });
+
   const isSecretaria = req.user.role === 'secretaria';
   const coordenadorId = parseOptionalInt(coordenador_id);
 
@@ -1249,6 +1252,13 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
   }
 
   try {
+    const currentUser = await prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { id: true, role: true, curso_id: true },
+    });
+    if (!currentUser) return res.status(404).json({ error: 'Usuario nao encontrado.' });
+
+    const userRole = currentUser.role || req.user.role;
     let coordenador = null;
     if (coordenadorId) {
       coordenador = await prisma.usuario.findFirst({
@@ -1269,13 +1279,13 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
       dt_inicio: dtInicio,
       dt_fim: dtFim,
       categoria_id: categoriaId,
-      usuario_id: req.user.id,
+      usuario_id: usuarioId,
       repeticao: repeticao || 'nenhuma',
     };
 
     if (isSecretaria) {
       Object.assign(data, {
-        curso_id: cursoId || coordenador?.curso_id || null,
+        curso_id: coordenador?.curso_id || null,
         coordenador_id: coordenadorId,
         status: 'pendente',
         aprovado_por: null,
@@ -1284,10 +1294,10 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
         mensagem_resposta: null,
         motivo_recusa: null,
       });
-    } else if (req.user.role === 'coordenador') {
+    } else if (userRole === 'coordenador') {
       Object.assign(data, {
-        curso_id: req.user.curso_id || cursoId || null,
-        coordenador_id: req.user.id,
+        curso_id: currentUser.curso_id || null,
+        coordenador_id: usuarioId,
         status: 'aprovado',
       });
     } else {
@@ -1308,7 +1318,7 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
       }
     });
 
-    await registrarLog(req.user.id, 'CRIAR_COMPROMISSO', `Criou compromisso: ${titulo}`);
+    await registrarLog(usuarioId, 'CRIAR_COMPROMISSO', `Criou compromisso: ${titulo}`);
 
     if (isSecretaria && coordenador?.email) {
       sendReminder(coordenador.email, titulo, dt_inicio).catch(err => {
@@ -1317,7 +1327,7 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
     }
 
     await createNotificationSafe({
-      usuario_id: req.user.id,
+      usuario_id: usuarioId,
       titulo: isSecretaria ? 'Solicitacao enviada' : 'Compromisso criado',
       mensagem: isSecretaria
         ? `"${novoCompromisso.titulo}" foi enviado para coordenacao.`
@@ -1336,7 +1346,7 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
         referencia_id: novoCompromisso.id,
         referencia_tipo: 'compromisso',
       });
-    } else if (novoCompromisso.coordenador_id && novoCompromisso.coordenador_id !== req.user.id) {
+    } else if (novoCompromisso.coordenador_id && novoCompromisso.coordenador_id !== usuarioId) {
       await createNotificationSafe({
         usuario_id: novoCompromisso.coordenador_id,
         titulo: 'Novo compromisso na agenda',
