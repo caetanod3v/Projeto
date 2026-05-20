@@ -673,7 +673,7 @@ tbody tr:hover {
   top: 0.18em;
   width: 3.28em;
   z-index: 2;
-  animation: fluxus-current-rise 8.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  animation: fluxus-current-rise 8.2s linear infinite;
 }
 
 .fluxus-wordmark-current path {
@@ -684,7 +684,7 @@ tbody tr:hover {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2.05;
-  animation: fluxus-current-flow 8.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  animation: fluxus-current-flow 8.2s linear infinite;
 }
 
 :root[data-theme="dark"] .fluxus-wordmark {
@@ -702,21 +702,21 @@ tbody tr:hover {
     opacity: 0;
     transform: translateY(0.42em);
   }
-  16% {
-    opacity: 0.76;
+  10% {
+    opacity: 0.86;
     transform: translateY(0.18em);
   }
-  44% {
+  24% {
     opacity: 0.92;
     transform: translateY(0);
   }
-  70% {
-    opacity: 0.72;
-    transform: translateY(-0.11em);
+  78% {
+    opacity: 0.92;
+    transform: translateY(-0.12em);
   }
-  84% {
-    opacity: 0.26;
-    transform: translateY(-0.17em);
+  92% {
+    opacity: 0.82;
+    transform: translateY(-0.18em);
   }
   100% {
     opacity: 0;
@@ -727,9 +727,6 @@ tbody tr:hover {
 @keyframes fluxus-current-flow {
   0% {
     stroke-dashoffset: 228;
-  }
-  68% {
-    stroke-dashoffset: -12;
   }
   100% {
     stroke-dashoffset: -104;
