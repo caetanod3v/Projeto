@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { AlertTriangle, CalendarDays, CalendarX, CheckCircle2, Clock, Download, Edit, Search, Trash2, Users } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CalendarX, CheckCircle2, Clock, Download, Edit, Search, Trash2, UserCheck, Users } from 'lucide-react';
 import { differenceInDays, differenceInHours, format, formatDistanceToNow, isSameWeek, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import api from '../services/api';
@@ -96,7 +96,8 @@ export default function Dashboard({ user }) {
                relTime,
                durationStr: formatDuration(inicio, fim),
                catObj: catMap[ev.categoria_id] || { nome: 'Geral', cor_hex: '#374151' },
-               cursoStr: cursosMap[ev.curso_id] || 'Geral'
+               cursoStr: ev.curso?.nome || cursosMap[ev.curso_id] || 'Geral',
+               coordenadorNome: ev.coordenador?.nome || ev.coordenador_nome || 'Coordenador nao vinculado'
             };
          }).sort((a, b) => b.inicio - a.inicio);
 
@@ -310,7 +311,10 @@ export default function Dashboard({ user }) {
                                           <h5 className={`text-base font-semibold ${ev.isCompleted ? 'text-gray-400 line-through' : 'text-gray-950 dark:text-white'}`}>{ev.titulo}</h5>
                                           {ev.isNext && <span className="rounded-full border border-uvv-yellow/30 bg-uvv-yellow/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-uvv-yellow">Em breve</span>}
                                        </div>
-                                       <p className="flex items-center gap-2 text-xs font-medium text-gray-500"><Users size={13} /> {ev.cursoStr}</p>
+                                       <p className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400"><Users size={13} /> {ev.cursoStr}</p>
+                                       {user?.role === 'secretaria' && (
+                                          <p className="mt-1 flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400"><UserCheck size={13} /> {ev.coordenadorNome}</p>
+                                       )}
                                     </div>
 
                                     <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-end">
