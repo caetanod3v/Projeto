@@ -267,11 +267,116 @@ const syncCompromissoToGoogleCalendar = async (compromissoOrId) => {
   return { synced: true, googleEventId: payload.id };
 };
 
+const syncCompromissoToGoogleCalendarAndStore = async (compromissoOrId) => {
+  const compromisso = typeof compromissoOrId === 'object'
+    ? compromissoOrId
+    : await prisma.compromisso.findUnique({
+      where: { id: compromissoOrId },
+      include: { curso: true, categoria: true, coordenador: true },
+    });
+
+  if (compromisso?.google_event_id) {
+    return updateGoogleCalendarEvent(compromisso);
+  }
+
+  const result = await syncCompromissoToGoogleCalendar(compromissoOrId);
+
+  if (!result.synced || !result.googleEventId) {
+    return result;
+  }
+
+  const compromissoId = typeof compromissoOrId === 'object' ? compromissoOrId.id : compromissoOrId;
+  await prisma.compromisso.update({
+    where: { id: compromissoId },
+    data: { google_event_id: result.googleEventId },
+  });
+
+  return result;
+};
+
 const syncCompromissoToGoogleCalendarSafe = async (compromissoOrId) => {
   try {
-    return await syncCompromissoToGoogleCalendar(compromissoOrId);
+    return await syncCompromissoToGoogleCalendarAndStore(compromissoOrId);
   } catch (err) {
     console.error('Erro ao sincronizar Google Calendar:', err.message);
+    return { error: err.message };
+  }
+};
+
+const updateGoogleCalendarEvent = async (compromisso) => {
+  if (!compromisso?.google_event_id || !compromisso.coordenador_id) {
+    return { skipped: true, reason: 'Compromisso sem evento Google vinculado.' };
+  }
+
+  const accessToken = await getValidGoogleAccessToken(compromisso.coordenador_id);
+  if (!accessToken) {
+    return { skipped: true, reason: 'Coordenador sem Google Calendar conectado.' };
+  }
+
+  const response = await fetch(`${GOOGLE_CALENDAR_EVENTS_URL}/${encodeURIComponent(compromisso.google_event_id)}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(buildGoogleCalendarEvent(compromisso)),
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error?.message || 'Erro ao atualizar evento no Google Calendar.');
+  }
+
+  return { synced: true, googleEventId: payload.id };
+};
+
+const updateGoogleCalendarEventSafe = async (compromisso) => {
+  try {
+    return await updateGoogleCalendarEvent(compromisso);
+  } catch (err) {
+    console.error('Erro ao atualizar Google Calendar:', err.message);
+    return { error: err.message };
+  }
+};
+
+const deleteGoogleCalendarEvent = async (compromisso) => {
+  if (!compromisso?.google_event_id || !compromisso.coordenador_id) {
+    return { skipped: true, reason: 'Compromisso sem evento Google vinculado.' };
+  }
+
+  const accessToken = await getValidGoogleAccessToken(compromisso.coordenador_id);
+  if (!accessToken) {
+    return { skipped: true, reason: 'Coordenador sem Google Calendar conectado.' };
+  }
+
+  const response = await fetch(`${GOOGLE_CALENDAR_EVENTS_URL}/${encodeURIComponent(compromisso.google_event_id)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (response.status === 404 || response.status === 410) {
+    return { deleted: false, missing: true };
+  }
+
+  if (!response.ok) {
+    let message = 'Erro ao excluir evento no Google Calendar.';
+    try {
+      const payload = await response.json();
+      message = payload.error?.message || message;
+    } catch (err) {
+      // Empty error body; keep generic message.
+    }
+    throw new Error(message);
+  }
+
+  return { deleted: true };
+};
+
+const deleteGoogleCalendarEventSafe = async (compromisso) => {
+  try {
+    return await deleteGoogleCalendarEvent(compromisso);
+  } catch (err) {
+    console.error('Erro ao excluir Google Calendar:', err.message);
     return { error: err.message };
   }
 };
@@ -511,7 +616,7 @@ app.post('/api/google-calendar/sync-event', authenticateToken, requireRole('coor
       return res.status(404).json({ error: 'Compromisso nao encontrado para este coordenador.' });
     }
 
-    const result = await syncCompromissoToGoogleCalendar(compromisso);
+    const result = await syncCompromissoToGoogleCalendarAndStore(compromisso);
     if (result.skipped) {
       return res.status(400).json({ error: result.reason });
     }
@@ -799,11 +904,15 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
       });
     }
 
+    let compromissoResponse = novoCompromisso;
     if (novoCompromisso.status === 'aprovado' && novoCompromisso.coordenador_id) {
-      syncCompromissoToGoogleCalendarSafe(novoCompromisso);
+      const googleResult = await syncCompromissoToGoogleCalendarSafe(novoCompromisso);
+      if (googleResult?.googleEventId) {
+        compromissoResponse = { ...novoCompromisso, google_event_id: googleResult.googleEventId };
+      }
     }
 
-    res.status(201).json(novoCompromisso);
+    res.status(201).json(compromissoResponse);
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Erro ao criar compromisso." });
@@ -826,8 +935,18 @@ app.put('/api/compromissos/:id', authenticateToken, async (req, res) => {
         ...(curso_id !== undefined && { curso_id: curso_id ? parseInt(curso_id) : null }),
         ...(categoria_id !== undefined && { categoria_id: categoria_id ? parseInt(categoria_id) : null }),
         ...(repeticao && { repeticao }),
+      },
+      include: {
+        curso: true,
+        categoria: true,
+        usuario: { select: usuarioPublicSelect },
+        coordenador: { select: usuarioPublicSelect }
       }
     });
+
+    if (updated.google_event_id && updated.coordenador_id) {
+      await updateGoogleCalendarEventSafe(updated);
+    }
 
     await registrarLog(req.user.id, 'EDITAR_COMPROMISSO', `Editou compromisso: ${updated.titulo}`);
     res.json(updated);
@@ -872,8 +991,14 @@ app.patch('/api/compromissos/:id/aprovar', authenticateToken, requireRole('coord
     });
 
     await registrarLog(req.user.id, 'APROVAR_COMPROMISSO', `Aprovou compromisso: ${updated.titulo}`);
-    syncCompromissoToGoogleCalendarSafe(updated);
-    res.json(updated);
+
+    let compromissoResponse = updated;
+    const googleResult = await syncCompromissoToGoogleCalendarSafe(updated);
+    if (googleResult?.googleEventId) {
+      compromissoResponse = { ...updated, google_event_id: googleResult.googleEventId };
+    }
+
+    res.json(compromissoResponse);
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Erro ao aprovar compromisso." });
@@ -923,7 +1048,22 @@ app.patch('/api/compromissos/:id/recusar', authenticateToken, requireRole('coord
 app.delete('/api/compromissos/:id', authenticateToken, async (req, res) => {
   const id = parseInt(req.params.id);
   try {
-    const comp = await prisma.compromisso.delete({ where: { id } });
+    const comp = await prisma.compromisso.findUnique({
+      where: { id },
+      include: {
+        curso: true,
+        categoria: true,
+        coordenador: { select: usuarioPublicSelect }
+      }
+    });
+
+    if (!comp) return res.status(404).json({ error: 'Compromisso nao encontrado.' });
+
+    if (comp.google_event_id && comp.coordenador_id) {
+      await deleteGoogleCalendarEventSafe(comp);
+    }
+
+    await prisma.compromisso.delete({ where: { id } });
     await registrarLog(req.user.id, 'EXCLUIR_COMPROMISSO', `Excluiu compromisso id: ${id}`);
     res.json({ success: true });
   } catch (e) {
