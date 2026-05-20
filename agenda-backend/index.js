@@ -89,6 +89,8 @@ const parseOptionalInt = (value) => {
   return Number.isNaN(parsed) ? null : parsed;
 };
 
+const getAuthenticatedUserId = (req) => parseOptionalInt(req.user?.id || req.user?.userId);
+
 const formatDateOnly = (date) => date.toISOString().slice(0, 10);
 const formatTimeOnly = (date) => date.toISOString().slice(11, 16);
 
@@ -802,11 +804,14 @@ app.patch('/api/perfil/avatar', authenticateToken, async (req, res) => {
 
 // Notificacoes
 app.get('/api/notificacoes', authenticateToken, async (req, res) => {
+  const usuarioId = getAuthenticatedUserId(req);
+  if (!usuarioId) return res.status(401).json({ error: 'Usuario autenticado invalido.' });
+
   try {
-    await ensureAutomaticNotificationsForUser(req.user);
+    await ensureAutomaticNotificationsForUser({ ...req.user, id: usuarioId });
 
     const notificacoes = await prisma.notificacao.findMany({
-      where: { usuario_id: req.user.id },
+      where: { usuario_id: usuarioId },
       orderBy: [
         { lida: 'asc' },
         { created_at: 'desc' },
@@ -822,13 +827,25 @@ app.get('/api/notificacoes', authenticateToken, async (req, res) => {
 });
 
 app.patch('/api/notificacoes/lidas', authenticateToken, async (req, res) => {
+  const usuarioId = getAuthenticatedUserId(req);
+  if (!usuarioId) return res.status(401).json({ error: 'Usuario autenticado invalido.' });
+
   try {
-    await prisma.notificacao.updateMany({
-      where: { usuario_id: req.user.id, lida: false },
+    const result = await prisma.notificacao.updateMany({
+      where: { usuario_id: usuarioId, lida: false },
       data: { lida: true },
     });
 
-    res.json({ success: true });
+    const notificacoes = await prisma.notificacao.findMany({
+      where: { usuario_id: usuarioId },
+      orderBy: [
+        { lida: 'asc' },
+        { created_at: 'desc' },
+      ],
+      take: 80,
+    });
+
+    res.json({ success: true, updated: result.count, notificacoes: notificacoes.map(toNotificationDto) });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Erro ao marcar notificacoes como lidas.' });
@@ -836,19 +853,31 @@ app.patch('/api/notificacoes/lidas', authenticateToken, async (req, res) => {
 });
 
 app.patch('/api/notificacoes/:id/lida', authenticateToken, async (req, res) => {
+  const usuarioId = getAuthenticatedUserId(req);
+  if (!usuarioId) return res.status(401).json({ error: 'Usuario autenticado invalido.' });
+
   const id = parseInt(req.params.id, 10);
   if (Number.isNaN(id)) return res.status(400).json({ error: 'Notificacao invalida.' });
 
   try {
     const result = await prisma.notificacao.updateMany({
-      where: { id, usuario_id: req.user.id },
+      where: { id, usuario_id: usuarioId },
       data: { lida: true },
     });
 
     if (result.count === 0) return res.status(404).json({ error: 'Notificacao nao encontrada.' });
 
     const notificacao = await prisma.notificacao.findUnique({ where: { id } });
-    res.json(toNotificationDto(notificacao));
+    const notificacoes = await prisma.notificacao.findMany({
+      where: { usuario_id: usuarioId },
+      orderBy: [
+        { lida: 'asc' },
+        { created_at: 'desc' },
+      ],
+      take: 80,
+    });
+
+    res.json({ success: true, notificacao: toNotificationDto(notificacao), notificacoes: notificacoes.map(toNotificationDto) });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Erro ao marcar notificacao como lida.' });
@@ -856,12 +885,15 @@ app.patch('/api/notificacoes/:id/lida', authenticateToken, async (req, res) => {
 });
 
 app.delete('/api/notificacoes/:id', authenticateToken, async (req, res) => {
+  const usuarioId = getAuthenticatedUserId(req);
+  if (!usuarioId) return res.status(401).json({ error: 'Usuario autenticado invalido.' });
+
   const id = parseInt(req.params.id, 10);
   if (Number.isNaN(id)) return res.status(400).json({ error: 'Notificacao invalida.' });
 
   try {
     const result = await prisma.notificacao.deleteMany({
-      where: { id, usuario_id: req.user.id },
+      where: { id, usuario_id: usuarioId },
     });
 
     if (result.count === 0) return res.status(404).json({ error: 'Notificacao nao encontrada.' });
