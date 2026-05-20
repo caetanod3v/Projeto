@@ -8,6 +8,12 @@ const jwt = require("jsonwebtoken");
 const prisma = new PrismaClient();
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || 'segredo_super_secreto_uvv_2026';
+const GOOGLE_CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
+const GOOGLE_CALENDAR_EVENTS_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
+const GOOGLE_CALENDAR_TIMEZONE = process.env.GOOGLE_CALENDAR_TIMEZONE || 'America/Sao_Paulo';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 app.use(cors({
   origin: [
@@ -85,6 +91,7 @@ const toSolicitacaoSecretaria = (compromisso) => ({
   mensagem_resposta: compromisso.mensagem_resposta,
   motivo_recusa: compromisso.motivo_recusa,
   respondido_em: compromisso.respondido_em,
+  created_at: compromisso.created_at,
   coordenador: compromisso.coordenador ? {
     id: compromisso.coordenador.id,
     nome: compromisso.coordenador.nome,
@@ -93,6 +100,181 @@ const toSolicitacaoSecretaria = (compromisso) => ({
   curso: compromisso.coordenador?.curso || compromisso.curso || null,
   categoria: compromisso.categoria || null,
 });
+
+const getGoogleConfig = () => ({
+  clientId: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  redirectUri: process.env.GOOGLE_REDIRECT_URI,
+});
+
+const isGoogleConfigured = () => {
+  const config = getGoogleConfig();
+  return Boolean(config.clientId && config.clientSecret && config.redirectUri);
+};
+
+const buildGoogleAuthUrl = (user) => {
+  const config = getGoogleConfig();
+  const state = jwt.sign(
+    { userId: user.id, role: user.role, purpose: 'google-calendar-oauth' },
+    JWT_SECRET,
+    { expiresIn: '10m' }
+  );
+
+  const params = new URLSearchParams({
+    client_id: config.clientId,
+    redirect_uri: config.redirectUri,
+    response_type: 'code',
+    scope: GOOGLE_CALENDAR_SCOPE,
+    access_type: 'offline',
+    prompt: 'consent',
+    include_granted_scopes: 'true',
+    state,
+  });
+
+  return `${GOOGLE_AUTH_URL}?${params.toString()}`;
+};
+
+const exchangeGoogleCode = async (code) => {
+  const config = getGoogleConfig();
+  const response = await fetch(GOOGLE_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      code,
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+      redirect_uri: config.redirectUri,
+      grant_type: 'authorization_code',
+    }),
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error_description || payload.error || 'Erro ao trocar codigo OAuth do Google.');
+  }
+  return payload;
+};
+
+const refreshGoogleAccessToken = async (user) => {
+  const config = getGoogleConfig();
+  if (!user.google_refresh_token) return null;
+
+  const response = await fetch(GOOGLE_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+      refresh_token: user.google_refresh_token,
+      grant_type: 'refresh_token',
+    }),
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error_description || payload.error || 'Erro ao renovar token do Google.');
+  }
+
+  const expiresAt = new Date(Date.now() + (payload.expires_in || 3600) * 1000);
+  await prisma.usuario.update({
+    where: { id: user.id },
+    data: {
+      google_access_token: payload.access_token,
+      google_token_expiry: expiresAt,
+      google_calendar_connected: true,
+    },
+  });
+
+  return payload.access_token;
+};
+
+const getValidGoogleAccessToken = async (userId) => {
+  if (!isGoogleConfigured()) return null;
+
+  const user = await prisma.usuario.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      role: true,
+      google_access_token: true,
+      google_refresh_token: true,
+      google_token_expiry: true,
+      google_calendar_connected: true,
+    },
+  });
+
+  if (!user || user.role !== 'coordenador' || !user.google_calendar_connected) return null;
+  if (!user.google_access_token && !user.google_refresh_token) return null;
+
+  const expiresAt = user.google_token_expiry ? user.google_token_expiry.getTime() : 0;
+  if (user.google_access_token && expiresAt > Date.now() + 60000) {
+    return user.google_access_token;
+  }
+
+  return refreshGoogleAccessToken(user);
+};
+
+const buildGoogleCalendarEvent = (compromisso) => ({
+  summary: compromisso.titulo,
+  description: [
+    compromisso.descricao || '',
+    '',
+    'Sincronizado automaticamente pelo Fluxus.',
+    compromisso.curso?.nome ? `Curso: ${compromisso.curso.nome}` : null,
+    compromisso.categoria?.nome ? `Categoria: ${compromisso.categoria.nome}` : null,
+  ].filter(Boolean).join('\n'),
+  start: {
+    dateTime: new Date(compromisso.dt_inicio).toISOString(),
+    timeZone: GOOGLE_CALENDAR_TIMEZONE,
+  },
+  end: {
+    dateTime: new Date(compromisso.dt_fim).toISOString(),
+    timeZone: GOOGLE_CALENDAR_TIMEZONE,
+  },
+});
+
+const syncCompromissoToGoogleCalendar = async (compromissoOrId) => {
+  const compromisso = typeof compromissoOrId === 'object'
+    ? compromissoOrId
+    : await prisma.compromisso.findUnique({
+      where: { id: compromissoOrId },
+      include: { curso: true, categoria: true, coordenador: true },
+    });
+
+  if (!compromisso || compromisso.status !== 'aprovado' || !compromisso.coordenador_id) {
+    return { skipped: true, reason: 'Compromisso sem coordenador ou ainda nao aprovado.' };
+  }
+
+  const accessToken = await getValidGoogleAccessToken(compromisso.coordenador_id);
+  if (!accessToken) {
+    return { skipped: true, reason: 'Coordenador sem Google Calendar conectado.' };
+  }
+
+  const response = await fetch(GOOGLE_CALENDAR_EVENTS_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(buildGoogleCalendarEvent(compromisso)),
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error?.message || 'Erro ao criar evento no Google Calendar.');
+  }
+
+  return { synced: true, googleEventId: payload.id };
+};
+
+const syncCompromissoToGoogleCalendarSafe = async (compromissoOrId) => {
+  try {
+    return await syncCompromissoToGoogleCalendar(compromissoOrId);
+  } catch (err) {
+    console.error('Erro ao sincronizar Google Calendar:', err.message);
+    return { error: err.message };
+  }
+};
 
 // ── Autenticação ─────────────────────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
@@ -214,6 +396,134 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
   }
 });
 // ── Health Check ──────────────────────────────────────────────────────────────
+// Google Calendar OAuth / Sync
+app.get('/api/google-calendar/auth', authenticateToken, requireRole('coordenador'), async (req, res) => {
+  if (!isGoogleConfigured()) {
+    return res.status(500).json({ error: 'Google Calendar nao esta configurado no servidor.' });
+  }
+
+  res.json({ authUrl: buildGoogleAuthUrl(req.user) });
+});
+
+app.get('/api/google-calendar/callback', async (req, res) => {
+  const { code, state, error } = req.query;
+  const redirectWithStatus = (status) => res.redirect(`${FRONTEND_URL}/?googleCalendar=${status}`);
+
+  if (error) {
+    return redirectWithStatus('error');
+  }
+
+  if (!code || !state || !isGoogleConfigured()) {
+    return redirectWithStatus('error');
+  }
+
+  try {
+    const decoded = jwt.verify(state, JWT_SECRET);
+    if (decoded.purpose !== 'google-calendar-oauth' || decoded.role !== 'coordenador') {
+      return redirectWithStatus('forbidden');
+    }
+
+    const user = await prisma.usuario.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true, role: true, google_refresh_token: true },
+    });
+
+    if (!user || user.role !== 'coordenador') {
+      return redirectWithStatus('forbidden');
+    }
+
+    const tokens = await exchangeGoogleCode(code);
+    const refreshToken = tokens.refresh_token || user.google_refresh_token;
+
+    if (!refreshToken) {
+      return redirectWithStatus('missing_refresh_token');
+    }
+
+    await prisma.usuario.update({
+      where: { id: user.id },
+      data: {
+        google_access_token: tokens.access_token,
+        google_refresh_token: refreshToken,
+        google_token_expiry: new Date(Date.now() + (tokens.expires_in || 3600) * 1000),
+        google_calendar_connected: true,
+      },
+    });
+
+    await registrarLog(user.id, 'GOOGLE_CALENDAR_CONNECT', 'Conectou Google Calendar.');
+    return redirectWithStatus('connected');
+  } catch (err) {
+    console.error('Erro no callback do Google Calendar:', err.message);
+    return redirectWithStatus('error');
+  }
+});
+
+app.get('/api/google-calendar/status', authenticateToken, requireRole('coordenador'), async (req, res) => {
+  try {
+    const user = await prisma.usuario.findUnique({
+      where: { id: req.user.id },
+      select: { google_calendar_connected: true, google_token_expiry: true },
+    });
+
+    res.json({
+      connected: Boolean(user?.google_calendar_connected),
+      tokenExpiry: user?.google_token_expiry || null,
+      configured: isGoogleConfigured(),
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Erro ao consultar status do Google Calendar.' });
+  }
+});
+
+app.delete('/api/google-calendar/disconnect', authenticateToken, requireRole('coordenador'), async (req, res) => {
+  try {
+    await prisma.usuario.update({
+      where: { id: req.user.id },
+      data: {
+        google_access_token: null,
+        google_refresh_token: null,
+        google_token_expiry: null,
+        google_calendar_connected: false,
+      },
+    });
+
+    await registrarLog(req.user.id, 'GOOGLE_CALENDAR_DISCONNECT', 'Desconectou Google Calendar.');
+    res.json({ connected: false });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Erro ao desconectar Google Calendar.' });
+  }
+});
+
+app.post('/api/google-calendar/sync-event', authenticateToken, requireRole('coordenador'), async (req, res) => {
+  const compromissoId = parseOptionalInt(req.body?.compromisso_id || req.body?.compromissoId);
+  if (!compromissoId) {
+    return res.status(400).json({ error: 'Informe o compromisso para sincronizar.' });
+  }
+
+  try {
+    const compromisso = await prisma.compromisso.findFirst({
+      where: { id: compromissoId, coordenador_id: req.user.id },
+      include: { curso: true, categoria: true, coordenador: true },
+    });
+
+    if (!compromisso) {
+      return res.status(404).json({ error: 'Compromisso nao encontrado para este coordenador.' });
+    }
+
+    const result = await syncCompromissoToGoogleCalendar(compromisso);
+    if (result.skipped) {
+      return res.status(400).json({ error: result.reason });
+    }
+
+    await registrarLog(req.user.id, 'GOOGLE_CALENDAR_SYNC_EVENT', `Sincronizou compromisso ${compromisso.id} no Google Calendar.`);
+    res.json({ success: true, googleEventId: result.googleEventId });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Erro ao sincronizar compromisso com Google Calendar.' });
+  }
+});
+
 app.get("/", (req, res) => {
   res.json({ status: "ok", message: "Backend Agenda UVV online" });
 });
@@ -434,19 +744,45 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
       }
     }
 
-    const novoCompromisso = await prisma.compromisso.create({
-      data: {
-        titulo,
-        descricao,
-        dt_inicio: dtInicio,
-        dt_fim: dtFim,
-        curso_id: parseOptionalInt(curso_id) || coordenador?.curso_id || null,
-        categoria_id: parseOptionalInt(categoria_id),
-        usuario_id: req.user.id,
+    const cursoId = parseOptionalInt(curso_id);
+    const categoriaId = parseOptionalInt(categoria_id);
+    const data = {
+      titulo,
+      descricao,
+      dt_inicio: dtInicio,
+      dt_fim: dtFim,
+      categoria_id: categoriaId,
+      usuario_id: req.user.id,
+      repeticao: repeticao || 'nenhuma',
+    };
+
+    if (isSecretaria) {
+      Object.assign(data, {
+        curso_id: cursoId || coordenador?.curso_id || null,
         coordenador_id: coordenadorId,
-        repeticao: repeticao || 'nenhuma',
-        status: isSecretaria ? 'pendente' : 'aprovado',
-      },
+        status: 'pendente',
+        aprovado_por: null,
+        aprovado_em: null,
+        respondido_em: null,
+        mensagem_resposta: null,
+        motivo_recusa: null,
+      });
+    } else if (req.user.role === 'coordenador') {
+      Object.assign(data, {
+        curso_id: req.user.curso_id || cursoId || null,
+        coordenador_id: req.user.id,
+        status: 'aprovado',
+      });
+    } else {
+      Object.assign(data, {
+        curso_id: cursoId || coordenador?.curso_id || null,
+        coordenador_id: coordenadorId,
+        status: 'aprovado',
+      });
+    }
+
+    const novoCompromisso = await prisma.compromisso.create({
+      data,
       include: {
         curso: true,
         categoria: true,
@@ -461,6 +797,10 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
       sendReminder(coordenador.email, titulo, dt_inicio).catch(err => {
         console.error("Erro no e-mail de notificacao:", err);
       });
+    }
+
+    if (novoCompromisso.status === 'aprovado' && novoCompromisso.coordenador_id) {
+      syncCompromissoToGoogleCalendarSafe(novoCompromisso);
     }
 
     res.status(201).json(novoCompromisso);
@@ -510,6 +850,10 @@ app.patch('/api/compromissos/:id/aprovar', authenticateToken, requireRole('coord
       return res.status(403).json({ error: 'Voce so pode aprovar compromissos enviados para voce.' });
     }
 
+    if (comp.status !== 'pendente') {
+      return res.status(400).json({ error: 'Esta solicitacao ja foi respondida.' });
+    }
+
     const updated = await prisma.compromisso.update({
       where: { id },
       data: {
@@ -519,10 +863,16 @@ app.patch('/api/compromissos/:id/aprovar', authenticateToken, requireRole('coord
         aprovado_por: req.user.id,
         aprovado_em: new Date(),
         respondido_em: new Date(),
+      },
+      include: {
+        curso: true,
+        categoria: true,
+        coordenador: { select: usuarioPublicSelect }
       }
     });
 
     await registrarLog(req.user.id, 'APROVAR_COMPROMISSO', `Aprovou compromisso: ${updated.titulo}`);
+    syncCompromissoToGoogleCalendarSafe(updated);
     res.json(updated);
   } catch (e) {
     console.error(e);
@@ -542,6 +892,10 @@ app.patch('/api/compromissos/:id/recusar', authenticateToken, requireRole('coord
       return res.status(403).json({ error: 'Voce so pode recusar compromissos enviados para voce.' });
     }
 
+    if (comp.status !== 'pendente') {
+      return res.status(400).json({ error: 'Esta solicitacao ja foi respondida.' });
+    }
+
     const motivo = motivo_recusa?.trim();
     if (!motivo) {
       return res.status(400).json({ error: 'Informe o motivo da recusa.' });
@@ -551,6 +905,7 @@ app.patch('/api/compromissos/:id/recusar', authenticateToken, requireRole('coord
       where: { id },
       data: {
         status: 'recusado',
+        aprovado_por: req.user.id,
         motivo_recusa: motivo,
         mensagem_resposta: mensagem_resposta?.trim() || motivo,
         respondido_em: new Date(),

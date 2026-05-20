@@ -47,6 +47,11 @@ model Usuario {
   reset_token         String?
   reset_token_expires DateTime?
 
+  google_access_token       String?
+  google_refresh_token      String?
+  google_token_expiry       DateTime?
+  google_calendar_connected Boolean   @default(false)
+
   compromissos_criados     Compromisso[]  @relation("CriadorCompromisso")
   compromissos_aprovados   Compromisso[]  @relation("AprovadorCompromisso")
   compromissos_responsavel Compromisso[]  @relation("CoordenadorResponsavel")

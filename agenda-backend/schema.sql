@@ -4,6 +4,10 @@ CREATE TABLE IF NOT EXISTS usuarios (
     nome VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     role VARCHAR(50) NOT NULL CHECK (role IN ('coordenador', 'secretaria', 'admin')),
+    google_access_token TEXT,
+    google_refresh_token TEXT,
+    google_token_expiry TIMESTAMP,
+    google_calendar_connected BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
