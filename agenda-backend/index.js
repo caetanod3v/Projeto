@@ -83,6 +83,37 @@ const toPublicUser = (user) => ({
   curso: user.curso || null,
 });
 
+const getCompromissoScopeWhere = (user, baseWhere = {}) => {
+  if (!user || user.role === 'admin' || user.role === 'secretaria') {
+    return baseWhere;
+  }
+
+  if (user.role === 'coordenador') {
+    return {
+      AND: [
+        baseWhere,
+        {
+          OR: [
+            { coordenador_id: user.id },
+            { usuario_id: user.id },
+          ],
+        },
+      ],
+    };
+  }
+
+  return { AND: [baseWhere, { usuario_id: user.id }] };
+};
+
+const canAccessCompromisso = (user, compromisso) => {
+  if (!user || !compromisso) return false;
+  if (user.role === 'admin' || user.role === 'secretaria') return true;
+  if (user.role === 'coordenador') {
+    return compromisso.coordenador_id === user.id || compromisso.usuario_id === user.id;
+  }
+  return compromisso.usuario_id === user.id;
+};
+
 const parseOptionalInt = (value) => {
   if (value === undefined || value === null || value === '') return null;
   const parsed = parseInt(value, 10);
@@ -1173,7 +1204,7 @@ app.delete("/api/users/:id", authenticateToken, requireRole('admin'), async (req
 app.get("/api/compromissos", authenticateToken, async (req, res) => {
   try {
     const compromissos = await prisma.compromisso.findMany({
-      where: { status: 'aprovado' },
+      where: getCompromissoScopeWhere(req.user, { status: 'aprovado' }),
       orderBy: { dt_inicio: 'asc' },
       include: {
         curso: true,
@@ -1190,14 +1221,10 @@ app.get("/api/compromissos", authenticateToken, async (req, res) => {
 });
 
 // ── Compromissos pendentes (RBAC) ─────────────────────────────────────────────
-app.get("/api/compromissos/pendentes", authenticateToken, requireRole('coordenador', 'admin'), async (req, res) => {
+app.get("/api/compromissos/pendentes", authenticateToken, requireRole('coordenador', 'admin', 'secretaria'), async (req, res) => {
   try {
-    const whereClause = { status: 'pendente' };
-    if (req.user.role === 'coordenador') {
-      whereClause.coordenador_id = req.user.id;
-    }
     const pendentes = await prisma.compromisso.findMany({
-      where: whereClause,
+      where: getCompromissoScopeWhere(req.user, { status: 'pendente' }),
       orderBy: { created_at: 'asc' },
       include: {
         curso: true,
@@ -1392,6 +1419,12 @@ app.put('/api/compromissos/:id', authenticateToken, async (req, res) => {
   const { titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao } = req.body;
 
   try {
+    const existing = await prisma.compromisso.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'Compromisso nao encontrado.' });
+    if (!canAccessCompromisso(req.user, existing)) {
+      return res.status(403).json({ error: 'Voce nao tem acesso a este compromisso.' });
+    }
+
     const updated = await prisma.compromisso.update({
       where: { id },
       data: {
@@ -1399,7 +1432,7 @@ app.put('/api/compromissos/:id', authenticateToken, async (req, res) => {
         ...(descricao !== undefined && { descricao }),
         ...(dt_inicio && { dt_inicio: new Date(dt_inicio) }),
         ...(dt_fim && { dt_fim: new Date(dt_fim) }),
-        ...(curso_id !== undefined && { curso_id: curso_id ? parseInt(curso_id) : null }),
+        ...(req.user.role !== 'coordenador' && curso_id !== undefined && { curso_id: curso_id ? parseInt(curso_id) : null }),
         ...(categoria_id !== undefined && { categoria_id: categoria_id ? parseInt(categoria_id) : null }),
         ...(repeticao && { repeticao }),
       },
@@ -1571,6 +1604,9 @@ app.delete('/api/compromissos/:id', authenticateToken, async (req, res) => {
     });
 
     if (!comp) return res.status(404).json({ error: 'Compromisso nao encontrado.' });
+    if (!canAccessCompromisso(req.user, comp)) {
+      return res.status(403).json({ error: 'Voce nao tem acesso a este compromisso.' });
+    }
 
     if (comp.google_event_id && comp.coordenador_id) {
       await deleteGoogleCalendarEventSafe(comp);

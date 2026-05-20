@@ -9,6 +9,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "node prisma/seed.js",
+    "compromissos:audit-scope": "node scripts/audit-compromisso-scope.js",
     "postinstall": "prisma generate"
   },
   "prisma": {

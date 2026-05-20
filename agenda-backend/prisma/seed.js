@@ -104,16 +104,18 @@ async function main() {
     const dtFim = new Date(dtInicio);
     dtFim.setHours(dtInicio.getHours() + (i % 2 === 0 ? 2 : 1));
 
+    const coordenador = usuarios[i % 3];
+
     await prisma.compromisso.create({
       data: {
         titulo:       evt.title,
         descricao:    'Pauta obrigatória para tratar assuntos acadêmicos. Presença requerida.',
         dt_inicio:    dtInicio,
         dt_fim:       dtFim,
-        curso_id:     cursos[i % 5].id,
+        curso_id:     coordenador.curso_id,
         categoria_id: categorias[i % 5].id,
-        usuario_id:   usuarios[i % 3].id,
-        coordenador_id: usuarios[i % 3].id,
+        usuario_id:   coordenador.id,
+        coordenador_id: coordenador.id,
         repeticao:    'nenhuma',
         status:       'aprovado',
       },
