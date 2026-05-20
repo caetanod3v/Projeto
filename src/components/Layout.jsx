@@ -258,23 +258,23 @@ export default function Layout({ user, onLogout }) {
       <div
          key={n.id}
          className={`group mx-3 mb-2 flex w-[calc(100%-1.5rem)] items-start gap-2 rounded-xl p-3 transition duration-200 ${n.isLida
-            ? 'bg-white/70 ring-1 ring-gray-200/55 hover:bg-white dark:bg-[#141824]/74 dark:ring-white/[0.055] dark:hover:bg-[#181d2a]'
-            : 'bg-slate-50 ring-1 ring-slate-200/75 shadow-[0_8px_22px_rgba(15,23,42,0.045)] hover:bg-white dark:bg-[#1c2231] dark:ring-white/[0.075] dark:shadow-none dark:hover:bg-[#202738]'}`}
+            ? 'bg-white ring-1 ring-gray-200/70 hover:bg-gray-50 dark:bg-[#141824]/80 dark:ring-white/[0.055] dark:hover:bg-[#181d2a]'
+            : 'bg-[#f7f9fc] ring-1 ring-slate-200/80 shadow-[0_8px_22px_rgba(15,23,42,0.045)] hover:bg-white dark:bg-[#1c2231] dark:ring-white/[0.075] dark:shadow-none dark:hover:bg-[#202738]'}`}
       >
          <button onClick={() => handleNotifClick(n)} className="flex min-w-0 flex-1 items-start gap-3 text-left">
             <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${n.bgColor} ${n.isLida ? 'opacity-45 dark:opacity-50' : 'shadow-[0_0_0_3px_rgba(91,110,225,0.12)] dark:shadow-[0_0_0_3px_rgba(148,163,184,0.10)]'}`} />
             <span className="min-w-0">
-               <span className={`block text-sm leading-snug ${n.isLida ? 'font-medium text-gray-500 dark:text-slate-300' : 'font-semibold text-gray-900 dark:text-slate-50'}`}>{n.titulo}</span>
+               <span className={`block text-sm leading-snug ${n.isLida ? 'font-medium text-gray-600 dark:text-slate-300' : 'font-semibold text-gray-950 dark:text-slate-50'}`}>{n.titulo}</span>
                {n.mensagem && n.mensagem !== n.titulo && (
-                  <span className="mt-1 block line-clamp-2 text-xs leading-relaxed text-gray-500 dark:text-slate-400">{n.mensagem}</span>
+                  <span className="mt-1 block line-clamp-2 text-xs leading-relaxed text-gray-600 dark:text-slate-400">{n.mensagem}</span>
                )}
-               <span className="mt-1.5 block text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">{n.tempoStr}</span>
+               <span className="mt-1.5 block text-[10px] font-semibold uppercase tracking-widest text-gray-500 dark:text-slate-500">{n.tempoStr}</span>
             </span>
          </button>
          <button
             type="button"
             onClick={() => removerNotificacao(n.id)}
-            className="rounded-lg p-1.5 text-gray-300 opacity-0 transition hover:bg-gray-100 hover:text-gray-600 group-hover:opacity-100 dark:text-slate-500 dark:hover:bg-white/10 dark:hover:text-slate-200"
+            className="rounded-lg p-1.5 text-gray-400 opacity-60 transition hover:bg-gray-100 hover:text-gray-700 group-hover:opacity-100 dark:text-slate-500 dark:hover:bg-white/10 dark:hover:text-slate-200"
             aria-label="Remover notificacao"
          >
             <X size={13} />
@@ -533,10 +533,14 @@ export default function Layout({ user, onLogout }) {
                      </button>
 
                      {isNotifOpen && (
-                        <div className="absolute right-0 top-full z-50 mt-3 flex max-h-[80vh] w-80 origin-top-right animate-fade-in-up flex-col overflow-hidden rounded-2xl bg-[#f8fafc] shadow-2xl ring-1 ring-gray-200/80 dark:bg-[#101521] dark:ring-white/10">
-                           <div className="flex shrink-0 items-center justify-between border-b border-gray-200/60 px-5 py-4 dark:border-white/[0.06]">
+                        <div className="absolute right-0 top-full z-50 mt-3 flex max-h-[80vh] w-80 origin-top-right animate-fade-in-up flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-gray-200/80 dark:bg-[#101521] dark:ring-white/10">
+                           <div className="flex shrink-0 items-center justify-between border-b border-gray-200/70 bg-white px-5 py-4 dark:border-white/[0.06] dark:bg-[#101521]">
                               <h3 className="text-sm font-semibold text-gray-950 dark:text-white">Notificacoes</h3>
-                              {unreadNotifsCount > 0 && <span className="rounded-full bg-slate-900 px-2 py-1 text-[10px] font-semibold text-white dark:bg-slate-100 dark:text-slate-950">{unreadNotifsCount} novas</span>}
+                              {unreadNotifsCount > 0 && (
+                                 <span className="rounded-full bg-[#eef2ff] px-2.5 py-1 text-[10px] font-bold text-[#3730a3] shadow-[0_1px_2px_rgba(67,56,202,0.10)] ring-1 ring-[#c7d2fe] dark:bg-[#232b3f] dark:text-slate-50 dark:shadow-none dark:ring-white/10">
+                                    {unreadNotifsCount} novas
+                                 </span>
+                              )}
                            </div>
 
                            <div className="thin-scrollbar min-h-[100px] flex-1 overflow-y-auto py-3">
@@ -553,14 +557,14 @@ export default function Layout({ user, onLogout }) {
                               ) : (
                                  <div>
                                     {unreadNotifications.length > 0 && (
-                                       <div className="px-5 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-slate-500">
+                                       <div className="px-5 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500 dark:text-slate-500">
                                           Nao lidas
                                        </div>
                                     )}
                                     {unreadNotifications.map(renderNotificationItem)}
 
                                     {readNotifications.length > 0 && (
-                                       <div className="px-5 pb-2 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-slate-500">
+                                       <div className="px-5 pb-2 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500 dark:text-slate-500">
                                           Lidas
                                        </div>
                                     )}
@@ -570,8 +574,8 @@ export default function Layout({ user, onLogout }) {
                            </div>
 
                            {notificacoes.length > 0 && (
-                              <div className="shrink-0 border-t border-gray-200/60 bg-white/60 p-3 text-center dark:border-white/[0.06] dark:bg-[#0f1420]">
-                                 <button onClick={lerTodas} className="text-xs font-semibold text-gray-500 transition hover:text-gray-950 dark:text-slate-400 dark:hover:text-white">Marcar todas como lidas</button>
+                              <div className="shrink-0 border-t border-gray-200/70 bg-white p-3 text-center dark:border-white/[0.06] dark:bg-[#0f1420]">
+                                 <button onClick={lerTodas} className="text-xs font-semibold text-gray-600 transition hover:text-gray-950 dark:text-slate-400 dark:hover:text-white">Marcar todas como lidas</button>
                               </div>
                            )}
                         </div>
