@@ -9,7 +9,7 @@ import listPlugin from '@fullcalendar/list';
 import api from '../services/api';
 import { format, isToday, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarDays, Clock, Copy, Plus, Tag, Trash2, X } from 'lucide-react';
+import { CalendarDays, Clock, Copy, Plus, Trash2, X } from 'lucide-react';
 
 // Helper de contraste
 function getContrastYIQ(hexcolor) {
@@ -29,6 +29,12 @@ function hexToRgba(hex, alpha) {
     g = parseInt(hex.slice(3, 5), 16),
     b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function isSameLocalDay(dateA, dateB) {
+  return dateA.getFullYear() === dateB.getFullYear()
+    && dateA.getMonth() === dateB.getMonth()
+    && dateA.getDate() === dateB.getDate();
 }
 
 export default function Calendario({ user }) {
@@ -208,6 +214,7 @@ export default function Calendario({ user }) {
           start: ev.dt_inicio,
           end: ev.dt_fim,
           extendedProps: {
+            usuario_id: ev.usuario_id,
             curso_id: ev.curso_id,
             coordenador_id: ev.coordenador_id,
             cursoStr: cursosMap[ev.curso_id] || 'Geral',
@@ -390,10 +397,35 @@ export default function Calendario({ user }) {
   const canEdit = user?.role === 'admin' || user?.role === 'coordenador';
   const isFormDisabled = editingId ? !canEdit : false;
   const isSecretaria = user?.role === 'secretaria';
-  const upcomingEvents = events
-    .filter(ev => new Date(ev.start) >= new Date() && !ev.extendedProps.isCompleted)
-    .sort((a, b) => new Date(a.start) - new Date(b.start))
-    .slice(0, 5);
+  const now = new Date();
+  const currentUserId = Number(user?.id);
+  const userScopedEvents = events.filter(ev => {
+    if (user?.role === 'admin') return true;
+    return Number(ev.extendedProps.usuario_id) === currentUserId
+      || Number(ev.extendedProps.coordenador_id) === currentUserId;
+  });
+  const activeUserEvents = userScopedEvents.filter(ev => !ev.extendedProps.isCompleted);
+  const todayEvents = activeUserEvents
+    .filter(ev => isSameLocalDay(new Date(ev.start), now))
+    .sort((a, b) => new Date(a.start) - new Date(b.start));
+  const todayOverdueEvents = todayEvents.filter(ev => new Date(ev.start) < now);
+  const nextTodayEvent = todayEvents.find(ev => new Date(ev.start) >= now);
+  const upcomingEvents = activeUserEvents
+    .filter(ev => new Date(ev.start) >= now)
+    .sort((a, b) => new Date(a.start) - new Date(b.start));
+  const visibleUpcomingEvents = upcomingEvents.slice(0, 10);
+  const openEventFromPanel = (ev) => {
+    handleEventClick({
+      event: {
+        ...ev,
+        start: new Date(ev.start),
+        end: ev.end ? new Date(ev.end) : null,
+        id: ev.id,
+        title: ev.title,
+        extendedProps: ev.extendedProps
+      }
+    });
+  };
   const todayLabel = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' });
   const canCreate = user?.role === 'admin' || user?.role === 'coordenador' || user?.role === 'secretaria';
   const calendarApi = () => calendarRef.current?.getApi();
@@ -535,9 +567,9 @@ export default function Calendario({ user }) {
         />
         </div>
 
-        <aside className="grid content-start gap-3">
+        <aside className="flex min-h-0 flex-col gap-3 xl:h-[calc(100vh-188px)]">
           {user?.role === 'coordenador' && (
-            <div className="rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-gray-200/50 dark:bg-[#191d28] dark:ring-white/10">
+            <div className="shrink-0 rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-gray-200/50 transition hover:shadow-[0_8px_24px_rgba(15,23,42,0.045)] dark:bg-[#191d28] dark:ring-white/10 dark:hover:bg-[#1b202d]">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold text-gray-950 dark:text-white">Google Calendar</p>
@@ -571,86 +603,96 @@ export default function Calendario({ user }) {
             </div>
           )}
 
-          <div className="rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-gray-200/50 dark:bg-[#191d28] dark:ring-white/10">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">Hoje</p>
-            <h3 className="mt-1 text-sm font-semibold capitalize text-gray-950 dark:text-white">{todayLabel}</h3>
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              <div className="rounded-xl bg-gray-50 p-2.5 dark:bg-white/5">
-                <CalendarDays size={14} className="mb-2 text-emerald-600" />
-                <p className="text-lg font-semibold tabular-nums text-gray-950 dark:text-white">{stats.hoje}</p>
-                <p className="text-[10px] font-medium text-gray-500">Hoje</p>
+          <div className="shrink-0 rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-gray-200/50 transition hover:shadow-[0_8px_24px_rgba(15,23,42,0.045)] dark:bg-[#191d28] dark:ring-white/10 dark:hover:bg-[#1b202d]">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">Hoje</p>
+                <h3 className="mt-1 text-sm font-semibold capitalize text-gray-950 dark:text-white">{todayLabel}</h3>
               </div>
-              <div className="rounded-xl bg-gray-50 p-2.5 dark:bg-white/5">
+              <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${todayOverdueEvents.length > 0 ? 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'}`}>
+                {todayOverdueEvents.length > 0 ? `${todayOverdueEvents.length} atrasado${todayOverdueEvents.length > 1 ? 's' : ''}` : 'Tudo em dia'}
+              </span>
+            </div>
+
+            <div className="mt-4 grid grid-cols-[0.9fr_1.1fr] gap-2">
+              <div className="rounded-xl bg-gray-50 p-3 dark:bg-white/5">
+                <CalendarDays size={14} className="mb-2 text-emerald-600 dark:text-emerald-300" />
+                <p className="text-xl font-semibold tabular-nums tracking-tight text-gray-950 dark:text-white">{todayEvents.length}</p>
+                <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400">compromissos</p>
+              </div>
+
+              <div className="rounded-xl bg-gray-50 p-3 dark:bg-white/5">
                 <Clock size={14} className="mb-2 text-uvv-yellow" />
-                <p className="text-lg font-semibold tabular-nums text-gray-950 dark:text-white">{stats.proxHrs || '--'}</p>
-                <p className="text-[10px] font-medium text-gray-500">Prox.</p>
+                {nextTodayEvent ? (
+                  <>
+                    <p className="truncate text-xs font-semibold text-gray-950 dark:text-white">{nextTodayEvent.title}</p>
+                    <p className="mt-1 text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                      as {format(new Date(nextTodayEvent.start), 'HH:mm')}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs font-semibold text-gray-950 dark:text-white">
+                      {todayEvents.length > 0 ? 'Sem proximos hoje' : 'Agenda livre'}
+                    </p>
+                    <p className="mt-1 text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                      {todayEvents.length > 0 ? 'Sem novos horarios' : 'Nenhum compromisso'}
+                    </p>
+                  </>
+                )}
               </div>
-              <div className="rounded-xl bg-gray-50 p-2.5 dark:bg-white/5">
-                <Tag size={14} className="mb-2 text-indigo-500" />
-                <p className="text-lg font-semibold tabular-nums text-gray-950 dark:text-white">{categorias.length}</p>
-                <p className="text-[10px] font-medium text-gray-500">Tags</p>
-              </div>
+            </div>
+
+            <div className="mt-3 rounded-xl bg-gray-50 px-3 py-2.5 dark:bg-white/5">
+              <p className="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                {nextTodayEvent
+                  ? `Proximo: ${nextTodayEvent.title} as ${format(new Date(nextTodayEvent.start), 'HH:mm')}.`
+                  : todayOverdueEvents.length > 0
+                    ? `${todayOverdueEvents.length} compromisso${todayOverdueEvents.length > 1 ? 's' : ''} ainda precisa de atencao.`
+                    : 'Sem pendencias imediatas para hoje.'}
+              </p>
             </div>
           </div>
 
-          <div className="rounded-[18px] bg-white p-3 shadow-sm ring-1 ring-gray-200/50 dark:bg-[#191d28] dark:ring-white/10">
-            <div className="mb-2 flex items-center justify-between px-1">
-              <p className="text-xs font-semibold text-gray-950 dark:text-white">Proximos</p>
-              <span className="text-[11px] text-gray-400">{upcomingEvents.length}</span>
+          <div className="flex min-h-[260px] flex-1 flex-col overflow-hidden rounded-[18px] bg-white p-3 shadow-sm ring-1 ring-gray-200/50 dark:bg-[#191d28] dark:ring-white/10">
+            <div className="mb-2 flex shrink-0 items-center justify-between px-1">
+              <div>
+                <p className="text-xs font-semibold text-gray-950 dark:text-white">Proximos</p>
+                <p className="mt-0.5 text-[11px] text-gray-400 dark:text-gray-500">Compromissos relevantes</p>
+              </div>
+              <span className="rounded-lg bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-500 dark:bg-white/5 dark:text-gray-300">{upcomingEvents.length}</span>
             </div>
-            <div className="space-y-1.5">
+            <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1 no-scrollbar">
               {upcomingEvents.length === 0 ? (
-                <div className="rounded-xl bg-gray-50 p-3 text-xs text-gray-500 dark:bg-white/5">Sem proximos compromissos.</div>
+                <div className="flex h-full min-h-[160px] flex-col justify-center rounded-xl bg-gray-50 p-4 text-center dark:bg-white/5">
+                  <CalendarDays size={20} className="mx-auto mb-3 text-gray-400" />
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">Sem proximos compromissos</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">Quando houver eventos futuros, eles aparecem aqui.</p>
+                </div>
               ) : (
-                upcomingEvents.map(ev => (
+                visibleUpcomingEvents.map(ev => (
                   <button
                     key={ev.id}
-                    onClick={() => handleEventClick({ event: { ...ev, start: new Date(ev.start), end: ev.end ? new Date(ev.end) : null, id: ev.id, title: ev.title, extendedProps: ev.extendedProps } })}
-                    className="flex w-full items-start gap-2 rounded-xl p-2.5 text-left transition hover:bg-gray-50 dark:hover:bg-white/5"
+                    onClick={() => openEventFromPanel(ev)}
+                    className="group flex w-full items-start gap-2.5 rounded-xl p-2.5 text-left transition duration-200 hover:-translate-y-[1px] hover:bg-gray-50 hover:shadow-[0_6px_18px_rgba(15,23,42,0.045)] dark:hover:bg-white/5 dark:hover:shadow-none"
                   >
-                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: ev.extendedProps.catObj.cor_hex }} />
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full ring-4 ring-gray-100 dark:ring-white/5" style={{ backgroundColor: ev.extendedProps.catObj.cor_hex }} />
                     <span className="min-w-0">
-                      <span className="block truncate text-xs font-semibold text-gray-950 dark:text-white">{ev.title}</span>
-                      <span className="mt-0.5 block truncate text-[11px] text-gray-500">
-                        {format(new Date(ev.start), 'dd/MM HH:mm')} - {ev.extendedProps.cursoStr}
+                      <span className="block truncate text-xs font-semibold text-gray-950 transition group-hover:text-gray-700 dark:text-white dark:group-hover:text-gray-100">{ev.title}</span>
+                      <span className="mt-0.5 block truncate text-[11px] text-gray-500 dark:text-gray-400">
+                        {format(new Date(ev.start), "dd MMM, HH:mm", { locale: ptBR })} - {ev.extendedProps.cursoStr}
                       </span>
                     </span>
                   </button>
                 ))
               )}
             </div>
+            {upcomingEvents.length > visibleUpcomingEvents.length && (
+              <div className="shrink-0 px-2 pt-2 text-center text-[11px] font-medium text-gray-400 dark:text-gray-500">
+                +{upcomingEvents.length - visibleUpcomingEvents.length} compromissos futuros
+              </div>
+            )}
           </div>
-
-          {categorias.length > 0 && (
-            <div className="rounded-[18px] bg-white p-3 shadow-sm ring-1 ring-gray-200/50 dark:bg-[#191d28] dark:ring-white/10">
-              <div className="mb-2 flex items-center justify-between px-1">
-                <p className="text-xs font-semibold text-gray-950 dark:text-white">Categorias</p>
-                {categoriaFilter && (
-                  <button onClick={() => navigate(location.pathname)} className="text-[11px] font-medium text-uvv-yellow">Limpar</button>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {categorias.slice(0, 12).map(cat => {
-                  const active = categoriaFilter === String(cat.id);
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => {
-                        const params = new URLSearchParams(searchParams);
-                        if (active) params.delete('categoria');
-                        else params.set('categoria', cat.id);
-                        navigate(`${location.pathname}?${params.toString()}`);
-                      }}
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition ${active ? 'bg-gray-950 text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10'}`}
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: cat.cor_hex }} />
-                      {cat.nome}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </aside>
       </section>
 
