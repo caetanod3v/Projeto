@@ -81,9 +81,12 @@ model Notificacao {
 
   @@index([usuario_id, created_at])
   @@index([usuario_id, lida])
+
   @@index([lida])
   @@index([created_at])
   @@index([referencia_tipo, referencia_id])
+
+
   @@map("notificacoes")
 }
 
