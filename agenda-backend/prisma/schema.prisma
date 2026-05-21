@@ -58,6 +58,11 @@ model Usuario {
   compromissos_responsavel Compromisso[]  @relation("CoordenadorResponsavel")
   notificacoes             Notificacao[]
   logs                     LogAuditoria[]
+  logs_acoes               LogAcao[]
+
+  @@index([role, status])
+  @@index([curso_id])
+  @@index([created_at])
 
   @@map("usuarios")
 }
@@ -76,6 +81,9 @@ model Notificacao {
 
   @@index([usuario_id, created_at])
   @@index([usuario_id, lida])
+  @@index([lida])
+  @@index([created_at])
+  @@index([referencia_tipo, referencia_id])
   @@map("notificacoes")
 }
 
@@ -90,12 +98,30 @@ model LogAuditoria {
   @@map("logs_auditoria")
 }
 
+model LogAcao {
+  id          Int      @id @default(autoincrement())
+  usuario_id  Int?
+  usuario     Usuario? @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
+  acao        String
+  entidade    String
+  entidade_id Int?
+  detalhes    Json?
+  created_at  DateTime @default(now())
+
+  @@index([usuario_id, created_at])
+  @@index([entidade, entidade_id])
+  @@index([acao, created_at])
+  @@map("logs_acoes")
+}
+
 model Curso {
   id           Int           @id @default(autoincrement())
   nome         String
   created_at   DateTime      @default(now())
   compromissos Compromisso[]
   usuarios     Usuario[]
+
+  @@index([created_at])
 
   @@map("cursos")
 }
@@ -106,6 +132,8 @@ model Categoria {
   cor_hex      String
   created_at   DateTime      @default(now())
   compromissos Compromisso[]
+
+  @@index([created_at])
 
   @@map("categorias")
 }
@@ -140,5 +168,16 @@ model Compromisso {
   aprovado_por Int?
   aprovador    Usuario? @relation("AprovadorCompromisso", fields: [aprovado_por], references: [id])
 
+  @@index([usuario_id])
+  @@index([coordenador_id])
+  @@index([curso_id])
+  @@index([categoria_id])
+  @@index([status])
+  @@index([created_at])
+  @@index([dt_inicio])
+  @@index([dt_fim])
+  @@index([coordenador_id, status, dt_inicio])
+  @@index([usuario_id, status, dt_inicio])
+  @@index([curso_id, status, dt_inicio])
   @@map("compromissos")
 }

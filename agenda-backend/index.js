@@ -25,15 +25,78 @@ app.use(cors({
 
 app.use(express.json({ limit: '2mb' }));
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+class AppError extends Error {
+  constructor(message, statusCode = 500, code = 'INTERNAL_ERROR') {
+    super(message);
+    this.statusCode = statusCode;
+    this.code = code;
+    this.isOperational = true;
+  }
+}
+
+const apiError = (message, code = 'REQUEST_ERROR') => ({
+  error: true,
+  message,
+  code,
+});
+
+const validationError = (message) => new AppError(message, 400, 'VALIDATION_ERROR');
+
+const sendValidationError = (res, message) => (
+  res.status(400).json(apiError(message, 'VALIDATION_ERROR'))
+);
+
+const parsePagination = (query = {}, defaults = {}) => {
+  const hasPagination = query.page !== undefined || query.limit !== undefined;
+  const defaultLimit = defaults.limit || 20;
+  const maxLimit = defaults.maxLimit || 100;
+  const pageValue = parseInt(query.page || '1', 10);
+  const limitValue = parseInt(query.limit || String(defaultLimit), 10);
+  const page = Number.isNaN(pageValue) || pageValue < 1 ? 1 : pageValue;
+  const limit = Number.isNaN(limitValue) || limitValue < 1
+    ? defaultLimit
+    : Math.min(limitValue, maxLimit);
+
+  return {
+    hasPagination,
+    page,
+    limit,
+    skip: (page - 1) * limit,
+    take: limit,
+  };
+};
+
+const paginatedResponse = (data, pagination) => ({
+  data,
+  pagination: {
+    page: pagination.page,
+    limit: pagination.limit,
+    total: pagination.total,
+    totalPages: Math.max(1, Math.ceil(pagination.total / pagination.limit)),
+  },
+});
+
+const isValidEmail = (email) => (
+  typeof email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+);
+
+const assertNonEmpty = (value, message) => {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw validationError(message);
+  }
+};
+
 // ── Middleware RBAC ────────────────────────────────────────────────────────────
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  if (!token) return res.status(401).json({ error: 'Token não fornecido.' });
+  if (!token) return res.status(401).json(apiError('Token nao fornecido.', 'AUTH_TOKEN_MISSING'));
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: 'Token inválido ou expirado.' });
+    if (err) return res.status(403).json(apiError('Token invalido ou expirado.', 'AUTH_TOKEN_INVALID'));
     req.user = user;
     next();
   });
@@ -42,7 +105,7 @@ const authenticateToken = (req, res, next) => {
 const requireRole = (...roles) => {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Acesso negado para o seu perfil.' });
+      return res.status(403).json(apiError('Acesso negado para o seu perfil.', 'FORBIDDEN'));
     }
     next();
   };
@@ -56,6 +119,16 @@ async function registrarLog(usuario_id, acao, detalhes = null) {
     });
   } catch (err) {
     console.error('Erro ao registrar log de auditoria:', err);
+  }
+}
+
+async function registrarAcao({ usuario_id, acao, entidade, entidade_id = null, detalhes = null }) {
+  try {
+    await prisma.logAcao.create({
+      data: { usuario_id, acao, entidade, entidade_id, detalhes }
+    });
+  } catch (err) {
+    console.error('Erro ao registrar acao:', { message: err.message, code: err.code });
   }
 }
 
@@ -679,15 +752,33 @@ const fetchVisibleNotificationsForUser = async (user, take = 80) => {
 
 app.post('/api/auth/register', async (req, res) => {
   const { nome, email, senha, role, curso_id } = req.body;
+  const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+
+  if (!nome || nome.trim().length < 2) {
+    return sendValidationError(res, 'Informe um nome valido.');
+  }
+
+  if (!isValidEmail(normalizedEmail)) {
+    return sendValidationError(res, 'Informe um e-mail valido.');
+  }
+
+  if (!senha || senha.length < 6) {
+    return sendValidationError(res, 'A senha deve ter pelo menos 6 caracteres.');
+  }
+
+  if (role && !['admin', 'secretaria', 'coordenador'].includes(role)) {
+    return sendValidationError(res, 'Informe um perfil valido.');
+  }
+
   try {
-    const userExists = await prisma.usuario.findUnique({ where: { email } });
-    if (userExists) return res.status(400).json({ error: 'E-mail já cadastrado.' });
+    const userExists = await prisma.usuario.findUnique({ where: { email: normalizedEmail } });
+    if (userExists) return res.status(400).json(apiError('E-mail ja cadastrado.', 'EMAIL_ALREADY_EXISTS'));
 
     const hash = await bcrypt.hash(senha, 10);
     const newUser = await prisma.usuario.create({
       data: {
-        nome,
-        email,
+        nome: nome.trim(),
+        email: normalizedEmail,
         senha: hash,
         role: role || 'secretaria',
         curso_id: curso_id || null,
@@ -705,16 +796,21 @@ app.post('/api/auth/register', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   const { email, senha } = req.body;
+  const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+
+  if (!isValidEmail(normalizedEmail) || !senha) {
+    return res.status(400).json(apiError('Informe e-mail e senha validos.', 'VALIDATION_ERROR'));
+  }
 
   try {
-    const user = await prisma.usuario.findUnique({ where: { email } });
-    if (!user) return res.status(401).json({ error: 'Credenciais inválidas.' });
+    const user = await prisma.usuario.findUnique({ where: { email: normalizedEmail } });
+    if (!user) return res.status(401).json(apiError('Credenciais invalidas.', 'INVALID_CREDENTIALS'));
 
-    if (user.status === 'pendente') return res.status(403).json({ error: 'Sua conta ainda aguarda aprovação do administrador.' });
-    if (user.status === 'bloqueado') return res.status(403).json({ error: 'Sua conta foi bloqueada.' });
+    if (user.status === 'pendente') return res.status(403).json(apiError('Sua conta ainda aguarda aprovacao do administrador.', 'ACCOUNT_PENDING'));
+    if (user.status === 'bloqueado') return res.status(403).json(apiError('Sua conta foi bloqueada.', 'ACCOUNT_BLOCKED'));
 
     const valid = await bcrypt.compare(senha, user.senha);
-    if (!valid) return res.status(401).json({ error: 'Credenciais inválidas.' });
+    if (!valid) return res.status(401).json(apiError('Credenciais invalidas.', 'INVALID_CREDENTIALS'));
 
     const token = jwt.sign(
       { id: user.id, nome: user.nome, email: user.email, role: user.role, curso_id: user.curso_id },
@@ -733,8 +829,14 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.post('/api/auth/forgot-password', async (req, res) => {
   const { email } = req.body;
+  const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+
+  if (!isValidEmail(normalizedEmail)) {
+    return sendValidationError(res, 'Informe um e-mail valido.');
+  }
+
   try {
-    const user = await prisma.usuario.findUnique({ where: { email } });
+    const user = await prisma.usuario.findUnique({ where: { email: normalizedEmail } });
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
     const token = require('crypto').randomBytes(32).toString('hex');
@@ -747,7 +849,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
     const { sendReminder } = require("./emailService");
     // Aproveitando o mock do ethereal para enviar o link
-    await sendReminder(email, "Recuperação de Senha", new Date(), "Use o link http://localhost:5173/reset-password?token=" + token + " para resetar sua senha. Ignorar a data:");
+    await sendReminder(normalizedEmail, "Recuperação de Senha", new Date(), "Use o link http://localhost:5173/reset-password?token=" + token + " para resetar sua senha. Ignorar a data:");
 
     await registrarLog(user.id, 'SOLICITACAO_RECUPERACAO_SENHA', 'Solicitou redefinição de senha.');
     res.json({ message: 'E-mail de recuperação enviado.' });
@@ -759,6 +861,10 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
 app.post('/api/auth/reset-password', async (req, res) => {
   const { token, senha } = req.body;
+  if (!token || !senha || senha.length < 6) {
+    return sendValidationError(res, 'Informe um token valido e uma senha com pelo menos 6 caracteres.');
+  }
+
   try {
     const user = await prisma.usuario.findFirst({
       where: {
@@ -821,7 +927,7 @@ app.patch('/api/perfil', authenticateToken, async (req, res) => {
   const nome = req.body?.nome?.trim();
 
   if (!nome || nome.length < 2) {
-    return res.status(400).json({ error: 'Informe um nome valido.' });
+    return sendValidationError(res, 'Informe um nome valido.');
   }
 
   try {
@@ -832,6 +938,13 @@ app.patch('/api/perfil', authenticateToken, async (req, res) => {
     });
 
     await registrarLog(req.user.id, 'ATUALIZAR_PERFIL', 'Atualizou dados do perfil.');
+    await registrarAcao({
+      usuario_id: req.user.id,
+      acao: 'ATUALIZAR_PERFIL',
+      entidade: 'usuario',
+      entidade_id: req.user.id,
+      detalhes: { campos: ['nome'] },
+    });
     res.json(toPublicUser(user));
   } catch (e) {
     console.error(e);
@@ -843,15 +956,15 @@ app.patch('/api/perfil/senha', authenticateToken, async (req, res) => {
   const { senha_atual, nova_senha, confirmar_senha } = req.body || {};
 
   if (!senha_atual || !nova_senha || !confirmar_senha) {
-    return res.status(400).json({ error: 'Preencha todos os campos de senha.' });
+    return sendValidationError(res, 'Preencha todos os campos de senha.');
   }
 
   if (nova_senha !== confirmar_senha) {
-    return res.status(400).json({ error: 'A confirmacao da nova senha nao confere.' });
+    return sendValidationError(res, 'A confirmacao da nova senha nao confere.');
   }
 
   if (nova_senha.length < 6) {
-    return res.status(400).json({ error: 'A nova senha deve ter pelo menos 6 caracteres.' });
+    return sendValidationError(res, 'A nova senha deve ter pelo menos 6 caracteres.');
   }
 
   try {
@@ -908,7 +1021,20 @@ app.get('/api/notificacoes', authenticateToken, async (req, res) => {
   try {
     await ensureAutomaticNotificationsForUser({ ...req.user, id: usuarioId });
 
-    const notificacoes = await fetchVisibleNotificationsForUser({ ...req.user, id: usuarioId });
+    const pagination = parsePagination(req.query);
+    const fetchLimit = pagination.hasPagination ? pagination.page * pagination.limit : 80;
+    const notificacoes = await fetchVisibleNotificationsForUser({ ...req.user, id: usuarioId }, fetchLimit);
+
+    if (pagination.hasPagination) {
+      const data = notificacoes
+        .slice(pagination.skip, pagination.skip + pagination.limit)
+        .map(toNotificationDto);
+
+      return res.json(paginatedResponse(data, {
+        ...pagination,
+        total: notificacoes.length,
+      }));
+    }
 
     res.json(notificacoes.map(toNotificationDto));
   } catch (e) {
@@ -1181,9 +1307,23 @@ app.get("/api/categorias", async (req, res) => {
 // ── Usuários (Admin) ─────────────────────────────────────────────────────────
 app.get("/api/users", authenticateToken, requireRole('admin'), async (req, res) => {
   try {
-    const usuarios = await prisma.usuario.findMany({
+    const pagination = parsePagination(req.query);
+    const query = {
       orderBy: { id: 'asc' },
       select: { id: true, nome: true, email: true, role: true, status: true, curso_id: true, created_at: true, curso: true }
+    };
+
+    if (pagination.hasPagination) {
+      const [usuarios, total] = await Promise.all([
+        prisma.usuario.findMany({ ...query, skip: pagination.skip, take: pagination.take }),
+        prisma.usuario.count(),
+      ]);
+
+      return res.json(paginatedResponse(usuarios, { ...pagination, total }));
+    }
+
+    const usuarios = await prisma.usuario.findMany({
+      ...query
     });
     res.json(usuarios);
   } catch (e) {
@@ -1194,10 +1334,28 @@ app.get("/api/users", authenticateToken, requireRole('admin'), async (req, res) 
 
 app.post("/api/users", authenticateToken, requireRole('admin'), async (req, res) => {
   const { nome, email, senha, role, curso_id, status } = req.body;
+  const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+
+  if (!nome || nome.trim().length < 2) {
+    return sendValidationError(res, 'Informe um nome valido.');
+  }
+
+  if (!isValidEmail(normalizedEmail)) {
+    return sendValidationError(res, 'Informe um e-mail valido.');
+  }
+
+  if (!senha || senha.length < 6) {
+    return sendValidationError(res, 'A senha deve ter pelo menos 6 caracteres.');
+  }
+
+  if (!['admin', 'secretaria', 'coordenador'].includes(role)) {
+    return sendValidationError(res, 'Informe um perfil valido.');
+  }
+
   try {
     const hash = await bcrypt.hash(senha, 10);
     const novo = await prisma.usuario.create({
-      data: { nome, email, senha: hash, role, curso_id: curso_id || null, status: status || 'ativo' }
+      data: { nome: nome.trim(), email: normalizedEmail, senha: hash, role, curso_id: curso_id || null, status: status || 'ativo' }
     });
     await registrarLog(req.user.id, 'CRIAR_USUARIO', `Admin criou o usuário ${email}`);
     res.status(201).json({ id: novo.id, nome: novo.nome, email: novo.email, role: novo.role, status: novo.status, curso_id: novo.curso_id });
@@ -1210,8 +1368,35 @@ app.post("/api/users", authenticateToken, requireRole('admin'), async (req, res)
 app.put("/api/users/:id", authenticateToken, requireRole('admin'), async (req, res) => {
   const id = parseInt(req.params.id);
   const { nome, email, senha, role, curso_id, status } = req.body;
+
+  if (Number.isNaN(id)) {
+    return sendValidationError(res, 'Usuario invalido.');
+  }
+
+  if (nome !== undefined && (!nome || nome.trim().length < 2)) {
+    return sendValidationError(res, 'Informe um nome valido.');
+  }
+
+  if (email !== undefined && !isValidEmail(email)) {
+    return sendValidationError(res, 'Informe um e-mail valido.');
+  }
+
+  if (senha && senha.length < 6) {
+    return sendValidationError(res, 'A senha deve ter pelo menos 6 caracteres.');
+  }
+
+  if (role !== undefined && !['admin', 'secretaria', 'coordenador'].includes(role)) {
+    return sendValidationError(res, 'Informe um perfil valido.');
+  }
+
   try {
-    const data = { nome, email, role, curso_id, status };
+    const data = {
+      ...(nome !== undefined && { nome: nome.trim() }),
+      ...(email !== undefined && { email: email.trim().toLowerCase() }),
+      ...(role !== undefined && { role }),
+      ...(curso_id !== undefined && { curso_id }),
+      ...(status !== undefined && { status }),
+    };
     if (senha) {
       data.senha = await bcrypt.hash(senha, 10);
     }
@@ -1263,8 +1448,10 @@ app.delete("/api/users/:id", authenticateToken, requireRole('admin'), async (req
 // ── Compromissos aprovados ────────────────────────────────────────────────────
 app.get("/api/compromissos", authenticateToken, async (req, res) => {
   try {
-    const compromissos = await prisma.compromisso.findMany({
-      where: getCompromissoScopeWhere(req.user, { status: 'aprovado' }),
+    const pagination = parsePagination(req.query);
+    const where = getCompromissoScopeWhere(req.user, { status: 'aprovado' });
+    const query = {
+      where,
       orderBy: { dt_inicio: 'asc' },
       include: {
         curso: true,
@@ -1272,6 +1459,19 @@ app.get("/api/compromissos", authenticateToken, async (req, res) => {
         usuario: { select: usuarioPublicSelect },
         coordenador: { select: usuarioPublicSelect }
       }
+    };
+
+    if (pagination.hasPagination) {
+      const [compromissos, total] = await Promise.all([
+        prisma.compromisso.findMany({ ...query, skip: pagination.skip, take: pagination.take }),
+        prisma.compromisso.count({ where }),
+      ]);
+
+      return res.json(paginatedResponse(compromissos, { ...pagination, total }));
+    }
+
+    const compromissos = await prisma.compromisso.findMany({
+      ...query
     });
     res.json(compromissos);
   } catch (e) {
@@ -1331,17 +1531,17 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
   const coordenadorId = parseOptionalInt(coordenador_id);
 
   if (!titulo || !dt_inicio || !dt_fim) {
-    return res.status(400).json({ error: "Informe titulo, data de inicio e data de fim." });
+    return sendValidationError(res, "Informe titulo, data de inicio e data de fim.");
   }
 
   const dtInicio = new Date(dt_inicio);
   const dtFim = new Date(dt_fim);
   if (Number.isNaN(dtInicio.getTime()) || Number.isNaN(dtFim.getTime()) || dtFim <= dtInicio) {
-    return res.status(400).json({ error: "Informe um periodo valido para o compromisso." });
+    return sendValidationError(res, "Informe um periodo valido para o compromisso.");
   }
 
   if (isSecretaria && !coordenadorId) {
-    return res.status(400).json({ error: "Selecione o coordenador responsavel pelo compromisso." });
+    return sendValidationError(res, "Selecione o coordenador responsavel pelo compromisso.");
   }
 
   try {
@@ -1367,7 +1567,7 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
     const cursoId = parseOptionalInt(curso_id);
     const categoriaId = parseOptionalInt(categoria_id);
     const data = {
-      titulo,
+      titulo: titulo.trim(),
       descricao,
       dt_inicio: dtInicio,
       dt_fim: dtFim,
@@ -1412,6 +1612,17 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
     });
 
     await registrarLog(usuarioId, 'CRIAR_COMPROMISSO', `Criou compromisso: ${titulo}`);
+    await registrarAcao({
+      usuario_id: usuarioId,
+      acao: 'CRIAR_COMPROMISSO',
+      entidade: 'compromisso',
+      entidade_id: novoCompromisso.id,
+      detalhes: {
+        status: novoCompromisso.status,
+        coordenador_id: novoCompromisso.coordenador_id,
+        curso_id: novoCompromisso.curso_id,
+      },
+    });
 
     if (isSecretaria && coordenador?.email) {
       sendReminder(coordenador.email, titulo, dt_inicio).catch(err => {
@@ -1469,6 +1680,22 @@ app.put('/api/compromissos/:id', authenticateToken, async (req, res) => {
   const id = parseInt(req.params.id);
   const { titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao } = req.body;
 
+  if (Number.isNaN(id)) {
+    return sendValidationError(res, 'Compromisso invalido.');
+  }
+
+  if (titulo !== undefined && !String(titulo).trim()) {
+    return sendValidationError(res, 'Informe um titulo valido.');
+  }
+
+  if ((dt_inicio && Number.isNaN(new Date(dt_inicio).getTime())) || (dt_fim && Number.isNaN(new Date(dt_fim).getTime()))) {
+    return sendValidationError(res, 'Informe datas validas para o compromisso.');
+  }
+
+  if (dt_inicio && dt_fim && new Date(dt_fim) <= new Date(dt_inicio)) {
+    return sendValidationError(res, 'A data de fim deve ser posterior ao inicio.');
+  }
+
   try {
     const existing = await prisma.compromisso.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: 'Compromisso nao encontrado.' });
@@ -1479,7 +1706,7 @@ app.put('/api/compromissos/:id', authenticateToken, async (req, res) => {
     const updated = await prisma.compromisso.update({
       where: { id },
       data: {
-        ...(titulo && { titulo }),
+        ...(titulo && { titulo: titulo.trim() }),
         ...(descricao !== undefined && { descricao }),
         ...(dt_inicio && { dt_inicio: new Date(dt_inicio) }),
         ...(dt_fim && { dt_fim: new Date(dt_fim) }),
@@ -1518,6 +1745,17 @@ app.put('/api/compromissos/:id', authenticateToken, async (req, res) => {
     });
 
     await registrarLog(req.user.id, 'EDITAR_COMPROMISSO', `Editou compromisso: ${updated.titulo}`);
+    await registrarAcao({
+      usuario_id: req.user.id,
+      acao: 'EDITAR_COMPROMISSO',
+      entidade: 'compromisso',
+      entidade_id: updated.id,
+      detalhes: {
+        status: updated.status,
+        coordenador_id: updated.coordenador_id,
+        curso_id: updated.curso_id,
+      },
+    });
     res.json(updated);
   } catch (e) {
     if (e.code === 'P2025') return res.status(404).json({ error: 'Compromisso não encontrado.' });
@@ -1561,6 +1799,16 @@ app.patch('/api/compromissos/:id/aprovar', authenticateToken, requireRole('coord
     });
 
     await registrarLog(req.user.id, 'APROVAR_COMPROMISSO', `Aprovou compromisso: ${updated.titulo}`);
+    await registrarAcao({
+      usuario_id: req.user.id,
+      acao: 'APROVAR_COMPROMISSO',
+      entidade: 'compromisso',
+      entidade_id: updated.id,
+      detalhes: {
+        coordenador_id: updated.coordenador_id,
+        usuario_id: updated.usuario_id,
+      },
+    });
 
     let compromissoResponse = updated;
     const googleResult = await syncCompromissoToGoogleCalendarSafe(updated);
@@ -1627,6 +1875,17 @@ app.patch('/api/compromissos/:id/recusar', authenticateToken, requireRole('coord
       }
     });
     await registrarLog(req.user.id, 'RECUSAR_COMPROMISSO', `Recusou compromisso: ${updated.titulo}`);
+    await registrarAcao({
+      usuario_id: req.user.id,
+      acao: 'RECUSAR_COMPROMISSO',
+      entidade: 'compromisso',
+      entidade_id: updated.id,
+      detalhes: {
+        coordenador_id: updated.coordenador_id,
+        usuario_id: updated.usuario_id,
+        motivo_recusa: motivo,
+      },
+    });
     await createNotificationsForUsersSafe(getCompromissoApprovalResponseUsers(updated), {
       titulo: 'Compromisso recusado',
       mensagem: `"${updated.titulo}" foi recusado. Motivo: ${motivo}`,
@@ -1666,6 +1925,17 @@ app.delete('/api/compromissos/:id', authenticateToken, async (req, res) => {
 
     await prisma.compromisso.delete({ where: { id } });
     await registrarLog(req.user.id, 'EXCLUIR_COMPROMISSO', `Excluiu compromisso id: ${id}`);
+    await registrarAcao({
+      usuario_id: req.user.id,
+      acao: 'EXCLUIR_COMPROMISSO',
+      entidade: 'compromisso',
+      entidade_id: id,
+      detalhes: {
+        titulo: comp.titulo,
+        coordenador_id: comp.coordenador_id,
+        usuario_id: comp.usuario_id,
+      },
+    });
     await createNotificationsForUsersSafe([getCompromissoCoordinatorNotificationUserId(comp)], {
       titulo: 'Compromisso removido',
       mensagem: `"${comp.titulo}" foi removido da agenda.`,
@@ -1682,6 +1952,29 @@ app.delete('/api/compromissos/:id', authenticateToken, async (req, res) => {
 });
 
 // ── Startup ───────────────────────────────────────────────────────────────────
+app.use((err, req, res, next) => {
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  const statusCode = err.statusCode || err.status || 500;
+  const code = err.code || (statusCode >= 500 ? 'INTERNAL_ERROR' : 'REQUEST_ERROR');
+  const message = statusCode >= 500 && isProduction
+    ? 'Ocorreu um erro interno.'
+    : (err.message || 'Ocorreu um erro ao processar a requisicao.');
+
+  console.error('[ERROR]', {
+    code,
+    statusCode,
+    method: req.method,
+    path: req.originalUrl,
+    message: err.message,
+    ...(isProduction ? {} : { stack: err.stack }),
+  });
+
+  return res.status(statusCode).json(apiError(message, code));
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`✅ Backend Agenda UVV rodando na porta ${PORT}`);
