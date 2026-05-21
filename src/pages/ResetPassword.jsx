@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 import FluxusWordmark from '../components/FluxusWordmark';
+import ErrorState from '../components/ui/ErrorState';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -13,6 +14,7 @@ export default function ResetPassword() {
 
   const [novaSenha, setNovaSenha] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   if (!token) {
     return (
@@ -29,11 +31,14 @@ export default function ResetPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
       await api.post('/auth/reset-password', { token, nova_senha: novaSenha });
       toast.success('Senha redefinida com sucesso.');
       navigate('/login');
     } catch (err) {
+      const message = err.response?.data?.error || 'Erro ao redefinir senha. O token pode estar expirado.';
+      setError(message);
       if (err.response && err.response.data.error) {
         toast.error(err.response.data.error);
       } else {
@@ -55,6 +60,10 @@ export default function ResetPassword() {
           <h1 className="auth-title mt-2 text-2xl font-semibold tracking-tight">Criar nova senha</h1>
           <p className="auth-muted mt-2 text-sm">Defina uma senha para voltar ao workspace.</p>
         </div>
+
+        {error && (
+          <ErrorState variant="toast" title="Falha ao salvar senha" message={error} />
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>

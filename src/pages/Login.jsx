@@ -5,6 +5,7 @@ import { ArrowRight, CalendarCheck, CheckCircle2, Clock3, Loader2, Send, UserChe
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 import FluxusWordmark from '../components/FluxusWordmark';
+import ErrorState from '../components/ui/ErrorState';
 
 const previewItems = [
   { icon: Send, label: 'Solicitacao enviada para Coordenacao', meta: 'Secretaria academica', tone: 'blue' },
@@ -17,10 +18,12 @@ export default function Login({ onLogin }) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
       const response = await api.post('/auth/login', { email, senha });
       const { token, user } = response.data;
@@ -32,13 +35,14 @@ export default function Login({ onLogin }) {
       onLogin(user);
       toast.success(`Bem-vindo, ${user.nome}.`);
     } catch (err) {
+      let message = 'Ocorreu um erro ao conectar com o servidor.';
       if (err.response && err.response.status === 403) {
-        toast.error(err.response.data.error || 'Acesso negado.');
+        message = err.response.data.error || 'Acesso negado.';
       } else if (err.response && err.response.status === 401) {
-        toast.error('E-mail ou senha invalidos.');
-      } else {
-        toast.error('Ocorreu um erro ao conectar com o servidor.');
+        message = 'E-mail ou senha invalidos.';
       }
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -124,6 +128,10 @@ export default function Login({ onLogin }) {
             <h2 className="auth-title mt-2 text-2xl font-semibold tracking-tight">Entre no workspace</h2>
             <p className="auth-muted mt-2 text-sm">Use sua conta autorizada pela instituicao.</p>
           </div>
+
+          {error && (
+            <ErrorState variant="toast" title="Falha no acesso" message={error} />
+          )}
 
           <form onSubmit={handleAuth} className="space-y-5">
             <div>

@@ -5,21 +5,26 @@ import { ArrowLeft, Check, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 import FluxusWordmark from '../components/FluxusWordmark';
+import ErrorState from '../components/ui/ErrorState';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
       await api.post('/auth/forgot-password', { email });
       setSent(true);
     } catch (err) {
+      const message = err.response?.data?.error || 'Erro ao solicitar redefinicao.';
+      setError(message);
       if (err.response && err.response.data.error) {
-        toast.error(err.response.data.error);
+         toast.error(err.response.data.error);
       } else {
         toast.error('Erro ao solicitar redefinicao.');
       }
@@ -54,6 +59,10 @@ export default function ForgotPassword() {
               <h1 className="auth-title mt-2 text-2xl font-semibold tracking-tight">Redefinir senha</h1>
               <p className="auth-muted mt-2 text-sm">Enviaremos as instrucoes para o e-mail cadastrado.</p>
             </div>
+
+            {error && (
+              <ErrorState variant="toast" title="Falha na recuperacao" message={error} />
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>

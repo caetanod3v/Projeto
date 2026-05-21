@@ -21,6 +21,8 @@ import api from '../services/api';
 import FluxusWordmark from './FluxusWordmark';
 import ThemeToggle from './ThemeToggle';
 import { getCategoryDotStyle } from '../utils/categoryVisual';
+import ErrorState from './ui/ErrorState';
+import LoadingSkeleton from './ui/LoadingSkeleton';
 
 const notificationToneByType = {
    atraso: 'bg-red-500',
@@ -68,6 +70,7 @@ export default function Layout({ user, onLogout }) {
    const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
    const [notificacoes, setNotificacoes] = useState([]);
    const [isNotifsLoading, setNotifsLoading] = useState(false);
+   const [notifsError, setNotifsError] = useState(null);
    const [selectedNotif, setSelectedNotif] = useState(null);
    const notifRef = useRef(null);
 
@@ -95,79 +98,82 @@ export default function Layout({ user, onLogout }) {
       setSidebarOpen(false);
    }, [location.pathname, location.search]);
 
-   useEffect(() => {
-      const fetchData = async () => {
-         setNotifsLoading(true);
-         try {
-            const requests = [
-               api.get('/compromissos'),
-               api.get('/categorias'),
-               api.get('/notificacoes'),
-            ];
+   const fetchLayoutData = async () => {
+      setNotifsLoading(true);
+      setNotifsError(null);
+      try {
+         const requests = [
+            api.get('/compromissos'),
+            api.get('/categorias'),
+            api.get('/notificacoes'),
+         ];
 
-            if (user?.role === 'coordenador' || user?.role === 'admin') {
-               requests.push(api.get('/compromissos/pendentes'));
-            }
-
-            const responses = await Promise.all(requests);
-            const evtRes = responses[0];
-            const catRes = responses[1];
-            const notifRes = responses[2];
-
-            if (responses[3]) {
-               const pendentesArr = responses[3].data;
-               setPendentesCount(pendentesArr.length);
-            } else {
-               setPendentesCount(0);
-            }
-
-            setCategorias(catRes.data);
-            setNotificacoes(notifRes.data.map(normalizeNotification));
-
-            const now = new Date();
-            const eventos = evtRes.data;
-            let hojeCount = 0;
-            let atrasadosCount = 0;
-            let semanaCount = 0;
-            let nextEvt = null;
-
-            const startOfWeek = new Date(now);
-            startOfWeek.setDate(now.getDate() - now.getDay());
-            startOfWeek.setHours(0, 0, 0, 0);
-            const endOfWeek = new Date(startOfWeek);
-            endOfWeek.setDate(startOfWeek.getDate() + 6);
-            endOfWeek.setHours(23, 59, 59, 999);
-
-            eventos.forEach(ev => {
-               const inicio = new Date(ev.dt_inicio);
-               const hrsDiff = (inicio - now) / (1000 * 60 * 60);
-               const isCompleted = ev.titulo.toLowerCase().includes('[ok]');
-
-               if (!isCompleted) {
-                  if (inicio.toLocaleDateString() === now.toLocaleDateString()) hojeCount++;
-                  if (inicio >= startOfWeek && inicio <= endOfWeek) semanaCount++;
-                  if (inicio < now && (now - inicio) < 86400000) atrasadosCount++;
-
-                  if (inicio > now && (!nextEvt || inicio < nextEvt.start)) {
-                     nextEvt = { start: inicio, title: ev.titulo };
-                  }
-               }
-            });
-
-            let proxHrs = null;
-            if (nextEvt) {
-               const hrs = (nextEvt.start - now) / (1000 * 60 * 60);
-               proxHrs = hrs > 1 ? `${Math.floor(hrs)}h` : 'menos de 1h';
-            }
-
-            setAnalytics({ hojeCount, proxHrs, semanaCount, atrasadosCount });
-         } catch (err) {
-            console.error(err);
-         } finally {
-            setNotifsLoading(false);
+         if (user?.role === 'coordenador' || user?.role === 'admin') {
+            requests.push(api.get('/compromissos/pendentes'));
          }
-      };
-      fetchData();
+
+         const responses = await Promise.all(requests);
+         const evtRes = responses[0];
+         const catRes = responses[1];
+         const notifRes = responses[2];
+
+         if (responses[3]) {
+            const pendentesArr = responses[3].data;
+            setPendentesCount(pendentesArr.length);
+         } else {
+            setPendentesCount(0);
+         }
+
+         setCategorias(catRes.data);
+         setNotificacoes(notifRes.data.map(normalizeNotification));
+
+         const now = new Date();
+         const eventos = evtRes.data;
+         let hojeCount = 0;
+         let atrasadosCount = 0;
+         let semanaCount = 0;
+         let nextEvt = null;
+
+         const startOfWeek = new Date(now);
+         startOfWeek.setDate(now.getDate() - now.getDay());
+         startOfWeek.setHours(0, 0, 0, 0);
+         const endOfWeek = new Date(startOfWeek);
+         endOfWeek.setDate(startOfWeek.getDate() + 6);
+         endOfWeek.setHours(23, 59, 59, 999);
+
+         eventos.forEach(ev => {
+            const inicio = new Date(ev.dt_inicio);
+            const hrsDiff = (inicio - now) / (1000 * 60 * 60);
+            const isCompleted = ev.titulo.toLowerCase().includes('[ok]');
+
+            if (!isCompleted) {
+               if (inicio.toLocaleDateString() === now.toLocaleDateString()) hojeCount++;
+               if (inicio >= startOfWeek && inicio <= endOfWeek) semanaCount++;
+               if (inicio < now && (now - inicio) < 86400000) atrasadosCount++;
+
+               if (inicio > now && (!nextEvt || inicio < nextEvt.start)) {
+                  nextEvt = { start: inicio, title: ev.titulo };
+               }
+            }
+         });
+
+         let proxHrs = null;
+         if (nextEvt) {
+            const hrs = (nextEvt.start - now) / (1000 * 60 * 60);
+            proxHrs = hrs > 1 ? `${Math.floor(hrs)}h` : 'menos de 1h';
+         }
+
+         setAnalytics({ hojeCount, proxHrs, semanaCount, atrasadosCount });
+      } catch (err) {
+         console.error(err);
+         setNotifsError(err.response?.data?.error || 'Nao foi possivel carregar as notificacoes.');
+      } finally {
+         setNotifsLoading(false);
+      }
+   };
+
+   useEffect(() => {
+      fetchLayoutData();
    }, [user?.id, user?.role]);
 
    const applyNotificationResponse = (payload) => {
@@ -559,9 +565,17 @@ export default function Layout({ user, onLogout }) {
 
                            <div className="thin-scrollbar min-h-[100px] flex-1 overflow-y-auto py-3">
                               {isNotifsLoading ? (
-                                 <div className="flex flex-col items-center justify-center p-8 text-gray-400">
-                                    <div className="mb-3 h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-uvv-yellow dark:border-white/10 dark:border-t-uvv-yellow" />
-                                    <p className="text-sm font-medium">Carregando notificacoes...</p>
+                                 <div className="px-3 py-2">
+                                    <LoadingSkeleton variant="list" rows={2} />
+                                 </div>
+                              ) : notifsError ? (
+                                 <div className="px-3">
+                                    <ErrorState
+                                       variant="inline"
+                                       title="Notificacoes indisponiveis"
+                                       message={notifsError}
+                                       onRetry={fetchLayoutData}
+                                    />
                                  </div>
                               ) : unreadNotifications.length === 0 ? (
                                  <div className="flex flex-col items-center justify-center p-8 text-gray-400">

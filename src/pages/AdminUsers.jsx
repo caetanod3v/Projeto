@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { toast } from 'react-hot-toast';
-import { Check, X, Shield, Users, RefreshCw } from 'lucide-react';
+import { Check, X, Shield, Users } from 'lucide-react';
+import ErrorState from '../components/ui/ErrorState';
+import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 
 export default function AdminUsers() {
   const [usuarios, setUsuarios] = useState([]);
   const [cursos, setCursos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const [usrRes, curRes] = await Promise.all([
         api.get('/users'),
@@ -18,6 +22,8 @@ export default function AdminUsers() {
       setUsuarios(usrRes.data);
       setCursos(curRes.data);
     } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || 'Nao foi possivel carregar os usuarios.');
       toast.error('Erro ao carregar usuarios.');
     } finally {
       setLoading(false);
@@ -61,8 +67,26 @@ export default function AdminUsers() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center text-gray-500">
-        <RefreshCw size={24} className="animate-spin" />
+      <div className="space-y-6 animate-fade-in">
+        <section className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10">
+          <LoadingSkeleton variant="card" />
+        </section>
+        <section className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10">
+          <LoadingSkeleton variant="list" rows={4} />
+        </section>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="animate-fade-in">
+        <ErrorState
+          variant="fullpage"
+          title="Nao foi possivel carregar usuarios"
+          message={error}
+          onRetry={loadData}
+        />
       </div>
     );
   }

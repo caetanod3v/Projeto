@@ -6,6 +6,8 @@ import { differenceInDays, differenceInHours, format, formatDistanceToNow, isSam
 import { ptBR } from 'date-fns/locale';
 import api from '../services/api';
 import { getCategoryChipStyle } from '../utils/categoryVisual';
+import ErrorState from '../components/ui/ErrorState';
+import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 
 function formatDuration(start, end) {
    const hrs = Math.abs(differenceInHours(end, start));
@@ -27,6 +29,7 @@ export default function Dashboard({ user }) {
    const [searchTerm, setSearchTerm] = useState('');
    const [filterChip, setFilterChip] = useState('Todos');
    const [isLoading, setIsLoading] = useState(true);
+   const [error, setError] = useState(null);
 
    useEffect(() => {
       fetchData();
@@ -34,6 +37,7 @@ export default function Dashboard({ user }) {
 
    const fetchData = async () => {
       setIsLoading(true);
+      setError(null);
       try {
          const [evRes, curRes, catRes] = await Promise.all([
             api.get('/compromissos'),
@@ -109,6 +113,7 @@ export default function Dashboard({ user }) {
          setEventos(mapped);
       } catch (err) {
          console.error(err);
+         setError(err.response?.data?.error || 'Nao foi possivel carregar seus compromissos.');
          toast.error('Ocorreu um erro ao listar os dados.');
       } finally {
          setIsLoading(false);
@@ -262,13 +267,19 @@ export default function Dashboard({ user }) {
             </div>
 
             {isLoading && (
-               <div className="flex flex-col items-center justify-center py-24">
-                  <div className="w-10 h-10 border-4 border-gray-200 border-t-uvv-yellow rounded-full animate-spin mb-4" />
-                  <span className="text-gray-400 font-semibold tracking-wide">Carregando compromissos...</span>
-               </div>
+               <LoadingSkeleton variant="list" rows={4} />
             )}
 
-            {!isLoading && filtered.length === 0 && (
+            {!isLoading && error && (
+               <ErrorState
+                  variant="inline"
+                  title="Nao foi possivel carregar os compromissos"
+                  message={error}
+                  onRetry={fetchData}
+               />
+            )}
+
+            {!isLoading && !error && filtered.length === 0 && (
                <div className="flex flex-col items-center justify-center py-24 text-center">
                   <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-5 dark:bg-white/5">
                      <CalendarX size={30} className="text-gray-400" />
@@ -278,7 +289,7 @@ export default function Dashboard({ user }) {
                </div>
             )}
 
-            {!isLoading && filtered.length > 0 && (
+            {!isLoading && !error && filtered.length > 0 && (
                <div className="space-y-7">
                   {Object.keys(grouped).map(groupName => {
                      const items = grouped[groupName];

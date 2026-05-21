@@ -11,6 +11,9 @@ import { format, isToday, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarDays, Clock, Copy, Plus, Trash2, X } from 'lucide-react';
 import { getCategoryChipStyle, getCategoryColor, getCategoryDotStyle } from '../utils/categoryVisual';
+import ErrorState from '../components/ui/ErrorState';
+import LoadingSkeleton from '../components/ui/LoadingSkeleton';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 // Helper de contraste
 function getContrastYIQ(hexcolor) {
@@ -40,6 +43,7 @@ export default function Calendario({ user }) {
   const [selectedDate, setSelectedDate] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [calendarTitle, setCalendarTitle] = useState('');
   const [calendarView, setCalendarView] = useState('dayGridMonth');
 
@@ -50,6 +54,7 @@ export default function Calendario({ user }) {
     configured: true,
     loading: user?.role === 'coordenador',
     busy: false,
+    error: null,
   });
 
   // Tooltip
@@ -78,9 +83,14 @@ export default function Calendario({ user }) {
         connected: Boolean(res.data.connected),
         configured: res.data.configured !== false,
         loading: false,
+        error: null,
       }));
     } catch (err) {
-      setGoogleCalendar(prev => ({ ...prev, loading: false, configured: false }));
+      setGoogleCalendar(prev => ({
+        ...prev,
+        loading: false,
+        error: err.response?.data?.error || 'Nao foi possivel verificar a conexao.',
+      }));
     }
   };
 
@@ -158,6 +168,7 @@ export default function Calendario({ user }) {
 
   const fetchData = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const [eventsRes, curRes, catRes, coordRes] = await Promise.all([
         api.get('/compromissos'),
@@ -226,6 +237,7 @@ export default function Calendario({ user }) {
       setEvents(formattedEvents);
     } catch (err) {
       console.error(err);
+      setError(err.response?.data?.error || 'Nao foi possivel carregar o calendario.');
       toast.error('Ocorreu um erro ao buscar os dados.');
     } finally {
       setIsLoading(false);
@@ -495,60 +507,71 @@ export default function Calendario({ user }) {
             <h3 className="text-sm font-semibold capitalize tracking-tight text-gray-950 dark:text-white">{calendarTitle}</h3>
           </div>
 
-        {isLoading && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center rounded-[18px] bg-white/80 backdrop-blur-sm dark:bg-[#0f1117]/80">
-            <div className="flex flex-col items-center gap-3">
-              <div className="h-7 w-7 animate-spin rounded-full border-2 border-gray-200 border-t-uvv-yellow"></div>
-              <span className="text-xs font-medium tracking-wide text-gray-500">Carregando calendario...</span>
+          {error ? (
+            <div className="flex min-h-[calc(100vh-188px)] items-center justify-center">
+              <ErrorState
+                variant="inline"
+                title="Nao foi possivel carregar o calendario"
+                message={error}
+                onRetry={fetchData}
+                className="max-w-md"
+              />
             </div>
-          </div>
-        )}
+          ) : (
+            <>
+              {isLoading && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center rounded-[18px] bg-white/80 backdrop-blur-sm dark:bg-[#0f1117]/80">
+                  <LoadingSpinner size="lg" label="Carregando calendario..." />
+                </div>
+              )}
 
-        <FullCalendar
-          ref={calendarRef}
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-          initialView="dayGridMonth"
-          headerToolbar={false}
-          buttonText={{
-            today: 'Hoje',
-            month: 'Mes',
-            week: 'Semana',
-            day: 'Dia',
-            list: 'Lista'
-          }}
-          events={events}
-          dateClick={handleDateClick}
-          eventClick={handleEventClick}
-          height="calc(100vh - 188px)"
-          locale={ptBR}
-          dayMaxEvents={2}
-          moreLinkText={(n) => `+${n} eventos`}
-          eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
-          eventContent={renderEventContent}
-          datesSet={(arg) => {
-            setCalendarTitle(arg.view.title);
-            setCalendarView(arg.view.type);
-          }}
+              <FullCalendar
+                ref={calendarRef}
+                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+                initialView="dayGridMonth"
+                headerToolbar={false}
+                buttonText={{
+                  today: 'Hoje',
+                  month: 'Mes',
+                  week: 'Semana',
+                  day: 'Dia',
+                  list: 'Lista'
+                }}
+                events={events}
+                dateClick={handleDateClick}
+                eventClick={handleEventClick}
+                height="calc(100vh - 188px)"
+                locale={ptBR}
+                dayMaxEvents={2}
+                moreLinkText={(n) => `+${n} eventos`}
+                eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
+                eventContent={renderEventContent}
+                datesSet={(arg) => {
+                  setCalendarTitle(arg.view.title);
+                  setCalendarView(arg.view.type);
+                }}
 
-          eventMouseEnter={(info) => {
-            const rect = info.el.getBoundingClientRect();
-            const start = info.event.start;
-            const end = info.event.end || start;
-            const timeFormat = `${format(start, 'HH:mm')} - ${format(end, 'HH:mm')}`;
+                eventMouseEnter={(info) => {
+                  const rect = info.el.getBoundingClientRect();
+                  const start = info.event.start;
+                  const end = info.event.end || start;
+                  const timeFormat = `${format(start, 'HH:mm')} - ${format(end, 'HH:mm')}`;
 
-            setTooltip({
-              open: true,
-              x: rect.left + (rect.width / 2),
-              y: rect.top,
-              title: info.event.title,
-              timeStr: timeFormat,
-              cursoStr: info.event.extendedProps.cursoStr,
-              catColor: getCategoryColor(info.event.extendedProps.catObj)
-            });
-            info.el.removeAttribute('title');
-          }}
-          eventMouseLeave={() => setTooltip(prev => ({ ...prev, open: false }))}
-        />
+                  setTooltip({
+                    open: true,
+                    x: rect.left + (rect.width / 2),
+                    y: rect.top,
+                    title: info.event.title,
+                    timeStr: timeFormat,
+                    cursoStr: info.event.extendedProps.cursoStr,
+                    catColor: getCategoryColor(info.event.extendedProps.catObj)
+                  });
+                  info.el.removeAttribute('title');
+                }}
+                eventMouseLeave={() => setTooltip(prev => ({ ...prev, open: false }))}
+              />
+            </>
+          )}
         </div>
 
         <aside className="flex min-h-0 flex-col gap-3 xl:h-[calc(100vh-188px)]">
@@ -560,7 +583,9 @@ export default function Calendario({ user }) {
                   <p className="mt-1 text-[11px] leading-5 text-gray-500">
                     {googleCalendar.loading
                       ? 'Verificando conexao...'
-                      : googleCalendar.connected
+                      : googleCalendar.error
+                        ? googleCalendar.error
+                        : googleCalendar.connected
                         ? 'Conectado para envio automatico.'
                         : 'Envie compromissos aprovados para seu calendario.'}
                   </p>
@@ -573,13 +598,15 @@ export default function Calendario({ user }) {
               <button
                 type="button"
                 disabled={googleCalendar.loading || googleCalendar.busy || !googleCalendar.configured}
-                onClick={googleCalendar.connected ? handleGoogleCalendarDisconnect : handleGoogleCalendarConnect}
+                onClick={googleCalendar.error ? fetchGoogleCalendarStatus : googleCalendar.connected ? handleGoogleCalendarDisconnect : handleGoogleCalendarConnect}
                 className={`mt-4 inline-flex w-full items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${googleCalendar.connected ? 'bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10' : 'bg-gray-950 text-white hover:-translate-y-0.5 hover:bg-gray-800'}`}
               >
                 {googleCalendar.configured
                   ? googleCalendar.busy
                     ? 'Aguarde...'
-                    : googleCalendar.connected
+                    : googleCalendar.error
+                      ? 'Tentar novamente'
+                      : googleCalendar.connected
                       ? 'Desconectar'
                       : 'Conectar Google Calendar'
                   : 'Configurar credenciais Google'}
@@ -587,6 +614,20 @@ export default function Calendario({ user }) {
             </div>
           )}
 
+          {isLoading ? (
+            <>
+              <LoadingSkeleton variant="card" />
+              <LoadingSkeleton variant="card" className="min-h-[260px] flex-1" />
+            </>
+          ) : error ? (
+            <ErrorState
+              variant="inline"
+              title="Painel indisponivel"
+              message="Nao foi possivel carregar os dados do painel lateral."
+              onRetry={fetchData}
+            />
+          ) : (
+            <>
           <div className="shrink-0 rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-gray-200/50 transition hover:shadow-[0_8px_24px_rgba(15,23,42,0.045)] dark:bg-[#191d28] dark:ring-white/10 dark:hover:bg-[#1b202d]">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -677,6 +718,8 @@ export default function Calendario({ user }) {
               </div>
             )}
           </div>
+            </>
+          )}
         </aside>
       </section>
 

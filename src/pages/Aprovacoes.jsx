@@ -4,6 +4,8 @@ import { toast } from 'react-hot-toast';
 import { AlertCircle, AlertTriangle, Calendar as CalendarIcon, CheckCircle2, Clock, Users, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import api from '../services/api';
+import ErrorState from '../components/ui/ErrorState';
+import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 
 function formatDuration(start, end) {
    const diffMs = end - start;
@@ -21,12 +23,14 @@ export default function Aprovacoes({ user }) {
 
    const [pendentes, setPendentes] = useState([]);
    const [isLoading, setIsLoading] = useState(true);
+   const [error, setError] = useState(null);
    const [loadingActionId, setLoadingActionId] = useState(null);
    const [recusarEvt, setRecusarEvt] = useState(null);
    const [motivoRecusa, setMotivoRecusa] = useState('');
 
    const fetchData = async () => {
       setIsLoading(true);
+      setError(null);
       try {
          const [pendRes, curRes, catRes] = await Promise.all([
             api.get('/compromissos/pendentes'),
@@ -59,6 +63,7 @@ export default function Aprovacoes({ user }) {
          setPendentes(formattedPendentes);
       } catch (err) {
          console.error(err);
+         setError(err.response?.data?.error || 'Nao foi possivel carregar a fila de aprovacao.');
          toast.error('Erro ao carregar aprovações.');
       } finally {
          setIsLoading(false);
@@ -134,10 +139,16 @@ export default function Aprovacoes({ user }) {
          </div>
 
          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-32 bg-white border border-gray-200 rounded-[28px] dark:border-white/10 dark:bg-[#171a22]">
-               <div className="w-10 h-10 border-4 border-gray-200 border-t-uvv-yellow rounded-full animate-spin mb-4" />
-               <span className="text-gray-400 font-semibold tracking-wide">Carregando fila...</span>
+            <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#171a22]">
+               <LoadingSkeleton variant="list" rows={3} />
             </div>
+         ) : error ? (
+            <ErrorState
+               variant="fullpage"
+               title="Nao foi possivel carregar a fila"
+               message={error}
+               onRetry={fetchData}
+            />
          ) : (
             <div className="mb-12 rounded-[28px] border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#171a22] md:p-5">
                <h2 className="mb-4 flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-gray-500">

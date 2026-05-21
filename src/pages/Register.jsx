@@ -5,6 +5,8 @@ import { Check, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 import FluxusWordmark from '../components/FluxusWordmark';
+import ErrorState from '../components/ui/ErrorState';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 export default function Register() {
   const [nome, setNome] = useState('');
@@ -14,17 +16,27 @@ export default function Register() {
   const [cursoId, setCursoId] = useState('');
   const [loading, setLoading] = useState(false);
   const [cursos, setCursos] = useState([]);
+  const [cursosLoading, setCursosLoading] = useState(true);
+  const [cursosError, setCursosError] = useState(null);
+  const [formError, setFormError] = useState(null);
   const [submitted, setSubmitted] = useState(false);
 
+  const fetchCursos = async () => {
+    setCursosLoading(true);
+    setCursosError(null);
+    try {
+      const res = await api.get('/cursos');
+      setCursos(res.data);
+    } catch (err) {
+      console.error(err);
+      setCursosError(err.response?.data?.error || 'Nao foi possivel carregar os cursos.');
+      toast.error('Erro ao buscar cursos.');
+    } finally {
+      setCursosLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchCursos = async () => {
-      try {
-        const res = await api.get('/cursos');
-        setCursos(res.data);
-      } catch (err) {
-        toast.error('Erro ao buscar cursos.');
-      }
-    };
     fetchCursos();
   }, []);
 
@@ -32,6 +44,7 @@ export default function Register() {
     e.preventDefault();
 
     setLoading(true);
+    setFormError(null);
     try {
       await api.post('/auth/register', {
         nome,
@@ -42,6 +55,8 @@ export default function Register() {
       });
       setSubmitted(true);
     } catch (err) {
+      const message = err.response?.data?.error || 'Ocorreu um erro ao conectar com o servidor.';
+      setFormError(message);
       if (err.response && err.response.data.error) {
         toast.error(err.response.data.error);
       } else {
@@ -86,6 +101,10 @@ export default function Register() {
           <h1 className="auth-title mt-2 text-2xl font-semibold tracking-tight">Solicitar acesso</h1>
           <p className="auth-muted mt-2 text-sm">A conta passa por aprovacao antes de entrar em operacao.</p>
         </div>
+
+        {formError && (
+          <ErrorState variant="toast" title="Falha ao solicitar acesso" message={formError} />
+        )}
 
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
@@ -147,18 +166,32 @@ export default function Register() {
           {role === 'coordenador' && (
             <div>
               <label className="auth-label mb-1.5 block text-sm font-medium">Vinculo com curso</label>
-              <select
-                required
-                value={cursoId}
-                onChange={e => setCursoId(e.target.value)}
-                className="auth-input w-full rounded-xl border px-4 py-3 text-sm outline-none transition"
-                disabled={loading}
-              >
-                <option value="">Selecione o curso</option>
-                {cursos.map(c => (
-                  <option key={c.id} value={c.id}>{c.nome}</option>
-                ))}
-              </select>
+              {cursosError ? (
+                <ErrorState
+                  variant="inline"
+                  title="Cursos indisponiveis"
+                  message={cursosError}
+                  onRetry={fetchCursos}
+                />
+              ) : (
+                <>
+                  <select
+                    required
+                    value={cursoId}
+                    onChange={e => setCursoId(e.target.value)}
+                    className="auth-input w-full rounded-xl border px-4 py-3 text-sm outline-none transition"
+                    disabled={loading || cursosLoading}
+                  >
+                    <option value="">{cursosLoading ? 'Carregando cursos...' : 'Selecione o curso'}</option>
+                    {cursos.map(c => (
+                      <option key={c.id} value={c.id}>{c.nome}</option>
+                    ))}
+                  </select>
+                  {cursosLoading && (
+                    <LoadingSpinner size="sm" label="Carregando cursos..." className="mt-2 text-xs" />
+                  )}
+                </>
+              )}
             </div>
           )}
 

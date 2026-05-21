@@ -5,6 +5,8 @@ import { format } from 'date-fns';
 import { AlertCircle, Calendar as CalendarIcon, CheckCircle2, Clock, MessageSquare, RefreshCw, UserCheck, XCircle } from 'lucide-react';
 import api from '../services/api';
 import { getCategoryChipStyle, isReunioesCategory } from '../utils/categoryVisual';
+import ErrorState from '../components/ui/ErrorState';
+import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 
 const statusMeta = {
    pendente: {
@@ -40,14 +42,17 @@ export default function RetornosAprovacao({ user }) {
 
    const [solicitacoes, setSolicitacoes] = useState([]);
    const [isLoading, setIsLoading] = useState(true);
+   const [error, setError] = useState(null);
 
    const fetchSolicitacoes = async () => {
       setIsLoading(true);
+      setError(null);
       try {
          const res = await api.get('/minhas-solicitacoes');
          setSolicitacoes(res.data);
       } catch (err) {
          console.error(err);
+         setError(err.response?.data?.error || 'Nao foi possivel carregar os retornos de aprovacao.');
          toast.error('Erro ao carregar retornos de aprovação.');
       } finally {
          setIsLoading(false);
@@ -101,10 +106,16 @@ export default function RetornosAprovacao({ user }) {
          </div>
 
          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-32 bg-white border border-gray-200 rounded-[28px] dark:border-white/10 dark:bg-[#171a22]">
-               <div className="w-10 h-10 border-4 border-gray-200 border-t-uvv-yellow rounded-full animate-spin mb-4" />
-               <span className="text-gray-400 font-semibold tracking-wide">Carregando retornos...</span>
+            <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#171a22]">
+               <LoadingSkeleton variant="list" rows={4} />
             </div>
+         ) : error ? (
+            <ErrorState
+               variant="fullpage"
+               title="Nao foi possivel carregar os retornos"
+               message={error}
+               onRetry={fetchSolicitacoes}
+            />
          ) : solicitacoes.length === 0 ? (
             <div className="bg-white border border-gray-200 rounded-[28px] p-16 text-center flex flex-col items-center dark:border-white/10 dark:bg-[#171a22]">
                <div className="w-16 h-16 bg-uvv-yellow/10 text-uvv-yellow rounded-2xl flex items-center justify-center mb-4">

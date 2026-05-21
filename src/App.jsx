@@ -13,10 +13,13 @@ import Aprovacoes from './pages/Aprovacoes';
 import RetornosAprovacao from './pages/RetornosAprovacao';
 import Perfil from './pages/Perfil';
 import api from './services/api';
+import ErrorState from './components/ui/ErrorState';
+import LoadingSpinner from './components/ui/LoadingSpinner';
 
 function App() {
   const [user, setUser] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
+  const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
     document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';
@@ -34,42 +37,55 @@ function App() {
     localStorage.setItem('user', JSON.stringify(nextUser));
   };
 
+  const checkAuth = async () => {
+    const token = localStorage.getItem('token');
+    setLoadingAuth(true);
+    setAuthError(null);
+
+    if (!token) {
+      logout();
+      setLoadingAuth(false);
+      return;
+    }
+
+    try {
+      const res = await api.get('/auth/me');
+      const authUser = res.data.user || res.data;
+      setUser(authUser);
+      localStorage.setItem('user', JSON.stringify(authUser));
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        logout();
+      } else {
+        setAuthError(err.response?.data?.error || 'Nao foi possivel verificar sua sessao.');
+      }
+    } finally {
+      setLoadingAuth(false);
+    }
+  };
+
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('token');
-
-      if (!token) {
-        logout();
-        setLoadingAuth(false);
-        return;
-      }
-
-      try {
-        const res = await api.get('/auth/me');
-        const authUser = res.data.user || res.data;
-        setUser(authUser);
-        localStorage.setItem('user', JSON.stringify(authUser));
-      } catch (err) {
-        logout();
-      } finally {
-        setLoadingAuth(false);
-      }
-    };
-
     checkAuth();
   }, []);
 
   if (loadingAuth) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#f7f8fb',
-        color: '#151821',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        Carregando autenticação...
+      <div className="flex min-h-screen items-center justify-center bg-[#f7f8fb] text-gray-500 dark:bg-[#0f1117] dark:text-gray-300">
+        <LoadingSpinner size="lg" label="Carregando autenticacao..." />
+      </div>
+    );
+  }
+
+  if (authError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f7f8fb] p-4 dark:bg-[#0f1117]">
+        <ErrorState
+          variant="fullpage"
+          title="Nao foi possivel verificar sua sessao"
+          message={authError}
+          onRetry={checkAuth}
+        />
       </div>
     );
   }

@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { Camera, Check, ChevronRight, KeyRound, Loader2, Mail, Move, Shield, Trash2, UserRound, X, ZoomIn, ZoomOut } from 'lucide-react';
 import api from '../services/api';
+import ErrorState from '../components/ui/ErrorState';
+import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 
 const roleLabels = {
   admin: 'Administrador',
@@ -73,6 +75,7 @@ export default function Perfil({ user, onUserUpdate }) {
   const [profile, setProfile] = useState(user);
   const [name, setName] = useState(user?.nome || '');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
@@ -83,21 +86,24 @@ export default function Perfil({ user, onUserUpdate }) {
   const [avatarCrop, setAvatarCrop] = useState({ x: 15, y: 15, size: 70 });
   const [passwordForm, setPasswordForm] = useState(emptyPasswordForm);
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get('/perfil');
-        setProfile(res.data);
-        setName(res.data.nome || '');
-        onUserUpdate?.(res.data);
-      } catch (err) {
-        toast.error('Erro ao carregar perfil.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadProfile = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get('/perfil');
+      setProfile(res.data);
+      setName(res.data.nome || '');
+      onUserUpdate?.(res.data);
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || 'Nao foi possivel carregar os dados do perfil.');
+      toast.error('Erro ao carregar perfil.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadProfile();
   }, []);
 
@@ -262,8 +268,26 @@ export default function Perfil({ user, onUserUpdate }) {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center text-gray-500 dark:text-gray-300">
-        <Loader2 size={24} className="animate-spin" />
+      <div className="mx-auto max-w-4xl space-y-5 animate-fade-in">
+        <section className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10">
+          <LoadingSkeleton variant="card" />
+        </section>
+        <section className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10">
+          <LoadingSkeleton variant="dashboard" rows={2} />
+        </section>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-4xl animate-fade-in">
+        <ErrorState
+          variant="fullpage"
+          title="Nao foi possivel carregar o perfil"
+          message={error}
+          onRetry={loadProfile}
+        />
       </div>
     );
   }
