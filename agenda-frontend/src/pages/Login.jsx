@@ -66,7 +66,7 @@ export default function Login({ onLogin }) {
             </p>
           </div>
 
-          <div className="auth-preview auth-card-breathe">
+          <div className="auth-preview">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-white">Fluxus em tempo real</p>
@@ -76,15 +76,15 @@ export default function Login({ onLogin }) {
             </div>
 
             <div className="auth-preview-calendar">
-              <div className="auth-preview-day auth-float-soft auth-stagger-1">
+              <div className="auth-preview-day">
                 <span>09:00</span>
                 <strong>Aula inaugural</strong>
               </div>
-              <div className="auth-preview-day auth-float-soft auth-stagger-2 is-live">
+              <div className="auth-preview-day is-live">
                 <span>11:30</span>
                 <strong>Banca confirmada</strong>
               </div>
-              <div className="auth-preview-day auth-float-soft auth-stagger-3">
+              <div className="auth-preview-day">
                 <span>15:00</span>
                 <strong>Reuniao de curso</strong>
               </div>
@@ -94,8 +94,8 @@ export default function Login({ onLogin }) {
               {previewItems.map((item, index) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.label} className="auth-preview-card auth-timeline-loop" style={{ '--delay': `${index * 1.2}s` }}>
-                    <div className={`auth-preview-icon auth-icon-pulse auth-preview-icon-${item.tone}`}>
+                  <div key={item.label} className="auth-preview-card" style={{ '--delay': `${index * 1.2}s` }}>
+                    <div className={`auth-preview-icon auth-preview-icon-${item.tone}`}>
                       <Icon size={14} />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -113,8 +113,8 @@ export default function Login({ onLogin }) {
                 <span>Status semanal</span>
                 <span>Sincronizado</span>
               </div>
-              <div className="auth-progress-shine relative flex h-1.5 overflow-hidden rounded-full bg-white/10">
-                <div className="auth-preview-progress auth-progress-loop h-full rounded-full" />
+              <div className="flex h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div className="auth-preview-progress h-full rounded-full" />
               </div>
             </div>
           </div>
