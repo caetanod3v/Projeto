@@ -76,15 +76,15 @@ export default function Login({ onLogin }) {
             </div>
 
             <div className="auth-preview-calendar">
-              <div className="auth-preview-day">
+              <div className="auth-preview-day auth-float-1">
                 <span>09:00</span>
                 <strong>Aula inaugural</strong>
               </div>
-              <div className="auth-preview-day is-live">
+              <div className="auth-preview-day auth-float-2 is-live">
                 <span>11:30</span>
                 <strong>Banca confirmada</strong>
               </div>
-              <div className="auth-preview-day">
+              <div className="auth-preview-day auth-float-3">
                 <span>15:00</span>
                 <strong>Reuniao de curso</strong>
               </div>
@@ -94,7 +94,7 @@ export default function Login({ onLogin }) {
               {previewItems.map((item, index) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.label} className="auth-preview-card" style={{ '--delay': `${index * 1.2}s` }}>
+                  <div key={item.label} className="auth-preview-card auth-timeline-item" style={{ '--delay': `${index * 1.2}s` }}>
                     <div className={`auth-preview-icon auth-preview-icon-${item.tone}`}>
                       <Icon size={14} />
                     </div>
@@ -113,7 +113,7 @@ export default function Login({ onLogin }) {
                 <span>Status semanal</span>
                 <span>Sincronizado</span>
               </div>
-              <div className="flex h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div className="auth-progress-track flex h-1.5 overflow-hidden rounded-full bg-white/10">
                 <div className="auth-preview-progress h-full rounded-full" />
               </div>
             </div>

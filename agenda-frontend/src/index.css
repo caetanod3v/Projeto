@@ -941,15 +941,7 @@ tbody tr:hover {
   background: rgba(255, 255, 255, 0.055);
   padding: 0.75rem;
   transition: transform 500ms ease, background-color 500ms ease, opacity 500ms ease;
-  animation: auth-preview-lift 7.2s ease-in-out infinite;
-}
-
-.auth-preview-day:nth-child(2) {
-  animation-delay: 1.4s;
-}
-
-.auth-preview-day:nth-child(3) {
-  animation-delay: 2.8s;
+  will-change: transform, opacity;
 }
 
 .auth-preview-day span {
@@ -981,8 +973,7 @@ tbody tr:hover {
   padding: 0.72rem;
   opacity: 0.74;
   transform: translateY(3px);
-  animation: auth-preview-card-cycle 7.2s ease-in-out infinite;
-  animation-delay: var(--delay);
+  will-change: transform, opacity;
 }
 
 .auth-preview-card p {
@@ -1033,69 +1024,116 @@ tbody tr:hover {
 }
 
 .auth-preview-progress {
-  width: 72%;
+  position: relative;
+  width: 100%;
   background: linear-gradient(90deg, #a8b5ff, #f2efff);
-  animation: auth-preview-progress 7.2s ease-in-out infinite;
+  transform: scaleX(0.46);
+  transform-origin: left;
+  will-change: transform;
 }
 
-@keyframes auth-preview-card-cycle {
+.auth-float-1 {
+  animation: auth-float-soft 6.8s cubic-bezier(0.38, 0.7, 0.2, 1) infinite;
+}
+
+.auth-float-2 {
+  animation: auth-float-soft 7.1s cubic-bezier(0.38, 0.7, 0.2, 1) 0.9s infinite;
+}
+
+.auth-float-3 {
+  animation: auth-float-soft 7.4s cubic-bezier(0.38, 0.7, 0.2, 1) 1.7s infinite;
+}
+
+.auth-timeline-item {
+  animation: auth-timeline-soft 6.6s cubic-bezier(0.38, 0.7, 0.2, 1) infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+.auth-progress-track {
+  position: relative;
+}
+
+.auth-progress-track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 38%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.48), transparent);
+  opacity: 0.58;
+  transform: translateX(-120%);
+  animation: auth-progress-shine 3.2s cubic-bezier(0.42, 0.7, 0.22, 1) infinite;
+  pointer-events: none;
+}
+
+.auth-preview-progress {
+  animation: auth-status-progress 5.2s cubic-bezier(0.42, 0.7, 0.22, 1) infinite;
+}
+
+@keyframes auth-timeline-soft {
   0%,
   100% {
     opacity: 0.62;
-    transform: translateY(3px);
+    transform: translate3d(0, 3px, 0);
     background: rgba(255, 255, 255, 0.06);
   }
   18%,
   42% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
     background: rgba(255, 255, 255, 0.12);
   }
 }
 
-@keyframes auth-preview-lift {
+@keyframes auth-float-soft {
   0%,
   100% {
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
     opacity: 0.78;
   }
   38%,
   58% {
-    transform: translateY(-2px);
+    transform: translate3d(0, -3px, 0);
     opacity: 1;
   }
 }
 
-@keyframes auth-preview-progress {
+@keyframes auth-status-progress {
   0%,
   100% {
-    width: 42%;
+    transform: scaleX(0.44);
   }
   50% {
-    width: 88%;
+    transform: scaleX(0.92);
   }
 }
 
-:root:not([data-theme="dark"]) .auth-preview-day {
-  animation: auth-preview-lift 7.2s ease-in-out infinite !important;
-  animation-play-state: running !important;
+@keyframes auth-progress-shine {
+  0% {
+    opacity: 0;
+    transform: translateX(-120%);
+  }
+  22%,
+  78% {
+    opacity: 0.58;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(260%);
+  }
 }
 
-:root:not([data-theme="dark"]) .auth-preview-day:nth-child(2) {
-  animation-delay: 1.4s !important;
-}
+@media (prefers-reduced-motion: reduce) {
+  .auth-float-1,
+  .auth-float-2,
+  .auth-float-3,
+  .auth-timeline-item,
+  .auth-preview-progress,
+  .auth-progress-track::after {
+    animation: none !important;
+  }
 
-:root:not([data-theme="dark"]) .auth-preview-day:nth-child(3) {
-  animation-delay: 2.8s !important;
-}
-
-:root:not([data-theme="dark"]) .auth-preview-card {
-  animation: auth-preview-card-cycle 7.2s ease-in-out infinite !important;
-  animation-delay: var(--delay) !important;
-  animation-play-state: running !important;
-}
-
-:root:not([data-theme="dark"]) .auth-preview-progress {
-  animation: auth-preview-progress 7.2s ease-in-out infinite !important;
-  animation-play-state: running !important;
+  .auth-preview-progress {
+    transform: scaleX(0.72);
+  }
 }
