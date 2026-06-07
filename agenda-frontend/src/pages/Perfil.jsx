@@ -9,6 +9,8 @@ const roleLabels = {
   admin: 'Administrador',
   coordenador: 'Coordenador',
   secretaria: 'Secretaria',
+  professor: 'Professor',
+  aluno: 'Aluno',
 };
 
 const emptyPasswordForm = {

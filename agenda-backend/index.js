@@ -94,6 +94,10 @@ const assertNonEmpty = (value, message) => {
   }
 };
 
+const ROLE_VALUES = ['admin', 'secretaria', 'coordenador', 'aluno', 'professor'];
+const AGENDA_WRITE_ROLES = ['admin', 'secretaria', 'coordenador'];
+const ACADEMIC_VIEWER_ROLES = ['aluno', 'professor'];
+
 // ── Middleware RBAC ────────────────────────────────────────────────────────────
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -167,6 +171,10 @@ const getCompromissoScopeWhere = (user, baseWhere = {}) => {
     return baseWhere;
   }
 
+  if (ACADEMIC_VIEWER_ROLES.includes(user.role)) {
+    return { AND: [baseWhere, { status: 'aprovado' }] };
+  }
+
   if (user.role === 'coordenador') {
     return {
       AND: [
@@ -190,7 +198,10 @@ const canAccessCompromisso = (user, compromisso) => {
   if (user.role === 'coordenador') {
     return compromisso.coordenador_id === user.id || compromisso.usuario_id === user.id;
   }
-  return compromisso.usuario_id === user.id;
+  if (ACADEMIC_VIEWER_ROLES.includes(user.role)) {
+    return compromisso.status === 'aprovado';
+  }
+  return false;
 };
 
 const parseOptionalInt = (value) => {
@@ -680,6 +691,23 @@ const getCompromissoApprovalResponseUsers = (compromisso) => {
   return recipients;
 };
 
+const getAcademicViewerUserIds = async () => {
+  const users = await prisma.usuario.findMany({
+    where: {
+      role: { in: ACADEMIC_VIEWER_ROLES },
+      status: 'ativo',
+    },
+    select: { id: true },
+  });
+
+  return users.map(user => user.id);
+};
+
+const notifyAcademicViewersSafe = async (payload) => {
+  const userIds = await getAcademicViewerUserIds();
+  return createNotificationsForUsersSafe(userIds, payload);
+};
+
 const ensureAutomaticNotificationsForUser = async (user) => {
   if (user.role !== 'coordenador') return;
 
@@ -781,7 +809,11 @@ const canViewNotification = (user, notificacao, compromissoById = new Map()) => 
     return true;
   }
 
-  return compromisso.usuario_id === user.id;
+  if (ACADEMIC_VIEWER_ROLES.includes(user.role)) {
+    return compromisso.status === 'aprovado';
+  }
+
+  return false;
 };
 
 const fetchVisibleNotificationsForUser = async (user, take = 80) => {
@@ -832,7 +864,7 @@ app.post('/api/auth/register', async (req, res) => {
     return sendValidationError(res, 'A senha deve ter pelo menos 6 caracteres.');
   }
 
-  if (role && !['admin', 'secretaria', 'coordenador'].includes(role)) {
+  if (role && !ROLE_VALUES.includes(role)) {
     return sendValidationError(res, 'Informe um perfil valido.');
   }
 
@@ -1414,7 +1446,7 @@ app.post("/api/users", authenticateToken, requireRole('admin'), async (req, res)
     return sendValidationError(res, 'A senha deve ter pelo menos 6 caracteres.');
   }
 
-  if (!['admin', 'secretaria', 'coordenador'].includes(role)) {
+  if (!ROLE_VALUES.includes(role)) {
     return sendValidationError(res, 'Informe um perfil valido.');
   }
 
@@ -1451,7 +1483,7 @@ app.put("/api/users/:id", authenticateToken, requireRole('admin'), async (req, r
     return sendValidationError(res, 'A senha deve ter pelo menos 6 caracteres.');
   }
 
-  if (role !== undefined && !['admin', 'secretaria', 'coordenador'].includes(role)) {
+  if (role !== undefined && !ROLE_VALUES.includes(role)) {
     return sendValidationError(res, 'Informe um perfil valido.');
   }
 
@@ -1605,6 +1637,10 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
 
   const usuarioId = getAuthenticatedUserId(req);
   if (!usuarioId) return res.status(401).json({ error: 'Usuario autenticado invalido.' });
+
+  if (!AGENDA_WRITE_ROLES.includes(req.user.role)) {
+    return res.status(403).json({ error: 'Seu perfil pode apenas visualizar compromissos aprovados.' });
+  }
 
   const isSecretaria = req.user.role === 'secretaria';
   const coordenadorId = parseOptionalInt(coordenador_id);
@@ -1777,6 +1813,16 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
         }
       }
 
+      if (compromisso.status === 'aprovado') {
+        await notifyAcademicViewersSafe({
+          titulo: 'Novo compromisso aprovado',
+          mensagem: `"${compromisso.titulo}" foi publicado na agenda academica.`,
+          tipo: 'calendar',
+          referencia_id: compromisso.id,
+          referencia_tipo: 'compromisso',
+        });
+      }
+
       responseCompromissos.push(compromissoResponse);
     }
 
@@ -1805,6 +1851,10 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
 app.put('/api/compromissos/:id', authenticateToken, async (req, res) => {
   const id = parseInt(req.params.id);
   const { titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao } = req.body;
+
+  if (!AGENDA_WRITE_ROLES.includes(req.user.role)) {
+    return res.status(403).json({ error: 'Seu perfil nao pode editar compromissos.' });
+  }
 
   if (Number.isNaN(id)) {
     return sendValidationError(res, 'Compromisso invalido.');
@@ -1869,6 +1919,16 @@ app.put('/api/compromissos/:id', authenticateToken, async (req, res) => {
       referencia_id: updated.id,
       referencia_tipo: 'compromisso',
     });
+
+    if (updated.status === 'aprovado') {
+      await notifyAcademicViewersSafe({
+        titulo: 'Compromisso atualizado',
+        mensagem: `"${updated.titulo}" teve uma alteracao importante na agenda academica.`,
+        tipo: 'info',
+        referencia_id: updated.id,
+        referencia_tipo: 'compromisso',
+      });
+    }
 
     await registrarLog(req.user.id, 'EDITAR_COMPROMISSO', `Editou compromisso: ${updated.titulo}`);
     await registrarAcao({
@@ -1958,6 +2018,14 @@ app.patch('/api/compromissos/:id/aprovar', authenticateToken, requireRole('coord
       referencia_tipo: 'compromisso',
     });
 
+    await notifyAcademicViewersSafe({
+      titulo: 'Compromisso aprovado',
+      mensagem: `"${updated.titulo}" entrou na agenda academica.`,
+      tipo: 'aprovacao',
+      referencia_id: updated.id,
+      referencia_tipo: 'compromisso',
+    });
+
     res.json(compromissoResponse);
   } catch (e) {
     console.error(e);
@@ -2029,6 +2097,11 @@ app.patch('/api/compromissos/:id/recusar', authenticateToken, requireRole('coord
 // ── Excluir compromisso ───────────────────────────────────────────────────────
 app.delete('/api/compromissos/:id', authenticateToken, async (req, res) => {
   const id = parseInt(req.params.id);
+
+  if (!AGENDA_WRITE_ROLES.includes(req.user.role)) {
+    return res.status(403).json({ error: 'Seu perfil nao pode excluir compromissos.' });
+  }
+
   try {
     const comp = await prisma.compromisso.findUnique({
       where: { id },
@@ -2069,6 +2142,16 @@ app.delete('/api/compromissos/:id', authenticateToken, async (req, res) => {
       referencia_id: id,
       referencia_tipo: 'compromisso',
     });
+
+    if (comp.status === 'aprovado') {
+      await notifyAcademicViewersSafe({
+        titulo: 'Compromisso cancelado',
+        mensagem: `"${comp.titulo}" foi removido da agenda academica.`,
+        tipo: 'info',
+        referencia_id: id,
+        referencia_tipo: 'compromisso',
+      });
+    }
     res.json({ success: true });
   } catch (e) {
     if (e.code === 'P2025') return res.status(404).json({ error: 'Compromisso não encontrado.' });

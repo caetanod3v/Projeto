@@ -112,7 +112,16 @@ function App() {
         >
           <Route index element={<Calendario user={user} />} />
           <Route path="dashboard" element={<Dashboard user={user} />} />
-          <Route path="aprovacoes" element={user?.role === 'secretaria' ? <RetornosAprovacao user={user} /> : <Aprovacoes user={user} />} />
+          <Route
+            path="aprovacoes"
+            element={
+              user?.role === 'secretaria'
+                ? <RetornosAprovacao user={user} />
+                : (user?.role === 'admin' || user?.role === 'coordenador'
+                  ? <Aprovacoes user={user} />
+                  : <Navigate to="/" replace />)
+            }
+          />
           <Route path="retornos-aprovacao" element={<Navigate to="/aprovacoes" replace />} />
           <Route path="perfil" element={<Perfil user={user} onUserUpdate={updateUser} />} />
           <Route path="admin/usuarios" element={user?.role === 'admin' ? <AdminUsers /> : <Navigate to="/" replace />} />

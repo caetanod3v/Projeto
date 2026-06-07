@@ -140,6 +140,8 @@ export default function AdminUsers() {
                       <option value="admin">Admin</option>
                       <option value="coordenador">Coordenador</option>
                       <option value="secretaria">Secretaria</option>
+                      <option value="professor">Professor</option>
+                      <option value="aluno">Aluno</option>
                     </select>
 
                     {u.role === 'coordenador' && (

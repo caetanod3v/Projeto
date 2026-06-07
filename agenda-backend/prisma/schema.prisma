@@ -12,6 +12,8 @@ enum Role {
   coordenador
   secretaria
   admin
+  aluno
+  professor
 }
 
 enum Repeticao {

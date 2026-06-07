@@ -160,6 +160,8 @@ export default function Register() {
             >
               <option value="secretaria">Secretaria</option>
               <option value="coordenador">Coordenador de curso</option>
+              <option value="professor">Professor</option>
+              <option value="aluno">Aluno</option>
             </select>
           </div>
 

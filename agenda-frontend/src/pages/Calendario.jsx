@@ -450,6 +450,7 @@ export default function Calendario({ user }) {
   const currentUserId = Number(user?.id);
   const userScopedEvents = events.filter(ev => {
     if (user?.role === 'admin') return true;
+    if (user?.role === 'aluno' || user?.role === 'professor') return true;
     return Number(ev.extendedProps.usuario_id) === currentUserId
       || Number(ev.extendedProps.coordenador_id) === currentUserId;
   });

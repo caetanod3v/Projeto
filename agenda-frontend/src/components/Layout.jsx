@@ -273,6 +273,7 @@ export default function Layout({ user, onLogout }) {
    const unreadNotifications = notificacoes.filter(n => !n.isLida);
    const selectedActionPath = selectedNotif?.tipo === 'aprovacao' ? '/aprovacoes' : '/dashboard';
    const selectedActionLabel = selectedNotif?.tipo === 'aprovacao' ? 'Ir para aprovacoes' : 'Ir para compromissos';
+   const canCreateEvents = user?.role === 'admin' || user?.role === 'coordenador' || user?.role === 'secretaria';
 
    const renderNotificationItem = (n) => (
       <div
@@ -418,13 +419,15 @@ export default function Layout({ user, onLogout }) {
                </div>
 
                <div className="mt-3 px-2.5">
-                  <button
-                     onClick={handleCreateGlobal}
-                     className="mb-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-2.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800"
-                  >
-                     <Plus size={14} />
-                     Novo evento
-                  </button>
+                  {canCreateEvents && (
+                     <button
+                        onClick={handleCreateGlobal}
+                        className="mb-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-2.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800"
+                     >
+                        <Plus size={14} />
+                        Novo evento
+                     </button>
+                  )}
 
                   <nav className="space-y-1">
                      {navItems.map(item => {
