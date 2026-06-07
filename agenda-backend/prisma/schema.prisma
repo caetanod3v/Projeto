@@ -18,6 +18,7 @@ enum Repeticao {
   nenhuma
   semanal
   mensal
+  diaria
 }
 
 enum StatusCompromisso {

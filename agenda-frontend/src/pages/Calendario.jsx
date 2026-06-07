@@ -32,6 +32,15 @@ function isSameLocalDay(dateA, dateB) {
     && dateA.getDate() === dateB.getDate();
 }
 
+const toDateInputValue = (date) => format(date, 'yyyy-MM-dd');
+const toTimeInputValue = (date) => format(date, 'HH:mm');
+
+const buildLocalDateTime = (dateValue, timeValue) => {
+  if (!dateValue || !timeValue) return null;
+  const date = new Date(`${dateValue}T${timeValue}:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
 export default function Calendario({ user }) {
   const calendarRef = useRef(null);
   const [events, setEvents] = useState([]);
@@ -40,7 +49,6 @@ export default function Calendario({ user }) {
   const [coordenadores, setCoordenadores] = useState([]);
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -64,9 +72,12 @@ export default function Calendario({ user }) {
   const [titulo, setTitulo] = useState('');
   const [form, setForm] = useState({ coordenador_id: '' });
   const [categoriaId, setCategoriaId] = useState('');
+  const [dataInicio, setDataInicio] = useState('');
+  const [dataFim, setDataFim] = useState('');
   const [horaInicio, setHoraInicio] = useState('12:00');
   const [horaFim, setHoraFim] = useState('13:00');
   const [repeticao, setRepeticao] = useState('nenhuma');
+  const [repetirAte, setRepetirAte] = useState('');
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -119,14 +130,17 @@ export default function Calendario({ user }) {
     navigate(`${location.pathname}${query ? `?${query}` : ''}`, { replace: true });
   }, [searchParams, location.pathname, navigate]);
 
-  const abrirModalCriacao = (dateStr) => {
-    setSelectedDate(dateStr);
+  const abrirModalCriacao = (dateValue = '') => {
+    const baseDate = dateValue || toDateInputValue(new Date());
+    setDataInicio(baseDate);
+    setDataFim(baseDate);
     setTitulo('');
     setForm({ coordenador_id: '' });
     setCategoriaId('');
     setHoraInicio('12:00');
     setHoraFim('13:00');
     setRepeticao('nenhuma');
+    setRepetirAte('');
     setEditingId(null);
     setModalOpen(true);
   };
@@ -148,17 +162,18 @@ export default function Calendario({ user }) {
         const startDateObj = new Date(ev.start);
         const endDateObj = ev.end ? new Date(ev.end) : new Date(startDateObj.getTime() + 3600000);
 
-        const y = startDateObj.getFullYear();
-        const m = String(startDateObj.getMonth() + 1).padStart(2, '0');
-        const d = String(startDateObj.getDate()).padStart(2, '0');
-        setSelectedDate(`${y}-${m}-${d}`);
+        const startDate = toDateInputValue(startDateObj);
+        const endDate = toDateInputValue(endDateObj);
+        setDataInicio(startDate);
+        setDataFim(endDate);
 
-        setHoraInicio(format(startDateObj, 'HH:mm'));
-        setHoraFim(format(endDateObj, 'HH:mm'));
+        setHoraInicio(toTimeInputValue(startDateObj));
+        setHoraFim(toTimeInputValue(endDateObj));
 
         setForm({ coordenador_id: ev.extendedProps.coordenador_id || '' });
         setCategoriaId(ev.extendedProps.categoria_id || '');
         setRepeticao(ev.extendedProps.repeticao || 'nenhuma');
+        setRepetirAte('');
         setModalOpen(true);
 
         navigate('/', { replace: true, state: {} });
@@ -249,7 +264,14 @@ export default function Calendario({ user }) {
       toast.error('Sem permissao para criar compromissos.');
       return;
     }
-    abrirModalCriacao(arg.dateStr);
+    const clickedDate = arg.date || new Date(arg.dateStr);
+    abrirModalCriacao(toDateInputValue(clickedDate));
+    if (!arg.allDay) {
+      const endDate = new Date(clickedDate.getTime() + 60 * 60 * 1000);
+      setDataFim(toDateInputValue(endDate));
+      setHoraInicio(toTimeInputValue(clickedDate));
+      setHoraFim(toTimeInputValue(endDate));
+    }
   };
 
   const handleEventClick = (arg) => {
@@ -260,17 +282,18 @@ export default function Calendario({ user }) {
     const start = event.start;
     const end = event.end || new Date(start.getTime() + 3600000);
 
-    const y = start.getFullYear();
-    const m = String(start.getMonth() + 1).padStart(2, '0');
-    const d = String(start.getDate()).padStart(2, '0');
-    setSelectedDate(`${y}-${m}-${d}`);
+    const startDate = toDateInputValue(start);
+    const endDate = toDateInputValue(end);
+    setDataInicio(startDate);
+    setDataFim(endDate);
 
-    setHoraInicio(format(start, 'HH:mm'));
-    setHoraFim(format(end, 'HH:mm'));
+    setHoraInicio(toTimeInputValue(start));
+    setHoraFim(toTimeInputValue(end));
 
     setForm({ coordenador_id: event.extendedProps.coordenador_id || '' });
     setCategoriaId(event.extendedProps.categoria_id || '');
     setRepeticao(event.extendedProps.repeticao || 'nenhuma');
+    setRepetirAte('');
     setModalOpen(true);
   };
 
@@ -279,47 +302,77 @@ export default function Calendario({ user }) {
   };
 
   const handleSave = async () => {
-    if (!titulo) return toast.error('Insira um titulo para o compromisso');
+    if (!titulo.trim()) return toast.error('Insira um titulo para o compromisso');
     if (!editingId && user?.role === 'secretaria' && !form.coordenador_id) {
       return toast.error('Selecione o coordenador responsavel.');
     }
 
+    const inicio = buildLocalDateTime(dataInicio, horaInicio);
+    const fim = buildLocalDateTime(dataFim, horaFim);
+    if (!dataInicio || !horaInicio || !dataFim || !horaFim || !inicio || !fim) {
+      return toast.error('Informe data e horario de inicio e fim.');
+    }
+
+    if (fim <= inicio) {
+      return toast.error('O fim precisa ser depois do inicio.');
+    }
+
+    if (!editingId && repeticao !== 'nenhuma' && !repetirAte) {
+      return toast.error('Informe ate quando o compromisso deve repetir.');
+    }
+
     const toastId = toast.loading('Salvando compromisso...');
-    const inicioISO = new Date(`${selectedDate}T${horaInicio}:00`).toISOString();
-    const fimISO = new Date(`${selectedDate}T${horaFim}:00`).toISOString();
 
     const payload = {
-      titulo, dt_inicio: inicioISO, dt_fim: fimISO, categoria_id: categoriaId, repeticao,
+      titulo: titulo.trim(),
+      dt_inicio: inicio.toISOString(),
+      dt_fim: fim.toISOString(),
+      categoria_id: categoriaId,
+      repeticao,
       coordenador_id: form.coordenador_id,
       usuario_role: user?.role
     };
+
+    if (!editingId && repeticao !== 'nenhuma') {
+      payload.recorrencia_tipo = repeticao;
+      payload.recorrencia_ate = repetirAte;
+    }
 
     try {
       if (editingId) {
         await api.put(`/compromissos/${editingId}`, payload);
         toast.success('Compromisso salvo com sucesso!', { id: toastId });
       } else {
-        await api.post(`/compromissos`, payload);
+        const res = await api.post(`/compromissos`, payload);
+        const totalCriado = res.data?.total;
         if (user?.role === 'secretaria') {
-          toast.success('Compromisso enviado para aprovacao do coordenador.', { id: toastId });
+          toast.success(totalCriado > 1 ? `${totalCriado} ocorrencias enviadas para aprovacao.` : 'Compromisso enviado para aprovacao do coordenador.', { id: toastId });
         } else {
-          toast.success('Compromisso criado com sucesso!', { id: toastId });
+          toast.success(totalCriado > 1 ? `${totalCriado} ocorrencias criadas com sucesso!` : 'Compromisso criado com sucesso!', { id: toastId });
         }
       }
       setModalOpen(false);
       fetchData();
     } catch (err) {
-      toast.error('Falha ao salvar evento.', { id: toastId });
+      toast.error(err.response?.data?.message || err.response?.data?.error || 'Falha ao salvar evento.', { id: toastId });
     }
   };
 
   const handleDuplicate = async () => {
     const toastId = toast.loading('Duplicando compromisso...');
     try {
-      const inicioISO = new Date(`${selectedDate}T${horaInicio}:00`).toISOString();
-      const fimISO = new Date(`${selectedDate}T${horaFim}:00`).toISOString();
+      const inicio = buildLocalDateTime(dataInicio, horaInicio);
+      const fim = buildLocalDateTime(dataFim, horaFim);
+      if (!inicio || !fim || fim <= inicio) {
+        toast.error('Informe um periodo valido para duplicar.', { id: toastId });
+        return;
+      }
       const payload = {
-        titulo: titulo + ' (Copia)', dt_inicio: inicioISO, dt_fim: fimISO, categoria_id: categoriaId, repeticao,
+        titulo: `${titulo} (Copia)`,
+        dt_inicio: inicio.toISOString(),
+        dt_fim: fim.toISOString(),
+        categoria_id: categoriaId,
+        repeticao: 'nenhuma',
         coordenador_id: form.coordenador_id,
         usuario_role: user?.role
       };
@@ -744,7 +797,7 @@ export default function Calendario({ user }) {
         {/* Modal de Criação / Edição (Mantendo design limpo) */}
         {modalOpen && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center bg-gray-950/35 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-md animate-fade-in-up rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-gray-200/80 dark:bg-[#191d28] dark:ring-white/10 md:p-7">
+            <div className="w-full max-w-lg animate-fade-in-up rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-gray-200/80 dark:bg-[#191d28] dark:ring-white/10 md:p-7">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-semibold tracking-tight text-gray-950 dark:text-white">{editingId ? (canEdit ? 'Editar evento' : 'Detalhes do evento') : 'Novo evento'}</h3>
                 {editingId && canEdit && (
@@ -784,13 +837,21 @@ export default function Calendario({ user }) {
                   </div>
                 )}
 
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Inicio</label>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Data inicial</label>
+                    <input type="date" disabled={isFormDisabled} value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Hora inicial</label>
                     <input type="time" disabled={isFormDisabled} value={horaInicio} onChange={e => setHoraInicio(e.target.value)} className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50" />
                   </div>
-                  <div className="flex-1">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Fim</label>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Data final</label>
+                    <input type="date" disabled={isFormDisabled} value={dataFim} onChange={e => setDataFim(e.target.value)} className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Hora final</label>
                     <input type="time" disabled={isFormDisabled} value={horaFim} onChange={e => setHoraFim(e.target.value)} className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50" />
                   </div>
                 </div>
@@ -803,14 +864,27 @@ export default function Calendario({ user }) {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Repeticao</label>
-                  <select value={repeticao} disabled={isFormDisabled} onChange={e => setRepeticao(e.target.value)} className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
-                    <option value="nenhuma">Nenhuma (evento unico)</option>
-                    <option value="semanal">Semanal</option>
-                    <option value="mensal">Mensal</option>
-                  </select>
-                </div>
+                {!editingId && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Repeticao</label>
+                      <select value={repeticao} disabled={isFormDisabled} onChange={e => setRepeticao(e.target.value)} className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50">
+                        <option value="nenhuma">Nao repetir</option>
+                        <option value="diaria">Diariamente</option>
+                        <option value="semanal">Semanalmente</option>
+                        <option value="mensal">Mensalmente</option>
+                      </select>
+                    </div>
+
+                    {repeticao !== 'nenhuma' && (
+                      <div className="rounded-xl bg-gray-50/90 p-3 ring-1 ring-gray-200/70 dark:bg-white/5 dark:ring-white/10">
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Repetir ate</label>
+                        <input type="date" disabled={isFormDisabled} value={repetirAte} onChange={e => setRepetirAte(e.target.value)} className="w-full border border-gray-200 bg-white text-gray-950 p-3 rounded-xl focus:ring-2 focus:ring-uvv-yellow transition-all outline-none disabled:opacity-50" />
+                        <p className="mt-2 text-xs font-medium text-gray-500 dark:text-gray-400">Serao criadas ocorrencias individuais ate a data escolhida.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="mt-8 flex gap-3 pt-2">
                   <button onClick={() => setModalOpen(false)} className={`rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-200 dark:bg-white/10 dark:text-white ${!isFormDisabled ? 'flex-1' : 'w-full'}`}>Cancelar</button>

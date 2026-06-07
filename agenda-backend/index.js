@@ -198,6 +198,66 @@ const getAuthenticatedUserId = (req) => parseOptionalInt(req.user?.id || req.use
 const formatDateOnly = (date) => date.toISOString().slice(0, 10);
 const formatTimeOnly = (date) => date.toISOString().slice(11, 16);
 
+const RECURRENCE_TYPES = new Set(['nenhuma', 'diaria', 'semanal', 'mensal']);
+const MAX_RECURRENCE_OCCURRENCES = 60;
+
+const parseRecurrenceUntil = (value) => {
+  if (!value) return null;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return new Date(`${value}T23:59:59.999`);
+  }
+  return new Date(value);
+};
+
+const addRecurrenceInterval = (date, recurrenceType) => {
+  const next = new Date(date);
+  if (recurrenceType === 'diaria') {
+    next.setDate(next.getDate() + 1);
+  } else if (recurrenceType === 'semanal') {
+    next.setDate(next.getDate() + 7);
+  } else if (recurrenceType === 'mensal') {
+    next.setMonth(next.getMonth() + 1);
+  }
+  return next;
+};
+
+const buildRecurrenceOccurrences = ({ dtInicio, dtFim, recurrenceType, recurrenceUntil }) => {
+  if (recurrenceType === 'nenhuma') {
+    return [{ dt_inicio: dtInicio, dt_fim: dtFim }];
+  }
+
+  if (!recurrenceUntil || Number.isNaN(recurrenceUntil.getTime())) {
+    throw validationError('Informe a data limite da repeticao.');
+  }
+
+  if (recurrenceUntil < dtInicio) {
+    throw validationError('A data limite da repeticao deve ser posterior ao inicio.');
+  }
+
+  const durationMs = dtFim.getTime() - dtInicio.getTime();
+  const occurrences = [];
+  let currentStart = new Date(dtInicio);
+
+  while (currentStart <= recurrenceUntil) {
+    if (occurrences.length >= MAX_RECURRENCE_OCCURRENCES) {
+      throw validationError(`A repeticao pode gerar no maximo ${MAX_RECURRENCE_OCCURRENCES} ocorrencias.`);
+    }
+
+    occurrences.push({
+      dt_inicio: new Date(currentStart),
+      dt_fim: new Date(currentStart.getTime() + durationMs),
+    });
+
+    const nextStart = addRecurrenceInterval(currentStart, recurrenceType);
+    if (nextStart <= currentStart) {
+      throw validationError('Tipo de repeticao invalido.');
+    }
+    currentStart = nextStart;
+  }
+
+  return occurrences;
+};
+
 const toSolicitacaoSecretaria = (compromisso) => ({
   id: compromisso.id,
   titulo: compromisso.titulo,
@@ -1522,16 +1582,35 @@ app.get("/api/minhas-solicitacoes", authenticateToken, requireRole('secretaria')
 });
 
 app.post('/api/compromissos', authenticateToken, async (req, res) => {
-  const { titulo, descricao, dt_inicio, dt_fim, curso_id, categoria_id, repeticao, coordenador_id } = req.body;
+  const {
+    titulo,
+    descricao,
+    dt_inicio,
+    dt_fim,
+    curso_id,
+    categoria_id,
+    repeticao,
+    recorrencia_tipo,
+    repeatType,
+    recorrencia_ate,
+    repeatUntil,
+    coordenador_id,
+  } = req.body;
 
   const usuarioId = getAuthenticatedUserId(req);
   if (!usuarioId) return res.status(401).json({ error: 'Usuario autenticado invalido.' });
 
   const isSecretaria = req.user.role === 'secretaria';
   const coordenadorId = parseOptionalInt(coordenador_id);
+  const recurrenceType = recorrencia_tipo || repeatType || repeticao || 'nenhuma';
+  const recurrenceUntil = parseRecurrenceUntil(recorrencia_ate || repeatUntil);
 
   if (!titulo || !dt_inicio || !dt_fim) {
     return sendValidationError(res, "Informe titulo, data de inicio e data de fim.");
+  }
+
+  if (!RECURRENCE_TYPES.has(recurrenceType)) {
+    return sendValidationError(res, "Informe uma repeticao valida.");
   }
 
   const dtInicio = new Date(dt_inicio);
@@ -1566,18 +1645,22 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
 
     const cursoId = parseOptionalInt(curso_id);
     const categoriaId = parseOptionalInt(categoria_id);
-    const data = {
+    const occurrences = buildRecurrenceOccurrences({
+      dtInicio,
+      dtFim,
+      recurrenceType,
+      recurrenceUntil,
+    });
+    const baseData = {
       titulo: titulo.trim(),
       descricao,
-      dt_inicio: dtInicio,
-      dt_fim: dtFim,
       categoria_id: categoriaId,
       usuario_id: usuarioId,
-      repeticao: repeticao || 'nenhuma',
+      repeticao: recurrenceType,
     };
 
     if (isSecretaria) {
-      Object.assign(data, {
+      Object.assign(baseData, {
         curso_id: coordenador?.curso_id || null,
         coordenador_id: coordenadorId,
         status: 'pendente',
@@ -1588,88 +1671,125 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
         motivo_recusa: null,
       });
     } else if (userRole === 'coordenador') {
-      Object.assign(data, {
+      Object.assign(baseData, {
         curso_id: currentUser.curso_id || null,
         coordenador_id: usuarioId,
         status: 'aprovado',
       });
     } else {
-      Object.assign(data, {
+      Object.assign(baseData, {
         curso_id: cursoId || coordenador?.curso_id || null,
         coordenador_id: coordenadorId,
         status: 'aprovado',
       });
     }
 
-    const novoCompromisso = await prisma.compromisso.create({
-      data,
-      include: {
-        curso: true,
-        categoria: true,
-        usuario: { select: usuarioPublicSelect },
-        coordenador: { select: usuarioPublicSelect }
-      }
-    });
+    const createdCompromissos = [];
+    for (const occurrence of occurrences) {
+      const novoCompromisso = await prisma.compromisso.create({
+        data: {
+          ...baseData,
+          dt_inicio: occurrence.dt_inicio,
+          dt_fim: occurrence.dt_fim,
+        },
+        include: {
+          curso: true,
+          categoria: true,
+          usuario: { select: usuarioPublicSelect },
+          coordenador: { select: usuarioPublicSelect }
+        }
+      });
 
-    await registrarLog(usuarioId, 'CRIAR_COMPROMISSO', `Criou compromisso: ${titulo}`);
-    await registrarAcao({
-      usuario_id: usuarioId,
-      acao: 'CRIAR_COMPROMISSO',
-      entidade: 'compromisso',
-      entidade_id: novoCompromisso.id,
-      detalhes: {
-        status: novoCompromisso.status,
-        coordenador_id: novoCompromisso.coordenador_id,
-        curso_id: novoCompromisso.curso_id,
-      },
-    });
+      await registrarAcao({
+        usuario_id: usuarioId,
+        acao: 'CRIAR_COMPROMISSO',
+        entidade: 'compromisso',
+        entidade_id: novoCompromisso.id,
+        detalhes: {
+          status: novoCompromisso.status,
+          coordenador_id: novoCompromisso.coordenador_id,
+          curso_id: novoCompromisso.curso_id,
+          repeticao: recurrenceType,
+        },
+      });
 
-    if (isSecretaria && coordenador?.email) {
-      sendReminder(coordenador.email, titulo, dt_inicio).catch(err => {
+      createdCompromissos.push(novoCompromisso);
+    }
+
+    const firstCompromisso = createdCompromissos[0];
+    await registrarLog(
+      usuarioId,
+      'CRIAR_COMPROMISSO',
+      occurrences.length > 1
+        ? `Criou ${occurrences.length} ocorrencias do compromisso: ${titulo}`
+        : `Criou compromisso: ${titulo}`
+    );
+
+    if (isSecretaria && coordenador?.email && firstCompromisso) {
+      sendReminder(coordenador.email, firstCompromisso.titulo, firstCompromisso.dt_inicio).catch(err => {
         console.error("Erro no e-mail de notificacao:", err);
       });
     }
 
-    if (isSecretaria && novoCompromisso.coordenador_id) {
-      await createNotificationSafe({
-        usuario_id: novoCompromisso.coordenador_id,
-        titulo: 'Nova solicitacao de aprovacao',
-        mensagem: `"${novoCompromisso.titulo}" aguarda sua analise.`,
-        tipo: 'aprovacao',
-        referencia_id: novoCompromisso.id,
-        referencia_tipo: 'compromisso',
-      });
-    } else if (novoCompromisso.coordenador_id) {
-      await createNotificationSafe({
-        usuario_id: novoCompromisso.coordenador_id,
-        titulo: userRole === 'coordenador' ? 'Compromisso criado' : 'Novo compromisso na agenda',
-        mensagem: userRole === 'coordenador'
-          ? `"${novoCompromisso.titulo}" foi adicionado ao seu calendario.`
-          : `"${novoCompromisso.titulo}" foi criado para sua agenda.`,
-        tipo: 'calendar',
-        referencia_id: novoCompromisso.id,
-        referencia_tipo: 'compromisso',
-      });
-    }
-
-    let compromissoResponse = novoCompromisso;
-    if (novoCompromisso.status === 'aprovado' && novoCompromisso.coordenador_id) {
-      const googleResult = await syncCompromissoToGoogleCalendarSafe(novoCompromisso);
-      if (googleResult?.googleEventId) {
-        compromissoResponse = { ...novoCompromisso, google_event_id: googleResult.googleEventId };
+    const responseCompromissos = [];
+    for (const compromisso of createdCompromissos) {
+      if (isSecretaria && compromisso.coordenador_id) {
         await createNotificationSafe({
-          usuario_id: novoCompromisso.coordenador_id,
-          titulo: 'Evento sincronizado',
-          mensagem: `"${novoCompromisso.titulo}" foi enviado para o Google Calendar.`,
+          usuario_id: compromisso.coordenador_id,
+          titulo: 'Nova solicitacao de aprovacao',
+          mensagem: `"${compromisso.titulo}" aguarda sua analise.`,
+          tipo: 'aprovacao',
+          referencia_id: compromisso.id,
+          referencia_tipo: 'compromisso',
+        });
+      } else if (compromisso.coordenador_id) {
+        await createNotificationSafe({
+          usuario_id: compromisso.coordenador_id,
+          titulo: userRole === 'coordenador' ? 'Compromisso criado' : 'Novo compromisso na agenda',
+          mensagem: userRole === 'coordenador'
+            ? `"${compromisso.titulo}" foi adicionado ao seu calendario.`
+            : `"${compromisso.titulo}" foi criado para sua agenda.`,
           tipo: 'calendar',
-          referencia_id: novoCompromisso.id,
+          referencia_id: compromisso.id,
           referencia_tipo: 'compromisso',
         });
       }
+
+      let compromissoResponse = compromisso;
+      if (compromisso.status === 'aprovado' && compromisso.coordenador_id) {
+        const googleResult = await syncCompromissoToGoogleCalendarSafe(compromisso);
+        if (googleResult?.googleEventId) {
+          compromissoResponse = { ...compromisso, google_event_id: googleResult.googleEventId };
+          await createNotificationSafe({
+            usuario_id: compromisso.coordenador_id,
+            titulo: 'Evento sincronizado',
+            mensagem: `"${compromisso.titulo}" foi enviado para o Google Calendar.`,
+            tipo: 'calendar',
+            referencia_id: compromisso.id,
+            referencia_tipo: 'compromisso',
+          });
+        }
+      }
+
+      responseCompromissos.push(compromissoResponse);
     }
 
-    res.status(201).json(compromissoResponse);
+    if (responseCompromissos.length === 1) {
+      return res.status(201).json(responseCompromissos[0]);
+    }
+
+    res.status(201).json({
+      compromissos: responseCompromissos,
+      total: responseCompromissos.length,
+      recorrencia: {
+        tipo: recurrenceType,
+        ate: recurrenceUntil,
+      },
+    });
   } catch (e) {
+    if (e instanceof AppError) {
+      return res.status(e.statusCode || 400).json(apiError(e.message, e.code || 'VALIDATION_ERROR'));
+    }
     console.error(e);
     res.status(500).json({ error: "Erro ao criar compromisso." });
   }
