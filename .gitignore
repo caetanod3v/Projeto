@@ -7,12 +7,25 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Dependencies
+node_modules/
+agenda-backend/node_modules/
+agenda-frontend/node_modules/
 
-# Editor directories and files
+# Builds
+dist/
+agenda-frontend/dist/
+agenda-backend/dist/
+
+# Environment
+.env
+.env.*
+agenda-backend/.env
+agenda-backend/.env.*
+agenda-frontend/.env
+agenda-frontend/.env.*
+
+# Editor
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -22,8 +35,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-agenda-backend/
-agenda-frontend/
-node_modules/
-dist/
-.env
