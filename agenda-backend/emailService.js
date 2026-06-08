@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns').promises;
 
 let cachedTransporter = null;
 let cachedTestAccount = null;
@@ -36,8 +37,33 @@ async function getTransporter() {
   if (cachedTransporter) return cachedTransporter;
 
   if (process.env.SMTP_HOST) {
+    console.log('[E-MAIL] SMTP config', {
+      SMTP_HOST: process.env.SMTP_HOST,
+      SMTP_PORT: process.env.SMTP_PORT || 587,
+      SMTP_SECURE: process.env.SMTP_SECURE,
+    });
+
+    let transportHost = process.env.SMTP_HOST;
+    let tlsServername = process.env.SMTP_HOST;
+
+    try {
+      const ipv4Addresses = await dns.resolve4(process.env.SMTP_HOST);
+      if (ipv4Addresses?.length) {
+        transportHost = ipv4Addresses[0];
+        console.log('[E-MAIL] SMTP IPv4 resolved', {
+          SMTP_HOST: process.env.SMTP_HOST,
+          IPv4: transportHost,
+        });
+      }
+    } catch (err) {
+      console.error('[E-MAIL] SMTP IPv4 resolution failed', {
+        SMTP_HOST: process.env.SMTP_HOST,
+        message: err.message,
+      });
+    }
+
     cachedTransporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
+      host: transportHost,
       port: Number(process.env.SMTP_PORT || 587),
       secure: process.env.SMTP_SECURE === 'true',
       family: 4,
@@ -45,6 +71,9 @@ async function getTransporter() {
       connectionTimeout: 30000,
       greetingTimeout: 30000,
       socketTimeout: 30000,
+      tls: {
+        servername: tlsServername,
+      },
       auth: process.env.SMTP_USER && process.env.SMTP_PASS
         ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
         : undefined,

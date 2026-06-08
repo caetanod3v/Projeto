@@ -364,3 +364,6 @@ Complementar as notificacoes internas do sino com avisos por e-mail para partici
 - Nao foi implementada fila de e-mails.
 - Nao foram enviados e-mails para alunos ou professores.
 - Os corpos de e-mail sao simples nesta fase, sem templates HTML complexos.
+- Diagnostico pos-deploy: o Nodemailer instalado mantinha `family: 4` no objeto do transporter, mas o caminho interno `smtp-connection` nao repassava `this.options.family` para `shared.resolveHostname`.
+- Para evitar `ENETUNREACH` por IPv6 no Render com `smtp.gmail.com`, o transporter passou a resolver IPv4 explicitamente com `dns.resolve4(SMTP_HOST)`, usar o IPv4 como `host` e preservar `tls.servername` com o host original para TLS/SNI.
+- Foi adicionado log temporario `[E-MAIL] SMTP config` com `SMTP_HOST`, `SMTP_PORT` e `SMTP_SECURE`, alem de log `[E-MAIL] SMTP IPv4 resolved`.
