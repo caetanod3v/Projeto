@@ -1,7 +1,14 @@
 const express = require("express");
 const cors = require("cors");
 const { PrismaClient } = require("@prisma/client");
-const { sendReminder } = require("./emailService");
+const {
+  sendReminder,
+  sendPendingApprovalEmail,
+  sendApprovalEmail,
+  sendRejectionEmail,
+  sendUpdatedCommitmentEmail,
+  sendCancelledCommitmentEmail,
+} = require("./emailService");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
@@ -718,6 +725,18 @@ const notifyAcademicViewersSafe = async (payload) => {
   return createNotificationsForUsersSafe(userIds, payload);
 };
 
+const sendOperationalEmailSafe = (label, sendFn, payload) => {
+  if (!payload?.to) return;
+
+  sendFn(payload).catch((err) => {
+    console.error(`[E-MAIL] ${label} failed`, {
+      to: payload.to,
+      compromisso_id: payload.compromisso?.id,
+      message: err.message,
+    });
+  });
+};
+
 const ensureAutomaticNotificationsForUser = async (user) => {
   if (user.role !== 'coordenador') return;
 
@@ -976,7 +995,6 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       data: { reset_token: token, reset_token_expires: expires }
     });
 
-    const { sendReminder } = require("./emailService");
     // Aproveitando o mock do ethereal para enviar o link
     await sendReminder(normalizedEmail, "Recuperação de Senha", new Date(), "Use o link http://localhost:5173/reset-password?token=" + token + " para resetar sua senha. Ignorar a data:");
 
@@ -1834,7 +1852,6 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
       createdCompromissos.push(novoCompromisso);
     }
 
-    const firstCompromisso = createdCompromissos[0];
     await registrarLog(
       usuarioId,
       'CRIAR_COMPROMISSO',
@@ -1842,12 +1859,6 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
         ? `Criou ${occurrences.length} ocorrencias do compromisso: ${titulo}`
         : `Criou compromisso: ${titulo}`
     );
-
-    if (isSecretaria && coordenador?.email && firstCompromisso) {
-      sendReminder(coordenador.email, firstCompromisso.titulo, firstCompromisso.dt_inicio).catch(err => {
-        console.error("Erro no e-mail de notificacao:", err);
-      });
-    }
 
     const responseCompromissos = [];
     for (const compromisso of createdCompromissos) {
@@ -1860,6 +1871,13 @@ app.post('/api/compromissos', authenticateToken, async (req, res) => {
           referencia_id: compromisso.id,
           referencia_tipo: 'compromisso',
         });
+
+        if (compromisso.coordenador?.email) {
+          sendOperationalEmailSafe('Pending approval', sendPendingApprovalEmail, {
+            to: compromisso.coordenador.email,
+            compromisso,
+          });
+        }
       } else if (compromisso.coordenador_id) {
         await createNotificationSafe({
           usuario_id: compromisso.coordenador_id,
@@ -1949,7 +1967,15 @@ app.put('/api/compromissos/:id', authenticateToken, async (req, res) => {
   }
 
   try {
-    const existing = await prisma.compromisso.findUnique({ where: { id } });
+    const existing = await prisma.compromisso.findUnique({
+      where: { id },
+      include: {
+        curso: true,
+        categoria: true,
+        usuario: { select: usuarioPublicSelect },
+        coordenador: { select: usuarioPublicSelect }
+      }
+    });
     if (!existing) return res.status(404).json({ error: 'Compromisso nao encontrado.' });
     if (!canAccessCompromisso(req.user, existing)) {
       return res.status(403).json({ error: 'Voce nao tem acesso a este compromisso.' });
@@ -1997,6 +2023,14 @@ app.put('/api/compromissos/:id', authenticateToken, async (req, res) => {
     });
 
     if (updated.status === 'aprovado') {
+      if (updated.coordenador?.email) {
+        sendOperationalEmailSafe('Update', sendUpdatedCommitmentEmail, {
+          to: updated.coordenador.email,
+          compromisso: updated,
+          previousCompromisso: existing,
+        });
+      }
+
       await notifyAcademicViewersSafe({
         titulo: 'Compromisso atualizado',
         mensagem: `"${updated.titulo}" teve uma alteracao importante na agenda academica.`,
@@ -2094,6 +2128,13 @@ app.patch('/api/compromissos/:id/aprovar', authenticateToken, requireRole('coord
       referencia_tipo: 'compromisso',
     });
 
+    if (updated.usuario?.role === 'secretaria' && updated.usuario?.email) {
+      sendOperationalEmailSafe('Approval', sendApprovalEmail, {
+        to: updated.usuario.email,
+        compromisso: updated,
+      });
+    }
+
     await notifyAcademicViewersSafe({
       titulo: 'Compromisso aprovado',
       mensagem: `"${updated.titulo}" entrou na agenda academica.`,
@@ -2140,6 +2181,8 @@ app.patch('/api/compromissos/:id/recusar', authenticateToken, requireRole('coord
         respondido_em: new Date(),
       },
       include: {
+        curso: true,
+        categoria: true,
         usuario: { select: usuarioPublicSelect },
         coordenador: { select: usuarioPublicSelect }
       }
@@ -2163,6 +2206,14 @@ app.patch('/api/compromissos/:id/recusar', authenticateToken, requireRole('coord
       referencia_id: updated.id,
       referencia_tipo: 'compromisso',
     });
+
+    if (updated.usuario?.role === 'secretaria' && updated.usuario?.email) {
+      sendOperationalEmailSafe('Rejection', sendRejectionEmail, {
+        to: updated.usuario.email,
+        compromisso: updated,
+      });
+    }
+
     res.json(updated);
   } catch (e) {
     console.error(e);
@@ -2220,6 +2271,20 @@ app.delete('/api/compromissos/:id', authenticateToken, async (req, res) => {
     });
 
     if (comp.status === 'aprovado') {
+      if (comp.coordenador?.email) {
+        sendOperationalEmailSafe('Cancellation', sendCancelledCommitmentEmail, {
+          to: comp.coordenador.email,
+          compromisso: comp,
+        });
+      }
+
+      if (comp.usuario?.role === 'secretaria' && comp.usuario?.email) {
+        sendOperationalEmailSafe('Cancellation', sendCancelledCommitmentEmail, {
+          to: comp.usuario.email,
+          compromisso: comp,
+        });
+      }
+
       await notifyAcademicViewersSafe({
         titulo: 'Compromisso cancelado',
         mensagem: `"${comp.titulo}" foi removido da agenda academica.`,

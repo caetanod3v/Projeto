@@ -285,3 +285,82 @@ Finalizar a logica academica de cadastro e login por perfil:
 - `src/pages/Perfil.jsx`
 - `src/pages/ForgotPassword.jsx`
 - `CONTEXT.md`
+
+## FASE 4.1 - Notificacoes Operacionais por E-mail
+
+Data: 2026-06-08
+
+### Objetivo
+
+Complementar as notificacoes internas do sino com avisos por e-mail para participantes do fluxo operacional, sem enviar e-mails para `aluno` ou `professor` nesta fase.
+
+### Eventos com envio de e-mail
+
+- Secretaria cria compromisso pendente para coordenador:
+  - destinatario: coordenador responsavel;
+  - assunto: `[Fluxus] Nova solicitacao aguardando aprovacao`.
+- Coordenador/admin aprova solicitacao criada pela secretaria:
+  - destinatario: secretaria solicitante;
+  - assunto: `[Fluxus] Solicitacao aprovada`.
+- Coordenador/admin recusa solicitacao criada pela secretaria:
+  - destinatario: secretaria solicitante;
+  - assunto: `[Fluxus] Solicitacao recusada`.
+- Compromisso aprovado e alterado:
+  - destinatario: coordenador responsavel;
+  - assunto: `[Fluxus] Compromisso atualizado`.
+- Compromisso aprovado e cancelado/removido:
+  - destinatarios: coordenador responsavel e secretaria solicitante, quando existir;
+  - assunto: `[Fluxus] Compromisso cancelado`.
+
+### Funcoes criadas no servico de e-mail
+
+- `sendPendingApprovalEmail()`
+- `sendApprovalEmail()`
+- `sendRejectionEmail()`
+- `sendUpdatedCommitmentEmail()`
+- `sendCancelledCommitmentEmail()`
+
+### Regras de seguranca operacional
+
+- Falha de SMTP nao bloqueia criacao, aprovacao, recusa, edicao ou cancelamento.
+- Os envios operacionais passam por `sendOperationalEmailSafe()`, que captura erro e registra log.
+- Logs de sucesso adicionados:
+  - `[E-MAIL] Pending approval sent`
+  - `[E-MAIL] Approval sent`
+  - `[E-MAIL] Rejection sent`
+  - `[E-MAIL] Update sent`
+  - `[E-MAIL] Cancellation sent`
+- Logs de falha seguem o padrao `[E-MAIL] <fluxo> failed`.
+
+### Infraestrutura
+
+- `emailService.js` continua exportando `sendReminder()` para manter compatibilidade com recuperacao de senha.
+- Se `SMTP_HOST` estiver configurado, o servico usa as variaveis SMTP:
+  - `SMTP_HOST`
+  - `SMTP_PORT`
+  - `SMTP_SECURE`
+  - `SMTP_USER`
+  - `SMTP_PASS`
+  - `EMAIL_FROM` ou `SMTP_FROM`
+- Sem SMTP configurado, o fallback permanece Ethereal para teste local.
+- O link para acesso ao Fluxus usa `FRONTEND_URL`, com fallback para `http://localhost:5173`.
+
+### Arquivos alterados
+
+- `agenda-backend/emailService.js`
+- `agenda-backend/index.js`
+- `CONTEXT.md`
+
+### Validacoes executadas
+
+- `cd agenda-backend && node --check index.js`
+  - Resultado: passou.
+- `cd agenda-backend && node --check emailService.js`
+  - Resultado: passou.
+
+### Pontos de atencao
+
+- Nao foram implementadas preferencias de notificacao.
+- Nao foi implementada fila de e-mails.
+- Nao foram enviados e-mails para alunos ou professores.
+- Os corpos de e-mail sao simples nesta fase, sem templates HTML complexos.
