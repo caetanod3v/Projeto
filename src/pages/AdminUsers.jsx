@@ -8,6 +8,15 @@ import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 export default function AdminUsers() {
   const [usuarios, setUsuarios] = useState([]);
   const [cursos, setCursos] = useState([]);
+  const [novoUsuario, setNovoUsuario] = useState({
+    nome: '',
+    email: '',
+    matricula: '',
+    senha: '',
+    role: 'aluno',
+    curso_id: '',
+    status: 'ativo',
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -23,7 +32,7 @@ export default function AdminUsers() {
       setCursos(curRes.data);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || 'Nao foi possivel carregar os usuarios.');
+      setError(err.response?.data?.message || err.response?.data?.error || 'Nao foi possivel carregar os usuarios.');
       toast.error('Erro ao carregar usuarios.');
     } finally {
       setLoading(false);
@@ -33,6 +42,23 @@ export default function AdminUsers() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleCreateUser = async (event) => {
+    event.preventDefault();
+    try {
+      await api.post('/users', {
+        ...novoUsuario,
+        email: novoUsuario.role === 'aluno' ? null : novoUsuario.email,
+        matricula: novoUsuario.role === 'aluno' ? novoUsuario.matricula : null,
+        curso_id: novoUsuario.role === 'coordenador' && novoUsuario.curso_id ? parseInt(novoUsuario.curso_id) : null,
+      });
+      toast.success('Usuario criado.');
+      setNovoUsuario({ nome: '', email: '', matricula: '', senha: '', role: 'aluno', curso_id: '', status: 'ativo' });
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.response?.data?.error || 'Erro ao criar usuario.');
+    }
+  };
 
   const handleAprovar = async (id) => {
     try {
@@ -55,13 +81,29 @@ export default function AdminUsers() {
     }
   };
 
-  const handleRoleChange = async (id, role, curso_id) => {
+  const handleRoleChange = async (usuario, role, curso_id = usuario.curso_id, matricula = usuario.matricula, email = usuario.email) => {
     try {
-      await api.put(`/users/${id}`, { role, curso_id: role === 'coordenador' ? parseInt(curso_id) : null });
+      let nextMatricula = matricula;
+      let nextEmail = email;
+
+      if (role === 'aluno' && !nextMatricula) {
+        nextMatricula = window.prompt('Informe a matricula do aluno:') || '';
+      }
+
+      if (role !== 'aluno' && !nextEmail) {
+        nextEmail = window.prompt('Informe o e-mail institucional:') || '';
+      }
+
+      await api.put(`/users/${usuario.id}`, {
+        role,
+        email: role === 'aluno' ? null : nextEmail,
+        matricula: role === 'aluno' ? nextMatricula : null,
+        curso_id: role === 'coordenador' && curso_id ? parseInt(curso_id) : null
+      });
       toast.success('Usuario atualizado.');
       loadData();
     } catch (err) {
-      toast.error('Erro ao atualizar usuario.');
+      toast.error(err.response?.data?.message || err.response?.data?.error || 'Erro ao atualizar usuario.');
     }
   };
 
@@ -106,6 +148,50 @@ export default function AdminUsers() {
         </div>
       </section>
 
+      <section className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10">
+        <form onSubmit={handleCreateUser} className="grid gap-3 lg:grid-cols-[1.2fr_1fr_1fr_0.9fr_0.9fr_auto] lg:items-end">
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-gray-400">Nome</span>
+            <input value={novoUsuario.nome} onChange={(e) => setNovoUsuario(prev => ({ ...prev, nome: e.target.value }))} required className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 outline-none focus:border-uvv-yellow" placeholder="Nome completo" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-gray-400">Perfil</span>
+            <select value={novoUsuario.role} onChange={(e) => setNovoUsuario(prev => ({ ...prev, role: e.target.value, email: e.target.value === 'aluno' ? '' : prev.email, matricula: e.target.value === 'aluno' ? prev.matricula : '', curso_id: e.target.value === 'coordenador' ? prev.curso_id : '' }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 outline-none focus:border-uvv-yellow">
+              <option value="aluno">Aluno</option>
+              <option value="professor">Professor</option>
+              <option value="coordenador">Coordenador</option>
+              <option value="secretaria">Secretaria</option>
+              <option value="admin">Admin</option>
+            </select>
+          </label>
+          {novoUsuario.role === 'aluno' ? (
+            <label className="block">
+              <span className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-gray-400">Matricula</span>
+              <input value={novoUsuario.matricula} onChange={(e) => setNovoUsuario(prev => ({ ...prev, matricula: e.target.value }))} required className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 outline-none focus:border-uvv-yellow" placeholder="Matricula" />
+            </label>
+          ) : (
+            <label className="block">
+              <span className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-gray-400">E-mail</span>
+              <input type="email" value={novoUsuario.email} onChange={(e) => setNovoUsuario(prev => ({ ...prev, email: e.target.value }))} required className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 outline-none focus:border-uvv-yellow" placeholder="nome@instituicao.edu" />
+            </label>
+          )}
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-gray-400">Senha</span>
+            <input type="password" value={novoUsuario.senha} onChange={(e) => setNovoUsuario(prev => ({ ...prev, senha: e.target.value }))} required minLength="6" className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 outline-none focus:border-uvv-yellow" placeholder="******" />
+          </label>
+          {novoUsuario.role === 'coordenador' ? (
+            <label className="block">
+              <span className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-gray-400">Curso</span>
+              <select value={novoUsuario.curso_id} onChange={(e) => setNovoUsuario(prev => ({ ...prev, curso_id: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 outline-none focus:border-uvv-yellow">
+                <option value="">Sem curso</option>
+                {cursos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
+            </label>
+          ) : <div />}
+          <button type="submit" className="rounded-lg bg-gray-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-gray-800">Criar</button>
+        </form>
+      </section>
+
       <section className="overflow-hidden rounded-[28px] bg-white shadow-sm ring-1 ring-gray-200/70 dark:bg-[#191d28] dark:ring-white/10">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left">
@@ -127,14 +213,14 @@ export default function AdminUsers() {
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-gray-950 dark:text-white">{u.nome}</p>
-                        <p className="text-xs text-gray-500">{u.email}</p>
+                        <p className="text-xs text-gray-500">{u.role === 'aluno' ? (u.matricula || 'Matricula nao informada') : (u.email || 'E-mail nao informado')}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <select
                       value={u.role}
-                      onChange={(e) => handleRoleChange(u.id, e.target.value, u.curso_id)}
+                      onChange={(e) => handleRoleChange(u, e.target.value)}
                       className="mb-2 block rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:border-uvv-yellow"
                     >
                       <option value="admin">Admin</option>
@@ -147,12 +233,32 @@ export default function AdminUsers() {
                     {u.role === 'coordenador' && (
                       <select
                         value={u.curso_id || ''}
-                        onChange={(e) => handleRoleChange(u.id, u.role, e.target.value)}
+                        onChange={(e) => handleRoleChange(u, u.role, e.target.value)}
                         className="block rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:border-uvv-yellow"
                       >
                         <option value="">Sem curso global</option>
                         {cursos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                       </select>
+                    )}
+
+                    {u.role === 'aluno' && (
+                      <input
+                        value={u.matricula || ''}
+                        onChange={(e) => setUsuarios(prev => prev.map(item => item.id === u.id ? { ...item, matricula: e.target.value } : item))}
+                        onBlur={(e) => handleRoleChange(u, u.role, u.curso_id, e.target.value)}
+                        placeholder="Matricula"
+                        className="block rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:border-uvv-yellow"
+                      />
+                    )}
+
+                    {u.role !== 'aluno' && (
+                      <input
+                        value={u.email || ''}
+                        onChange={(e) => setUsuarios(prev => prev.map(item => item.id === u.id ? { ...item, email: e.target.value } : item))}
+                        onBlur={(e) => handleRoleChange(u, u.role, u.curso_id, null, e.target.value)}
+                        placeholder="E-mail institucional"
+                        className="block rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:border-uvv-yellow"
+                      />
                     )}
                   </td>
                   <td className="px-6 py-4">

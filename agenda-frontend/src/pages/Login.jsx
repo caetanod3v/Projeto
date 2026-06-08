@@ -15,7 +15,7 @@ const previewItems = [
 ];
 
 export default function Login({ onLogin }) {
-  const [email, setEmail] = useState('');
+  const [identificador, setIdentificador] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -25,7 +25,7 @@ export default function Login({ onLogin }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.post('/auth/login', { email, senha });
+      const response = await api.post('/auth/login', { identificador, senha });
       const { token, user } = response.data;
 
       localStorage.setItem('token', token);
@@ -37,9 +37,9 @@ export default function Login({ onLogin }) {
     } catch (err) {
       let message = 'Ocorreu um erro ao conectar com o servidor.';
       if (err.response && err.response.status === 403) {
-        message = err.response.data.error || 'Acesso negado.';
+        message = err.response.data.message || err.response.data.error || 'Acesso negado.';
       } else if (err.response && err.response.status === 401) {
-        message = 'E-mail ou senha invalidos.';
+        message = 'E-mail, matricula ou senha invalidos.';
       }
       setError(message);
       toast.error(message);
@@ -135,14 +135,14 @@ export default function Login({ onLogin }) {
 
           <form onSubmit={handleAuth} className="space-y-5">
             <div>
-              <label className="auth-label mb-2 block text-sm font-medium">E-mail institucional</label>
+              <label className="auth-label mb-2 block text-sm font-medium">E-mail ou matricula</label>
               <input
-                type="email"
+                type="text"
                 required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                value={identificador}
+                onChange={e => setIdentificador(e.target.value)}
                 className="auth-input w-full rounded-xl border px-4 py-3 text-sm outline-none transition"
-                placeholder="nome@instituicao.edu"
+                placeholder="nome@instituicao.edu ou matricula"
                 disabled={loading}
               />
             </div>

@@ -98,7 +98,7 @@ export default function Perfil({ user, onUserUpdate }) {
       onUserUpdate?.(res.data);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || 'Nao foi possivel carregar os dados do perfil.');
+      setError(err.response?.data?.message || err.response?.data?.error || 'Nao foi possivel carregar os dados do perfil.');
       toast.error('Erro ao carregar perfil.');
     } finally {
       setLoading(false);
@@ -164,7 +164,7 @@ export default function Perfil({ user, onUserUpdate }) {
       syncProfile(res.data);
       toast.success('Perfil atualizado.');
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Erro ao atualizar perfil.');
+      toast.error(err.response?.data?.message || err.response?.data?.error || 'Erro ao atualizar perfil.');
     } finally {
       setSavingProfile(false);
     }
@@ -205,7 +205,7 @@ export default function Perfil({ user, onUserUpdate }) {
       setAvatarModalOpen(false);
       toast.success('Foto de perfil atualizada.');
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Erro ao atualizar foto.');
+      toast.error(err.response?.data?.message || err.response?.data?.error || 'Erro ao atualizar foto.');
     } finally {
       setSavingAvatar(false);
     }
@@ -220,7 +220,7 @@ export default function Perfil({ user, onUserUpdate }) {
       setAvatarModalOpen(false);
       toast.success('Foto removida.');
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Erro ao remover foto.');
+      toast.error(err.response?.data?.message || err.response?.data?.error || 'Erro ao remover foto.');
     } finally {
       setSavingAvatar(false);
     }
@@ -240,7 +240,7 @@ export default function Perfil({ user, onUserUpdate }) {
       setPasswordModalOpen(false);
       toast.success('Senha alterada com sucesso.');
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Erro ao alterar senha.');
+      toast.error(err.response?.data?.message || err.response?.data?.error || 'Erro ao alterar senha.');
     } finally {
       setSavingPassword(false);
     }
@@ -295,6 +295,7 @@ export default function Perfil({ user, onUserUpdate }) {
   }
 
   const initial = profile?.nome?.charAt(0) || 'U';
+  const isAluno = profile?.role === 'aluno';
 
   return (
     <div className="mx-auto max-w-4xl space-y-5 animate-fade-in">
@@ -357,8 +358,8 @@ export default function Perfil({ user, onUserUpdate }) {
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl bg-gray-50/80 p-3 dark:bg-white/5">
-              <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400"><Mail size={12} /> Email</p>
-              <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{profile?.email || 'Nao informado'}</p>
+              <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400"><Mail size={12} /> {isAluno ? 'Matricula' : 'Email'}</p>
+              <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{isAluno ? (profile?.matricula || 'Nao informada') : (profile?.email || 'Nao informado')}</p>
             </div>
             <div className="rounded-2xl bg-gray-50/80 p-3 dark:bg-white/5">
               <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400"><Shield size={12} /> Funcao</p>

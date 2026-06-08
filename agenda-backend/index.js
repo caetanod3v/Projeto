@@ -88,6 +88,14 @@ const isValidEmail = (email) => (
   typeof email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
 );
 
+const normalizeEmail = (email) => (
+  typeof email === 'string' && email.trim() ? email.trim().toLowerCase() : null
+);
+
+const normalizeMatricula = (matricula) => (
+  typeof matricula === 'string' && matricula.trim() ? matricula.trim().toUpperCase() : null
+);
+
 const assertNonEmpty = (value, message) => {
   if (typeof value !== 'string' || !value.trim()) {
     throw validationError(message);
@@ -146,6 +154,7 @@ const usuarioPublicSelect = {
   id: true,
   nome: true,
   email: true,
+  matricula: true,
   role: true,
   status: true,
   avatar_url: true,
@@ -158,6 +167,7 @@ const toPublicUser = (user) => ({
   id: user.id,
   nome: user.nome,
   email: user.email,
+  matricula: user.matricula,
   role: user.role,
   status: user.status,
   avatar_url: user.avatar_url,
@@ -849,14 +859,25 @@ const fetchVisibleNotificationsForUser = async (user, take = 80) => {
 };
 
 app.post('/api/auth/register', async (req, res) => {
-  const { nome, email, senha, role, curso_id } = req.body;
-  const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+  const { nome, email, matricula, senha, role, curso_id } = req.body;
+  const requestedRole = role || 'secretaria';
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedMatricula = normalizeMatricula(matricula);
+  const isAluno = requestedRole === 'aluno';
 
   if (!nome || nome.trim().length < 2) {
     return sendValidationError(res, 'Informe um nome valido.');
   }
 
-  if (!isValidEmail(normalizedEmail)) {
+  if (!ROLE_VALUES.includes(requestedRole)) {
+    return sendValidationError(res, 'Informe um perfil valido.');
+  }
+
+  if (isAluno && !normalizedMatricula) {
+    return sendValidationError(res, 'Informe a matricula.');
+  }
+
+  if (!isAluno && !isValidEmail(normalizedEmail)) {
     return sendValidationError(res, 'Informe um e-mail valido.');
   }
 
@@ -864,21 +885,23 @@ app.post('/api/auth/register', async (req, res) => {
     return sendValidationError(res, 'A senha deve ter pelo menos 6 caracteres.');
   }
 
-  if (role && !ROLE_VALUES.includes(role)) {
-    return sendValidationError(res, 'Informe um perfil valido.');
-  }
-
   try {
-    const userExists = await prisma.usuario.findUnique({ where: { email: normalizedEmail } });
-    if (userExists) return res.status(400).json(apiError('E-mail ja cadastrado.', 'EMAIL_ALREADY_EXISTS'));
+    if (isAluno) {
+      const matriculaExists = await prisma.usuario.findUnique({ where: { matricula: normalizedMatricula } });
+      if (matriculaExists) return res.status(400).json(apiError('Matricula ja cadastrada.', 'MATRICULA_ALREADY_EXISTS'));
+    } else {
+      const userExists = await prisma.usuario.findUnique({ where: { email: normalizedEmail } });
+      if (userExists) return res.status(400).json(apiError('E-mail ja cadastrado.', 'EMAIL_ALREADY_EXISTS'));
+    }
 
     const hash = await bcrypt.hash(senha, 10);
     const newUser = await prisma.usuario.create({
       data: {
         nome: nome.trim(),
-        email: normalizedEmail,
+        email: isAluno ? null : normalizedEmail,
+        matricula: isAluno ? normalizedMatricula : null,
         senha: hash,
-        role: role || 'secretaria',
+        role: requestedRole,
         curso_id: curso_id || null,
         status: 'pendente'
       }
@@ -893,15 +916,23 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 app.post('/api/auth/login', async (req, res) => {
-  const { email, senha } = req.body;
-  const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+  const identificador = req.body?.identificador ?? req.body?.email ?? req.body?.matricula;
+  const { senha } = req.body;
+  const normalizedIdentifier = typeof identificador === 'string' ? identificador.trim() : '';
+  const isEmailLogin = isValidEmail(normalizedIdentifier);
+  const normalizedEmail = isEmailLogin ? normalizeEmail(normalizedIdentifier) : null;
+  const normalizedMatricula = !isEmailLogin ? normalizeMatricula(normalizedIdentifier) : null;
 
-  if (!isValidEmail(normalizedEmail) || !senha) {
-    return res.status(400).json(apiError('Informe e-mail e senha validos.', 'VALIDATION_ERROR'));
+  if (!normalizedIdentifier || !senha) {
+    return res.status(400).json(apiError('Informe e-mail ou matricula e senha validos.', 'VALIDATION_ERROR'));
   }
 
   try {
-    const user = await prisma.usuario.findUnique({ where: { email: normalizedEmail } });
+    const user = await prisma.usuario.findUnique({
+      where: isEmailLogin
+        ? { email: normalizedEmail }
+        : { matricula: normalizedMatricula },
+    });
     if (!user) return res.status(401).json(apiError('Credenciais invalidas.', 'INVALID_CREDENTIALS'));
 
     if (user.status === 'pendente') return res.status(403).json(apiError('Sua conta ainda aguarda aprovacao do administrador.', 'ACCOUNT_PENDING'));
@@ -911,7 +942,7 @@ app.post('/api/auth/login', async (req, res) => {
     if (!valid) return res.status(401).json(apiError('Credenciais invalidas.', 'INVALID_CREDENTIALS'));
 
     const token = jwt.sign(
-      { id: user.id, nome: user.nome, email: user.email, role: user.role, curso_id: user.curso_id },
+      { id: user.id, nome: user.nome, email: user.email, matricula: user.matricula, role: user.role, curso_id: user.curso_id },
       JWT_SECRET,
       { expiresIn: '8h' }
     );
@@ -1408,7 +1439,7 @@ app.get("/api/users", authenticateToken, requireRole('admin'), async (req, res) 
     const pagination = parsePagination(req.query);
     const query = {
       orderBy: { id: 'asc' },
-      select: { id: true, nome: true, email: true, role: true, status: true, curso_id: true, created_at: true, curso: true }
+      select: { id: true, nome: true, email: true, matricula: true, role: true, status: true, curso_id: true, created_at: true, curso: true }
     };
 
     if (pagination.hasPagination) {
@@ -1431,15 +1462,13 @@ app.get("/api/users", authenticateToken, requireRole('admin'), async (req, res) 
 });
 
 app.post("/api/users", authenticateToken, requireRole('admin'), async (req, res) => {
-  const { nome, email, senha, role, curso_id, status } = req.body;
-  const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+  const { nome, email, matricula, senha, role, curso_id, status } = req.body;
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedMatricula = normalizeMatricula(matricula);
+  const isAluno = role === 'aluno';
 
   if (!nome || nome.trim().length < 2) {
     return sendValidationError(res, 'Informe um nome valido.');
-  }
-
-  if (!isValidEmail(normalizedEmail)) {
-    return sendValidationError(res, 'Informe um e-mail valido.');
   }
 
   if (!senha || senha.length < 6) {
@@ -1450,13 +1479,37 @@ app.post("/api/users", authenticateToken, requireRole('admin'), async (req, res)
     return sendValidationError(res, 'Informe um perfil valido.');
   }
 
+  if (isAluno && !normalizedMatricula) {
+    return sendValidationError(res, 'Informe a matricula.');
+  }
+
+  if (!isAluno && !isValidEmail(normalizedEmail)) {
+    return sendValidationError(res, 'Informe um e-mail valido.');
+  }
+
   try {
+    if (isAluno) {
+      const matriculaExists = await prisma.usuario.findUnique({ where: { matricula: normalizedMatricula } });
+      if (matriculaExists) return res.status(400).json(apiError('Matricula ja cadastrada.', 'MATRICULA_ALREADY_EXISTS'));
+    } else {
+      const emailExists = await prisma.usuario.findUnique({ where: { email: normalizedEmail } });
+      if (emailExists) return res.status(400).json(apiError('E-mail ja cadastrado.', 'EMAIL_ALREADY_EXISTS'));
+    }
+
     const hash = await bcrypt.hash(senha, 10);
     const novo = await prisma.usuario.create({
-      data: { nome: nome.trim(), email: normalizedEmail, senha: hash, role, curso_id: curso_id || null, status: status || 'ativo' }
+      data: {
+        nome: nome.trim(),
+        email: isAluno ? null : normalizedEmail,
+        matricula: isAluno ? normalizedMatricula : null,
+        senha: hash,
+        role,
+        curso_id: curso_id || null,
+        status: status || 'ativo'
+      }
     });
-    await registrarLog(req.user.id, 'CRIAR_USUARIO', `Admin criou o usuário ${email}`);
-    res.status(201).json({ id: novo.id, nome: novo.nome, email: novo.email, role: novo.role, status: novo.status, curso_id: novo.curso_id });
+    await registrarLog(req.user.id, 'CRIAR_USUARIO', `Admin criou o usuario ${novo.email || novo.matricula}`);
+    res.status(201).json({ id: novo.id, nome: novo.nome, email: novo.email, matricula: novo.matricula, role: novo.role, status: novo.status, curso_id: novo.curso_id });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Erro ao criar usuário." });
@@ -1465,7 +1518,7 @@ app.post("/api/users", authenticateToken, requireRole('admin'), async (req, res)
 
 app.put("/api/users/:id", authenticateToken, requireRole('admin'), async (req, res) => {
   const id = parseInt(req.params.id);
-  const { nome, email, senha, role, curso_id, status } = req.body;
+  const { nome, email, matricula, senha, role, curso_id, status } = req.body;
 
   if (Number.isNaN(id)) {
     return sendValidationError(res, 'Usuario invalido.');
@@ -1473,10 +1526,6 @@ app.put("/api/users/:id", authenticateToken, requireRole('admin'), async (req, r
 
   if (nome !== undefined && (!nome || nome.trim().length < 2)) {
     return sendValidationError(res, 'Informe um nome valido.');
-  }
-
-  if (email !== undefined && !isValidEmail(email)) {
-    return sendValidationError(res, 'Informe um e-mail valido.');
   }
 
   if (senha && senha.length < 6) {
@@ -1488,10 +1537,37 @@ app.put("/api/users/:id", authenticateToken, requireRole('admin'), async (req, r
   }
 
   try {
+    const existing = await prisma.usuario.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'Usuario nao encontrado.' });
+
+    const nextRole = role ?? existing.role;
+    const isAluno = nextRole === 'aluno';
+    const nextEmail = email !== undefined ? normalizeEmail(email) : existing.email;
+    const nextMatricula = matricula !== undefined ? normalizeMatricula(matricula) : existing.matricula;
+
+    if (isAluno && !nextMatricula) {
+      return sendValidationError(res, 'Informe a matricula.');
+    }
+
+    if (!isAluno && !isValidEmail(nextEmail)) {
+      return sendValidationError(res, 'Informe um e-mail valido.');
+    }
+
+    if (isAluno && nextMatricula !== existing.matricula) {
+      const matriculaExists = await prisma.usuario.findFirst({ where: { matricula: nextMatricula, id: { not: id } } });
+      if (matriculaExists) return res.status(400).json(apiError('Matricula ja cadastrada.', 'MATRICULA_ALREADY_EXISTS'));
+    }
+
+    if (!isAluno && nextEmail !== existing.email) {
+      const emailExists = await prisma.usuario.findFirst({ where: { email: nextEmail, id: { not: id } } });
+      if (emailExists) return res.status(400).json(apiError('E-mail ja cadastrado.', 'EMAIL_ALREADY_EXISTS'));
+    }
+
     const data = {
       ...(nome !== undefined && { nome: nome.trim() }),
-      ...(email !== undefined && { email: email.trim().toLowerCase() }),
       ...(role !== undefined && { role }),
+      ...(role !== undefined || email !== undefined ? { email: isAluno ? null : nextEmail } : {}),
+      ...(role !== undefined || matricula !== undefined ? { matricula: isAluno ? nextMatricula : null } : {}),
       ...(curso_id !== undefined && { curso_id }),
       ...(status !== undefined && { status }),
     };
@@ -1502,8 +1578,8 @@ app.put("/api/users/:id", authenticateToken, requireRole('admin'), async (req, r
       where: { id },
       data
     });
-    await registrarLog(req.user.id, 'EDITAR_USUARIO', `Admin editou o usuário ${email}`);
-    res.json({ id: updated.id, nome: updated.nome, email: updated.email, role: updated.role, status: updated.status, curso_id: updated.curso_id });
+    await registrarLog(req.user.id, 'EDITAR_USUARIO', `Admin editou o usuario ${updated.email || updated.matricula || updated.id}`);
+    res.json({ id: updated.id, nome: updated.nome, email: updated.email, matricula: updated.matricula, role: updated.role, status: updated.status, curso_id: updated.curso_id });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Erro ao editar usuário." });
@@ -1514,7 +1590,7 @@ app.patch("/api/users/:id/aprovar", authenticateToken, requireRole('admin'), asy
   const id = parseInt(req.params.id);
   try {
     const updated = await prisma.usuario.update({ where: { id }, data: { status: 'ativo' } });
-    await registrarLog(req.user.id, 'APROVAR_USUARIO', `Admin aprovou o usuário ${updated.email}`);
+    await registrarLog(req.user.id, 'APROVAR_USUARIO', `Admin aprovou o usuario ${updated.email || updated.matricula || updated.id}`);
     res.json({ success: true, status: updated.status });
   } catch (e) {
     res.status(500).json({ error: "Erro ao aprovar usuário." });
@@ -1525,7 +1601,7 @@ app.patch("/api/users/:id/bloquear", authenticateToken, requireRole('admin'), as
   const id = parseInt(req.params.id);
   try {
     const updated = await prisma.usuario.update({ where: { id }, data: { status: 'bloqueado' } });
-    await registrarLog(req.user.id, 'BLOQUEAR_USUARIO', `Admin bloqueou o usuário ${updated.email}`);
+    await registrarLog(req.user.id, 'BLOQUEAR_USUARIO', `Admin bloqueou o usuario ${updated.email || updated.matricula || updated.id}`);
     res.json({ success: true, status: updated.status });
   } catch (e) {
     res.status(500).json({ error: "Erro ao bloquear usuário." });

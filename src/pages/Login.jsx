@@ -15,7 +15,7 @@ const previewItems = [
 ];
 
 export default function Login({ onLogin }) {
-  const [email, setEmail] = useState('');
+  const [identificador, setIdentificador] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -25,7 +25,7 @@ export default function Login({ onLogin }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.post('/auth/login', { email, senha });
+      const response = await api.post('/auth/login', { identificador, senha });
       const { token, user } = response.data;
 
       localStorage.setItem('token', token);
@@ -37,9 +37,9 @@ export default function Login({ onLogin }) {
     } catch (err) {
       let message = 'Ocorreu um erro ao conectar com o servidor.';
       if (err.response && err.response.status === 403) {
-        message = err.response.data.error || 'Acesso negado.';
+        message = err.response.data.message || err.response.data.error || 'Acesso negado.';
       } else if (err.response && err.response.status === 401) {
-        message = 'E-mail ou senha invalidos.';
+        message = 'E-mail, matricula ou senha invalidos.';
       }
       setError(message);
       toast.error(message);
@@ -76,15 +76,15 @@ export default function Login({ onLogin }) {
             </div>
 
             <div className="auth-preview-calendar">
-              <div className="auth-preview-day">
+              <div className="auth-preview-day auth-float-1">
                 <span>09:00</span>
                 <strong>Aula inaugural</strong>
               </div>
-              <div className="auth-preview-day is-live">
+              <div className="auth-preview-day auth-float-2 is-live">
                 <span>11:30</span>
                 <strong>Banca confirmada</strong>
               </div>
-              <div className="auth-preview-day">
+              <div className="auth-preview-day auth-float-3">
                 <span>15:00</span>
                 <strong>Reuniao de curso</strong>
               </div>
@@ -94,7 +94,7 @@ export default function Login({ onLogin }) {
               {previewItems.map((item, index) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.label} className="auth-preview-card" style={{ '--delay': `${index * 1.2}s` }}>
+                  <div key={item.label} className="auth-preview-card auth-timeline-item" style={{ '--delay': `${index * 1.2}s` }}>
                     <div className={`auth-preview-icon auth-preview-icon-${item.tone}`}>
                       <Icon size={14} />
                     </div>
@@ -113,7 +113,7 @@ export default function Login({ onLogin }) {
                 <span>Status semanal</span>
                 <span>Sincronizado</span>
               </div>
-              <div className="flex h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div className="auth-progress-track flex h-1.5 overflow-hidden rounded-full bg-white/10">
                 <div className="auth-preview-progress h-full rounded-full" />
               </div>
             </div>
@@ -135,14 +135,14 @@ export default function Login({ onLogin }) {
 
           <form onSubmit={handleAuth} className="space-y-5">
             <div>
-              <label className="auth-label mb-2 block text-sm font-medium">E-mail institucional</label>
+              <label className="auth-label mb-2 block text-sm font-medium">E-mail ou matricula</label>
               <input
-                type="email"
+                type="text"
                 required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                value={identificador}
+                onChange={e => setIdentificador(e.target.value)}
                 className="auth-input w-full rounded-xl border px-4 py-3 text-sm outline-none transition"
-                placeholder="nome@instituicao.edu"
+                placeholder="nome@instituicao.edu ou matricula"
                 disabled={loading}
               />
             </div>

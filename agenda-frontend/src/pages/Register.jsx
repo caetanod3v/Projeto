@@ -11,6 +11,7 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 export default function Register() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
+  const [matricula, setMatricula] = useState('');
   const [senha, setSenha] = useState('');
   const [role, setRole] = useState('secretaria');
   const [cursoId, setCursoId] = useState('');
@@ -29,7 +30,7 @@ export default function Register() {
       setCursos(res.data);
     } catch (err) {
       console.error(err);
-      setCursosError(err.response?.data?.error || 'Nao foi possivel carregar os cursos.');
+      setCursosError(err.response?.data?.message || err.response?.data?.error || 'Nao foi possivel carregar os cursos.');
       toast.error('Erro ao buscar cursos.');
     } finally {
       setCursosLoading(false);
@@ -45,20 +46,36 @@ export default function Register() {
 
     setLoading(true);
     setFormError(null);
+
+    if (role === 'aluno' && !matricula.trim()) {
+      setLoading(false);
+      setFormError('Informe sua matricula.');
+      toast.error('Informe sua matricula.');
+      return;
+    }
+
+    if (role !== 'aluno' && !email.trim()) {
+      setLoading(false);
+      setFormError('Informe seu e-mail institucional.');
+      toast.error('Informe seu e-mail institucional.');
+      return;
+    }
+
     try {
       await api.post('/auth/register', {
         nome,
-        email,
+        email: role === 'aluno' ? null : email,
+        matricula: role === 'aluno' ? matricula : null,
         senha,
         role,
         curso_id: cursoId ? parseInt(cursoId) : null
       });
       setSubmitted(true);
     } catch (err) {
-      const message = err.response?.data?.error || 'Ocorreu um erro ao conectar com o servidor.';
+      const message = err.response?.data?.message || err.response?.data?.error || 'Ocorreu um erro ao conectar com o servidor.';
       setFormError(message);
-      if (err.response && err.response.data.error) {
-        toast.error(err.response.data.error);
+      if (err.response && (err.response.data.message || err.response.data.error)) {
+        toast.error(err.response.data.message || err.response.data.error);
       } else {
         toast.error('Ocorreu um erro ao conectar com o servidor.');
       }
@@ -120,18 +137,33 @@ export default function Register() {
             />
           </div>
 
-          <div>
-            <label className="auth-label mb-1.5 block text-sm font-medium">E-mail institucional</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="auth-input w-full rounded-xl border px-4 py-3 text-sm outline-none transition"
-              placeholder="nome@instituicao.edu"
-              disabled={loading}
-            />
-          </div>
+          {role === 'aluno' ? (
+            <div>
+              <label className="auth-label mb-1.5 block text-sm font-medium">Matricula</label>
+              <input
+                type="text"
+                required
+                value={matricula}
+                onChange={e => setMatricula(e.target.value)}
+                className="auth-input w-full rounded-xl border px-4 py-3 text-sm outline-none transition"
+                placeholder="Sua matricula academica"
+                disabled={loading}
+              />
+            </div>
+          ) : (
+            <div>
+              <label className="auth-label mb-1.5 block text-sm font-medium">E-mail institucional</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="auth-input w-full rounded-xl border px-4 py-3 text-sm outline-none transition"
+                placeholder="nome@instituicao.edu"
+                disabled={loading}
+              />
+            </div>
+          )}
 
           <div>
             <label className="auth-label mb-1.5 block text-sm font-medium">Senha</label>
@@ -154,6 +186,8 @@ export default function Register() {
               onChange={e => {
                 setRole(e.target.value);
                 if (e.target.value !== 'coordenador') setCursoId('');
+                if (e.target.value === 'aluno') setEmail('');
+                if (e.target.value !== 'aluno') setMatricula('');
               }}
               className="auth-input w-full rounded-xl border px-4 py-3 text-sm outline-none transition"
               disabled={loading}

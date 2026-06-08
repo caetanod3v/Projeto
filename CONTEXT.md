@@ -198,3 +198,90 @@ Adicionar as roles `aluno` e `professor` ao Fluxus com as mesmas permissoes nest
 - A migration nova adiciona valores ao enum `Role`, mas nao altera dados existentes.
 - Aluno/professor visualizam todos os compromissos aprovados retornados por `/api/compromissos` nesta fase.
 - Escopo por curso para aluno/professor nao foi implementado nesta fase.
+
+## FASE 3.5 - Autenticacao academica por matricula/e-mail
+
+Data: 2026-06-08
+
+### Objetivo
+
+Finalizar a logica academica de cadastro e login por perfil:
+
+- `aluno` usa `matricula + senha`.
+- `professor`, `coordenador`, `secretaria` e `admin` usam `e-mail institucional + senha`.
+- Usuarios antigos com e-mail continuam compativeis.
+
+### Banco e Prisma
+
+- O model `Usuario` passou a ter `email` opcional e `matricula` opcional unica.
+- O campo `email` foi mantido para os demais perfis e continua unico quando existir.
+- Migration criada:
+  - `agenda-backend/prisma/migrations/20260608100000_add_student_registration_login/migration.sql`
+- A migration:
+  - remove `NOT NULL` de `usuarios.email`;
+  - adiciona `usuarios.matricula`;
+  - cria indice unico para `matricula`;
+  - cria indice auxiliar para consultas por `matricula`.
+
+### Backend
+
+- `POST /api/auth/register` agora valida o identificador de acordo com o perfil:
+  - aluno exige `matricula`;
+  - demais perfis exigem e-mail valido.
+- `POST /api/auth/login` agora aceita um campo unico `identificador`:
+  - se tiver formato de e-mail, busca por `email`;
+  - caso contrario, busca por `matricula`.
+- O JWT passa a incluir `matricula` quando existir, preservando `id`, `nome`, `email`, `role` e `curso_id`.
+- O painel admin em `/api/users` permite criar e editar:
+  - alunos com matricula;
+  - demais perfis com e-mail.
+- A resposta publica do usuario passou a incluir `matricula`.
+
+### Frontend
+
+- `Login.jsx` passou a exibir o campo unico "E-mail ou matricula".
+- `Register.jsx` alterna entre:
+  - campo "Matricula" para aluno;
+  - campo "E-mail institucional" para os demais perfis.
+- `AdminUsers.jsx` exibe e edita matricula para aluno e e-mail para os demais perfis.
+- `Perfil.jsx` mostra matricula para aluno e e-mail para os demais cargos.
+- `ForgotPassword.jsx` mantem recuperacao por e-mail e informa que recuperacao por matricula fica como ponto futuro/fluxo de secretaria nesta fase.
+- A copia raiz `src/pages/*` foi mantida em paridade com `agenda-frontend/src/pages/*`.
+
+### Limitacoes
+
+- Recuperacao de senha por matricula nao foi implementada nesta fase.
+- Alunos sem e-mail dependem de atendimento administrativo/secretaria para recuperacao de acesso.
+- A migration foi criada como SQL seguro, sem `migrate reset`.
+
+### Validacoes executadas
+
+- `cd agenda-backend && node --check index.js`
+  - Resultado: passou.
+- `cd agenda-backend && npx prisma validate`
+  - Resultado: passou.
+  - Observacao: Prisma manteve o warning sobre `package.json#prisma` deprecated para Prisma 7.
+- `cd agenda-backend && npx prisma generate`
+  - Resultado: passou.
+  - Observacao: Prisma manteve o warning sobre `package.json#prisma` deprecated para Prisma 7.
+- `cd agenda-frontend && npm run build`
+  - Resultado: passou.
+  - Observacao: manteve o warning conhecido do Vite sobre chunk acima de 500 kB.
+
+### Arquivos alterados
+
+- `agenda-backend/index.js`
+- `agenda-backend/prisma/schema.prisma`
+- `agenda-backend/schema.sql`
+- `agenda-backend/prisma/migrations/20260608100000_add_student_registration_login/migration.sql`
+- `agenda-frontend/src/pages/Login.jsx`
+- `agenda-frontend/src/pages/Register.jsx`
+- `agenda-frontend/src/pages/AdminUsers.jsx`
+- `agenda-frontend/src/pages/Perfil.jsx`
+- `agenda-frontend/src/pages/ForgotPassword.jsx`
+- `src/pages/Login.jsx`
+- `src/pages/Register.jsx`
+- `src/pages/AdminUsers.jsx`
+- `src/pages/Perfil.jsx`
+- `src/pages/ForgotPassword.jsx`
+- `CONTEXT.md`

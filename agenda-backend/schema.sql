@@ -2,7 +2,8 @@
 CREATE TABLE IF NOT EXISTS usuarios (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE,
+    matricula VARCHAR(80) UNIQUE,
     role VARCHAR(50) NOT NULL CHECK (role IN ('coordenador', 'secretaria', 'admin', 'aluno', 'professor')),
     avatar_url TEXT,
     google_access_token TEXT,

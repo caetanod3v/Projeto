@@ -21,10 +21,10 @@ export default function ForgotPassword() {
       await api.post('/auth/forgot-password', { email });
       setSent(true);
     } catch (err) {
-      const message = err.response?.data?.error || 'Erro ao solicitar redefinicao.';
+      const message = err.response?.data?.message || err.response?.data?.error || 'Erro ao solicitar redefinicao.';
       setError(message);
-      if (err.response && err.response.data.error) {
-         toast.error(err.response.data.error);
+      if (err.response && (err.response.data.message || err.response.data.error)) {
+         toast.error(err.response.data.message || err.response.data.error);
       } else {
         toast.error('Erro ao solicitar redefinicao.');
       }
@@ -57,7 +57,7 @@ export default function ForgotPassword() {
               <div className="mb-5 h-5" aria-hidden="true" />
               <p className="auth-eyebrow text-[11px] font-semibold uppercase tracking-[0.22em]">Recuperacao</p>
               <h1 className="auth-title mt-2 text-2xl font-semibold tracking-tight">Redefinir senha</h1>
-              <p className="auth-muted mt-2 text-sm">Enviaremos as instrucoes para o e-mail cadastrado.</p>
+              <p className="auth-muted mt-2 text-sm">Enviaremos as instrucoes para o e-mail cadastrado. Recuperacao por matricula sera tratada pela secretaria nesta fase.</p>
             </div>
 
             {error && (
